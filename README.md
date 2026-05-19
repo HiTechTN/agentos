@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build](https://github.com/HiTechTN/agentos/actions/workflows/docker.yml/badge.svg)](https://github.com/HiTechTN/agentos/actions/workflows/docker.yml)
 [![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue?logo=docker)](https://github.com/HiTechTN/agentos/pkgs/container/agentos)
+[![Docker Web](https://img.shields.io/badge/Docker-web-blue?logo=docker)](https://github.com/HiTechTN/agentos/pkgs/container/agentos%2Fweb)
 [![Landing Page](https://img.shields.io/badge/Landing-Pages-purple)](https://hitechtn.github.io/agentos/)
 
 ---
