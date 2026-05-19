@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+backups/
+docker/postgres/init.sql
+*.db
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Docker
+.docker/
+
+# PRD document (internal)
+AgentOS-PRD-v1.0.md

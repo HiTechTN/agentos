@@ -1,0 +1,138 @@
+name: agentos
+
+networks:
+  agentos_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+  redis_data:
+  strapi_data:
+  ollama_data:
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: agentos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agentos
+      POSTGRES_USER: agentos
+      POSTGRES_PASSWORD: agentos_demo_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - agentos_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentos -d agentos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: agentos-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass agentos_redis_demo
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - agentos_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: agentos-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - agentos_net
+    entrypoint: >
+      sh -c "ollama serve &
+      sleep 3 &&
+      ollama pull qwen2.5 &&
+      wait"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: agentos-mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - agentos_net
+
+  strapi:
+    image: strapi/strapi:latest
+    container_name: agentos-strapi
+    restart: unless-stopped
+    environment:
+      DATABASE_CLIENT: sqlite
+      DATABASE_FILENAME: /data/strapi.db
+      JWT_SECRET: strapi-demo-jwt-secret
+      ADMIN_JWT_SECRET: strapi-admin-jwt-secret
+    ports:
+      - "1337:1337"
+    volumes:
+      - strapi_data:/data
+    networks:
+      - agentos_net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentos-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - agentos_net
+
+  web:
+    build:
+      context: ./app/web
+      dockerfile: Dockerfile.web
+    container_name: agentos-web
+    restart: unless-stopped
+    depends_on:
+      - app
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    networks:
+      - agentos_net

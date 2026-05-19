@@ -1,0 +1,68 @@
+# AgentOS v1.0 - Security & Orchestration Policies
+# Reference: app/config/settings.py for env-based config
+
+orchestration:
+  max_retries: 3
+  circuit_breaker_threshold: 3
+  circuit_breaker_reset_seconds: 300
+  execution_mode: mixed
+  task_priority_default: 0
+  task_priority_range: [0, 10]
+
+hitl:
+  required_actions:
+    - deploy
+    - publish
+    - charge_stripe
+    - create_campaign
+    - send_campaign
+  approve_endpoint: /api/v1/hitl/approve
+  reject_endpoint: /api/v1/hitl/reject
+  modes:
+    - webhook
+    - cli
+
+sandbox:
+  network_policy: filtered
+  allowed_services:
+    - postgres:5432
+    - redis:6379
+    - ollama:11434
+    - mailhog:1025
+    - strapi:1337
+  resource_limits:
+    cpu: "0.5"
+    memory: "512m"
+
+logging:
+  format: json
+  immutable: true
+  fields:
+    - timestamp
+    - agent_id
+    - action
+    - status
+    - trace_id
+    - project_id
+  secret_masking: partial
+  masked_fields:
+    - api_key
+    - token
+    - password
+    - secret
+    - authorization
+
+errors:
+  format: dict
+  fields:
+    - error
+    - code
+    - detail
+    - trace_id
+
+quota:
+  strategy: per_project
+  limits:
+    llm_calls: 1000
+    embeddings: 5000
+    agent_executions: 500
