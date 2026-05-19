@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentOS - AI Agent Orchestration System</title>
+<meta name="description" content="AgentOS transforms your intent into executable AI workflows. Code → Content → Acquisition → Sales, automated.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234c6ef5'/><text x='16' y='22' text-anchor='middle' font-size='18' font-weight='bold' fill='white'>A</text></svg>">
+<style>
+:root {
+  --primary: #4c6ef5;
+  --primary-dark: #3b5bdb;
+  --primary-light: #dbe4ff;
+  --bg: #ffffff;
+  --bg-alt: #f8f9fa;
+  --text: #212529;
+  --text-secondary: #6c757d;
+  --border: #dee2e6;
+  --success: #40c057;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* Nav */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+nav .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; color: var(--text); text-decoration: none !important; }
+.logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; }
+.nav-links { display: flex; gap: 28px; align-items: center; }
+.nav-links a { font-size: .9rem; color: var(--text-secondary); font-weight: 500; text-decoration: none; }
+.nav-links a:hover { color: var(--primary); }
+.btn { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: .9rem; font-weight: 600; text-decoration: none !important; transition: all .2s; cursor: pointer; border: none; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-lg { padding: 14px 32px; font-size: 1rem; }
+
+/* Hero */
+.hero { padding: 140px 0 80px; text-align: center; background: linear-gradient(180deg, var(--bg-alt) 0%, var(--bg) 100%); }
+.hero h1 { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.15; margin-bottom: 20px; }
+.hero h1 span { background: linear-gradient(135deg, var(--primary), #748ffc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero p { font-size: 1.2rem; color: var(--text-secondary); max-width: 640px; margin: 0 auto 36px; }
+.hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.hero-stats { display: flex; justify-content: center; gap: 48px; margin-top: 60px; flex-wrap: wrap; }
+.hero-stats div { text-align: center; }
+.hero-stats strong { display: block; font-size: 2rem; color: var(--text); }
+.hero-stats span { font-size: .85rem; color: var(--text-secondary); }
+
+/* Pipeline */
+.pipeline { padding: 80px 0; background: var(--bg-alt); }
+.pipeline h2 { text-align: center; font-size: 2rem; margin-bottom: 48px; }
+.pipeline-flow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.pipeline-step { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; text-align: center; flex: 1; min-width: 160px; max-width: 220px; transition: all .2s; }
+.pipeline-step:hover { border-color: var(--primary); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.pipeline-step .icon { font-size: 2rem; margin-bottom: 8px; }
+.pipeline-step h3 { font-size: .95rem; margin-bottom: 4px; }
+.pipeline-step p { font-size: .8rem; color: var(--text-secondary); }
+.pipeline-arrow { font-size: 1.5rem; color: var(--primary); font-weight: 300; }
+
+/* Features */
+.features { padding: 80px 0; }
+.features h2 { text-align: center; font-size: 2rem; margin-bottom: 12px; }
+.features > .container > p { text-align: center; color: var(--text-secondary); margin-bottom: 48px; max-width: 600px; margin-left: auto; margin-right: auto; }
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.feature-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; transition: all .2s; }
+.feature-card:hover { border-color: var(--primary); box-shadow: var(--shadow-lg); }
+.feature-card .icon { font-size: 2rem; margin-bottom: 12px; }
+.feature-card h3 { font-size: 1.05rem; margin-bottom: 8px; }
+.feature-card p { font-size: .85rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* Agents */
+.agents { padding: 80px 0; background: var(--bg-alt); }
+.agents h2 { text-align: center; font-size: 2rem; margin-bottom: 48px; }
+.agents-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.agent-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; text-align: center; transition: all .2s; }
+.agent-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.agent-card .emoji { font-size: 2.5rem; margin-bottom: 12px; }
+.agent-card h3 { font-size: 1rem; margin-bottom: 4px; }
+.agent-card .tag { display: inline-block; font-size: .7rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; margin-bottom: 12px; }
+.tag-dev { background: #e7f5ff; color: #1971c2; }
+.tag-content { background: #f3f0ff; color: #7048e8; }
+.tag-marketing { background: #fff0f6; color: #c2255c; }
+.tag-commerce { background: #ebfbee; color: #2b8a3e; }
+.agent-card p { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* How it works */
+.how { padding: 80px 0; }
+.how h2 { text-align: center; font-size: 2rem; margin-bottom: 48px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; counter-reset: step; }
+.step { text-align: center; padding: 28px 20px; border: 1px solid var(--border); border-radius: var(--radius); position: relative; }
+.step::before { counter-increment: step; content: counter(step); position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 28px; height: 28px; background: var(--primary); color: #fff; border-radius: 50%; font-size: .85rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.step h3 { font-size: 1rem; margin: 12px 0 8px; }
+.step p { font-size: .85rem; color: var(--text-secondary); }
+
+/* Stack */
+.stack { padding: 80px 0; background: var(--bg-alt); text-align: center; }
+.stack h2 { font-size: 2rem; margin-bottom: 36px; }
+.stack-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 700px; margin: 0 auto; }
+.stack-tag { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 20px; font-size: .85rem; font-weight: 500; transition: all .2s; }
+.stack-tag:hover { border-color: var(--primary); color: var(--primary); }
+
+/* CTA */
+.cta { padding: 80px 0; text-align: center; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: #fff; }
+.cta h2 { font-size: 2.2rem; margin-bottom: 12px; }
+.cta p { opacity: .9; margin-bottom: 32px; font-size: 1.1rem; }
+.cta .btn-primary { background: #fff; color: var(--primary); }
+.cta .btn-primary:hover { background: var(--bg-alt); }
+.cta code { display: inline-block; background: rgba(0,0,0,.2); padding: 12px 24px; border-radius: 8px; font-size: .9rem; margin-top: 24px; }
+
+/* Footer */
+footer { padding: 32px 0; text-align: center; font-size: .85rem; color: var(--text-secondary); border-top: 1px solid var(--border); }
+footer a { color: var(--text-secondary); }
+footer a:hover { color: var(--primary); }
+
+@media (max-width: 768px) {
+  .nav-links a:not(.btn) { display: none; }
+  .pipeline-flow { flex-direction: column; }
+  .pipeline-arrow { transform: rotate(90deg); }
+  .hero-stats { gap: 24px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="/" class="logo"><span class="logo-icon">A</span> AgentOS</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#agents">Agents</a>
+      <a href="#how">How it works</a>
+      <a href="https://github.com/HiTechTN/agentos" target="_blank">GitHub</a>
+      <span style="font-size:.85rem;color:var(--text-secondary)">v1.0.0</span>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <h1>Turn your idea into<br><span>working software</span> automatically</h1>
+    <p>AgentOS orchestrates four AI agents to scaffold your code, write content, launch campaigns, and process payments — in one pipeline. Just describe what you need.</p>
+    <div class="hero-btns">
+      <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">Deploy with Docker</a>
+      <a href="#how" class="btn btn-outline btn-lg">How it works</a>
+    </div>
+    <div class="hero-stats">
+      <div><strong>&lt; 15 min</strong><span>Time to first run</span></div>
+      <div><strong>4 agents</strong><span>Specialized AI workers</span></div>
+      <div><strong>HITL</strong><span>Human validation</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="pipeline">
+  <div class="container">
+    <h2>The pipeline</h2>
+    <div class="pipeline-flow">
+      <div class="pipeline-step"><div class="icon">&#x1F4EC;</div><h3>Prompt</h3><p>Describe your intent</p></div>
+      <span class="pipeline-arrow">&#x2192;</span>
+      <div class="pipeline-step"><div class="icon">&#x2699;&#xFE0F;</div><h3>Orchestrator</h3><p>Decompose &amp; route</p></div>
+      <span class="pipeline-arrow">&#x2192;</span>
+      <div class="pipeline-step"><div class="icon">&#x1F916;</div><h3>4 Agents</h3><p>Execute in parallel</p></div>
+      <span class="pipeline-arrow">&#x2192;</span>
+      <div class="pipeline-step"><div class="icon">&#x2705;</div><h3>HITL</h3><p>Human approval</p></div>
+      <span class="pipeline-arrow">&#x2192;</span>
+      <div class="pipeline-step"><div class="icon">&#x1F680;</div><h3>Deploy</h3><p>Ship to production</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="container">
+    <h2>Why AgentOS?</h2>
+    <p>Built for founders, agencies, and teams who want to ship faster without the overhead.</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="icon">&#x1F916;</div><h3>Four specialized agents</h3><p>Dev, Content, Marketing, and Commerce agents work together on your pipeline.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F6E1;&#xFE0F;</div><h3>Human-in-the-loop</h3><p>Critical actions require your approval. Deployments, payments, and publications are gated.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F504;</div><h3>LLM fallback</h3><p>OpenRouter primary, Ollama local fallback, degraded response as last resort.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F9F0;</div><h3>Vector memory</h3><p>PostgreSQL + pgvector stores project embeddings for context retention.</p></div>
+      <div class="feature-card"><div class="icon">&#x26A1;</div><h3>Circuit breaker</h3><p>Auto-disables agents after 3 consecutive failures. No runaway costs.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F4CA;</div><h3>JSON logging</h3><p>Immutable structured logs with secret masking for audit compliance.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="agents" id="agents">
+  <div class="container">
+    <h2>Meet the agents</h2>
+    <div class="agents-grid">
+      <div class="agent-card">
+        <div class="emoji">&#x1F4BB;</div>
+        <h3>DevAgent</h3>
+        <span class="tag tag-dev">code</span>
+        <p>Scaffolds repos, configures CI/CD (GitHub Actions + GitLab CI), runs tests, deploys to staging.</p>
+      </div>
+      <div class="agent-card">
+        <div class="emoji">&#x1F4DD;</div>
+        <h3>ContentAgent</h3>
+        <span class="tag tag-content">content</span>
+        <p>Writes SEO content, generates images via Replicate, manages Strapi CMS editorial calendar.</p>
+      </div>
+      <div class="agent-card">
+        <div class="emoji">&#x1F4CA;</div>
+        <h3>MarketingAgent</h3>
+        <span class="tag tag-marketing">growth</span>
+        <p>Segments audiences, sends email campaigns (MailHog/SMTP), configures ads, generates reports.</p>
+      </div>
+      <div class="agent-card">
+        <div class="emoji">&#x1F4B0;</div>
+        <h3>CommerceAgent</h3>
+        <span class="tag tag-commerce">sales</span>
+        <p>Manages product catalogs, creates Stripe checkout sessions, tracks inventory, generates FAQ.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="container">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <h3>Clone &amp; configure</h3>
+        <p><code>git clone</code> + <code>cp .env.example .env</code> — fill in your API keys.</p>
+      </div>
+      <div class="step">
+        <h3>Start the stack</h3>
+        <p><code>make init && docker compose up</code> — all services spin up.</p>
+      </div>
+      <div class="step">
+        <h3>Describe your goal</h3>
+        <p>Send a prompt to the API or use the Next.js dashboard.</p>
+      </div>
+      <div class="step">
+        <h3>Approve &amp; deploy</h3>
+        <p>Review HITL requests, approve, and your pipeline completes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stack">
+  <div class="container">
+    <h2>Powered by</h2>
+    <div class="stack-grid">
+      <span class="stack-tag">Python 3.13</span>
+      <span class="stack-tag">FastAPI</span>
+      <span class="stack-tag">LangGraph</span>
+      <span class="stack-tag">Pydantic</span>
+      <span class="stack-tag">PostgreSQL 17</span>
+      <span class="stack-tag">pgvector</span>
+      <span class="stack-tag">Redis 7</span>
+      <span class="stack-tag">OpenRouter</span>
+      <span class="stack-tag">Ollama</span>
+      <span class="stack-tag">Docker Compose</span>
+      <span class="stack-tag">Next.js 14</span>
+      <span class="stack-tag">TypeScript</span>
+      <span class="stack-tag">Stripe</span>
+      <span class="stack-tag">Replicate</span>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <h2>Ready to ship?</h2>
+    <p>Get AgentOS running in under 15 minutes.</p>
+    <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">Deploy on GitHub</a>
+    <br>
+    <code>git clone https://github.com/HiTechTN/agentos.git</code>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v1.0.0 &mdash; MIT License &mdash; Built with Python &amp; Next.js</p>
+  </div>
+</footer>
+
+</body>
+</html>
