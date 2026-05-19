@@ -10,6 +10,8 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   REGISTRY: ghcr.io
+  IMAGE_APP: ghcr.io/hitechtn/agentos
+  IMAGE_WEB: ghcr.io/hitechtn/agentos/web
 
 jobs:
   build:
@@ -21,11 +23,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Lowercase image names
-        run: |
-          echo "IMAGE_APP=$(echo 'ghcr.io/${{ github.repository_owner }}/agentos' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "IMAGE_WEB=$(echo 'ghcr.io/${{ github.repository_owner }}/agentos/web' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
