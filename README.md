@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentOS-v1.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/AgentOS-v3.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
   <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/docker.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
+  <img src="https://img.shields.io/badge/Storage-S3_Friendly-569A31?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO">
 </p>
 
 <h1 align="center">🤖 AgentOS</h1>
@@ -80,6 +82,9 @@ flowchart TB
 | `ollama` | Local LLM fallback (qwen2.5) | 11434 |
 | `mailhog` | SMTP email preview | 1025 · 8025 |
 | `strapi` | Headless CMS | 1337 |
+| `jaeger` | Distributed tracing (OTLP) | 16686 · 4318 |
+| `minio` | S3-compatible object storage | 9000 · 9001 |
+| `caddy` | TLS reverse proxy | 80 · 443 |
 | `app` | FastAPI orchestrator | 8000 |
 | `web` | Next.js dashboard | 3000 |
 
@@ -144,6 +149,15 @@ User Prompt → Orchestrator decomposes → Dev (code) → Content (create) → 
 | 🏖️ | **Docker Sandbox** | Isolated execution, filtered network, resource limits |
 | 🎯 | **Configurable Priority** | Task priority system (0–10) |
 | 📦 | **1-Click Deploy** | `docker compose up` — full stack in one command |
+| ⚡ | **Parallel Execution** | Independent agents run concurrently via asyncio.gather |
+| 🔄 | **Multi-Model Routing** | Claude for code, GPT-4o for content, Mixtral for analysis |
+| 💾 | **LLM Response Cache** | In-memory SHA256-keyed cache reduces API costs |
+| 📡 | **WebSocket Logs** | Real-time log streaming at `/ws/logs` |
+| 📊 | **Prometheus Metrics** | `/metrics` endpoint for counters, histograms, gauges |
+| 🔍 | **Distributed Tracing** | OpenTelemetry spans exported to Jaeger |
+| 🔔 | **Notifications** | Slack + Console multi-channel broadcasts |
+| 🗓️ | **Scheduler** | Cron-based periodic task execution |
+| 🏢 | **Workspaces** | Multi-tenant project isolation |
 
 <details>
 <summary><b>🔒 Security & Compliance</b></summary>
@@ -184,7 +198,7 @@ watch docker compose ps  # Wait until all services are "healthy"
 
 ```bash
 curl http://localhost:8000/health
-# → {"status":"ok","version":"1.0.0","environment":"development"}
+# → {"status":"ok","version":"3.0.0","environment":"development"}
 ```
 
 ### 4️⃣ Run a workflow
@@ -220,11 +234,22 @@ curl -X POST http://localhost:8000/api/v1/run \
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
+| `/health/full` | GET | Full health (DB, Redis, Ollama) |
+| `/metrics` | GET | Prometheus metrics |
+| `/ws/logs` | WS | Real-time log stream |
 | `/api/v1/run` | POST | Execute a workflow |
 | `/api/v1/status/{session_id}` | GET | Get workflow status |
+| `/api/v1/trace/{session_id}` | GET | Trace spans for a workflow |
 | `/api/v1/hitl/approve` | POST | Approve a pending action |
 | `/api/v1/hitl/reject` | POST | Reject a pending action |
 | `/api/v1/hitl/pending` | GET | List pending approvals |
+| `/api/v1/scheduler/create` | POST | Create a scheduled task |
+| `/api/v1/scheduler/list` | GET | List scheduled tasks |
+| `/api/v1/workspaces` | GET | List workspaces |
+| `/api/v1/project/export` | POST | Export project data |
+| `/api/v1/project/import` | POST | Import project data |
+| `/api/v1/llm/cache/clear` | POST | Clear LLM response cache |
+| `/api/v1/notify/test` | POST | Test notification channel |
 | `/docs` | GET | Swagger UI |
 
 <details>

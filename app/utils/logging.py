@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-
 MASKED_FIELDS = {"api_key", "token", "password", "secret", "authorization"}
 
 
@@ -18,6 +17,37 @@ def _mask_sensitive(data: dict) -> dict:
         else:
             masked[k] = v
     return masked
+
+
+class LogBroadcaster:
+    """Simple in-process pub/sub for WebSocket broadcasting."""
+
+    def __init__(self):
+        self._subscribers: list[callable] = []
+
+    def subscribe(self, callback: callable):
+        self._subscribers.append(callback)
+
+    def unsubscribe(self, callback: callable):
+        if callback in self._subscribers:
+            self._subscribers.remove(callback)
+
+    async def broadcast(self, record: dict):
+        for cb in self._subscribers:
+            try:
+                if hasattr(cb, '__call__'):
+                    result = cb(record)
+                    if hasattr(result, '__await__'):
+                        await result
+            except Exception:
+                pass
+
+
+_broadcaster = LogBroadcaster()
+
+
+def get_broadcaster() -> LogBroadcaster:
+    return _broadcaster
 
 
 class AgentOSLogger(logging.Logger):
@@ -36,7 +66,7 @@ class AgentOSLogger(logging.Logger):
         trace_id: str | None = None,
         project_id: str | None = None,
         details: dict | None = None,
-    ) -> str:
+    ) -> tuple[str, dict]:
         record = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": level,
@@ -49,7 +79,7 @@ class AgentOSLogger(logging.Logger):
         }
         if details:
             record["details"] = _mask_sensitive(details)
-        return json.dumps(record, default=str)
+        return json.dumps(record, default=str), record
 
     def log_action(
         self,
@@ -60,8 +90,13 @@ class AgentOSLogger(logging.Logger):
         project_id: str | None = None,
         details: dict | None = None,
     ) -> str:
-        line = self._json_log("INFO", agent_id, action, status, trace_id, project_id, details)
+        line, record = self._json_log("INFO", agent_id, action, status, trace_id, project_id, details)
         self.info(line)
+        try:
+            import asyncio
+            asyncio.ensure_future(_broadcaster.broadcast(record))
+        except Exception:
+            pass
         return line
 
     def log_error(
@@ -74,8 +109,13 @@ class AgentOSLogger(logging.Logger):
         details: dict | None = None,
     ) -> str:
         err_details = {"error": error, **(details or {})}
-        line = self._json_log("ERROR", agent_id, action, "failed", trace_id, project_id, err_details)
+        line, record = self._json_log("ERROR", agent_id, action, "failed", trace_id, project_id, err_details)
         self.error(line)
+        try:
+            import asyncio
+            asyncio.ensure_future(_broadcaster.broadcast(record))
+        except Exception:
+            pass
         return line
 
     def log_warn(
@@ -86,8 +126,13 @@ class AgentOSLogger(logging.Logger):
         trace_id: str | None = None,
         project_id: str | None = None,
     ) -> str:
-        line = self._json_log("WARN", agent_id, action, "warning", trace_id, project_id, {"message": message})
+        line, record = self._json_log("WARN", agent_id, action, "warning", trace_id, project_id, {"message": message})
         self.warning(line)
+        try:
+            import asyncio
+            asyncio.ensure_future(_broadcaster.broadcast(record))
+        except Exception:
+            pass
         return line
 
 

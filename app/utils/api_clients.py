@@ -1,3 +1,4 @@
+import hashlib
 import json
 import httpx
 from typing import Any
@@ -22,6 +23,8 @@ class LLMUnavailableError(Exception):
 
 
 class LLMClient:
+    _llm_cache: dict[str, LLMResponse] = {}
+
     def __init__(self):
         self.settings = get_settings()
         self._openai_client: AsyncOpenAI | None = None
@@ -34,6 +37,10 @@ class LLMClient:
             )
         return self._openai_client
 
+    def _cache_key(self, model: str, messages: list[dict], temperature: float) -> str:
+        raw = json.dumps([model, messages, temperature], sort_keys=True, default=str)
+        return hashlib.sha256(raw.encode()).hexdigest()
+
     async def chat(
         self,
         model: str,
@@ -42,6 +49,13 @@ class LLMClient:
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
+        if self.settings.llm_cache_enabled and not tools:
+            ck = self._cache_key(model, messages, temperature)
+            if ck in self._llm_cache:
+                cached = self._llm_cache[ck]
+                logger.log_action("llm_client", "cache_hit", "completed", details={"model": model})
+                return cached
+
         try:
             client = self._get_openai_client()
             kwargs = dict(
@@ -54,7 +68,10 @@ class LLMClient:
                 kwargs["tools"] = tools
             response = await client.chat.completions.create(**kwargs)
             content = response.choices[0].message.content or ""
-            return LLMResponse(content=content, model=model, provider="openrouter")
+            result = LLMResponse(content=content, model=model, provider="openrouter")
+            if self.settings.llm_cache_enabled and not tools:
+                self._llm_cache[ck] = result
+            return result
         except Exception as e:
             logger.log_warn("llm_client", "openrouter_fallback", f"OpenRouter failed: {e}")
             return await self._fallback_ollama(model, messages, tools, temperature, max_tokens)
@@ -73,7 +90,6 @@ class LLMClient:
             payload = dict(model=ollama_model, messages=ollama_messages, stream=False)
             if temperature:
                 payload["options"] = {"temperature": temperature}
-
             async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(
                     f"{self.settings.ollama_base_url}/api/chat",
@@ -82,12 +98,42 @@ class LLMClient:
                 resp.raise_for_status()
                 data = resp.json()
                 content = data.get("message", {}).get("content", "")
-
             return LLMResponse(content=content, model=ollama_model, provider="ollama", degraded=True)
         except Exception as e:
             raise LLMUnavailableError(
                 f"OpenRouter and Ollama unavailable. OpenRouter: failed, Ollama: {e}"
             ) from e
+
+    async def chat_with_model_selection(
+        self,
+        task_type: str,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ) -> LLMResponse:
+        model = self._select_model(task_type)
+        return await self.chat(model, messages, tools, temperature, max_tokens)
+
+    def _select_model(self, task_type: str) -> str:
+        routing = {
+            "code": self.settings.model_for_code,
+            "content": self.settings.model_for_content,
+            "analysis": self.settings.model_for_analysis,
+            "commerce": self.settings.model_for_commerce,
+            "write": self.settings.model_for_content,
+            "image": self.settings.model_for_content,
+            "analyze": self.settings.model_for_analysis,
+            "segment": self.settings.model_for_analysis,
+            "catalog": self.settings.model_for_commerce,
+            "pricing": self.settings.model_for_analysis,
+            "faq": self.settings.model_for_content,
+        }
+        return routing.get(task_type, self.settings.model_for_default)
+
+    def clear_cache(self):
+        self._llm_cache.clear()
+        logger.log_action("llm_client", "cache_cleared", "completed")
 
 
 class EmbeddingClient:

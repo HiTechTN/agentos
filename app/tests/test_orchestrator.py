@@ -194,4 +194,4 @@ async def test_decide_execution_order(orchestrator):
 
     decision = orchestrator._decide_execution_order(state)
     assert decision in ("dev", "content", "marketing", "commerce", "finalize", "error",
-                        "parallel_dev_content")
+                        "parallel")

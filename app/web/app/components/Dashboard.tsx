@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import AgentStatus from "./AgentStatus";
 import LogViewer from "./LogViewer";
 import HITLButton from "./HITLButton";
@@ -30,6 +30,31 @@ export default function Dashboard() {
   const [results, setResults] = useState<AgentResult[]>([]);
   const [pendingHITL, setPendingHITL] = useState<PendingApproval[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/logs`;
+    try {
+      const ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          addLog(`[${msg.level}] ${msg.message}`);
+        } catch {
+          addLog(event.data);
+        }
+      };
+      ws.onopen = () => addLog("WebSocket connected");
+      ws.onclose = () => addLog("WebSocket disconnected");
+      wsRef.current = ws;
+    } catch {
+      // WebSocket not available
+    }
+    return () => {
+      wsRef.current?.close();
+    };
+  }, []);
 
   const fetchPendingHITL = useCallback(async () => {
     try {
@@ -156,6 +181,7 @@ export default function Dashboard() {
               <StatusDot label="PostgreSQL" status="ok" />
               <StatusDot label="Redis" status="ok" />
               <StatusDot label="Ollama" status="ok" />
+              <StatusDot label="Jaeger" status="ok" />
             </div>
             {sessionId && (
               <p className="text-xs text-gray-400 mt-4">

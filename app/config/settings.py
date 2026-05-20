@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     project_id: str = "demo-project"
     environment: str = "development"
+    version: str = "3.0.0"
 
     # LLM - OpenRouter
     openrouter_api_key: str = ""
@@ -17,6 +18,13 @@ class Settings(BaseSettings):
     content_agent_model: str = "openai/gpt-4o-2024-11-20"
     marketing_agent_model: str = "anthropic/claude-sonnet-20241022"
     commerce_agent_model: str = "openai/gpt-4o-2024-11-20"
+
+    # Multi-model routing (per task type)
+    model_for_code: str = "anthropic/claude-sonnet-20241022"
+    model_for_content: str = "openai/gpt-4o-2024-11-20"
+    model_for_analysis: str = "mistralai/mixtral-8x22b-instruct"
+    model_for_commerce: str = "openai/gpt-4o-2024-11-20"
+    model_for_default: str = "openai/gpt-4o-2024-11-20"
 
     # LLM - Ollama fallback
     ollama_base_url: str = "http://ollama:11434"
@@ -65,6 +73,12 @@ class Settings(BaseSettings):
     nextauth_secret: str = "agentos-nextauth-secret-change-in-prod"
     nextauth_url: str = "http://localhost:3000"
 
+    # OAuth2 provider keys
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
+
     # Stripe
     stripe_api_key: str = ""
     stripe_webhook_secret: str = ""
@@ -86,6 +100,27 @@ class Settings(BaseSettings):
 
     # API quota per project
     api_quota_per_project: int = 1000
+
+    # OpenTelemetry
+    otlp_endpoint: str = "http://jaeger:4318"
+    otlp_enabled: bool = False
+    service_name: str = "agentos"
+
+    # MinIO / S3
+    s3_endpoint: str = "http://minio:9000"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    s3_bucket: str = "agentos"
+
+    # Notifications
+    slack_webhook_url: str = ""
+    notification_email_from: str = "agentos@localhost"
+    notification_smtp_host: str = "mailhog"
+    notification_smtp_port: int = 1025
+
+    # Scheduler
+    scheduler_enabled: bool = True
+    scheduler_check_interval: int = 60
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 

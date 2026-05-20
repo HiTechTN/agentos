@@ -21,7 +21,6 @@ Thumbs.db
 
 # Project specific
 backups/
-docker/postgres/init.sql
 *.db
 
 # Node / Next.js

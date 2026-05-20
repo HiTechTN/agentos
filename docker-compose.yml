@@ -12,6 +12,9 @@ volumes:
   redis_data:
   strapi_data:
   ollama_data:
+  jaeger_data:
+  minio_data:
+  caddy_data:
 
 services:
   postgres:
@@ -99,6 +102,57 @@ services:
     networks:
       - agentos_net
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: agentos-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    volumes:
+      - jaeger_data:/tmp
+    networks:
+      - agentos_net
+
+  minio:
+    image: minio/minio:latest
+    container_name: agentos-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: agentos
+      MINIO_ROOT_PASSWORD: agentos_minio_demo
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - agentos_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: agentos-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    networks:
+      - agentos_net
+    depends_on:
+      - app
+      - web
+
   app:
     build:
       context: .
@@ -112,6 +166,10 @@ services:
         condition: service_healthy
       ollama:
         condition: service_started
+      jaeger:
+        condition: service_started
+      minio:
+        condition: service_healthy
     env_file:
       - .env
     ports:
@@ -136,3 +194,4 @@ services:
       - "3000:3000"
     networks:
       - agentos_net
+
