@@ -1,20 +1,23 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentOS-v3.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/AgentOS-v4.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
   <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/docker.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
   <img src="https://img.shields.io/badge/Storage-S3_Friendly-569A31?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO">
+  <img src="https://img.shields.io/badge/Sub--Agents-4-brightgreen?style=for-the-badge" alt="Sub-Agents">
+  <img src="https://img.shields.io/badge/MCP-Ready-ff6b6b?style=for-the-badge&logo=openai&logoColor=white" alt="MCP">
 </p>
 
 <h1 align="center">🤖 AgentOS</h1>
-<p align="center"><b>AI Agent Orchestration System</b> · Transformez une intention en workflow IA exécutable</p>
+<p align="center"><b>AI Agent Orchestration System</b> · The open-source alternative to Verdent.ai · Transformez une intention en workflow IA exécutable</p>
 
 <p align="center">
   <a href="#-quick-install">🚀 Quick Install</a> •
   <a href="#-architecture">🏗️ Architecture</a> •
-  <a href="#-agents">🎯 Agents</a> •
-  <a href="#-features">⚡ Features</a> •
+  <a href="#-agents--sub-agents">🎯 Agents</a> •
+  <a href="#-comparison-verdentai-vs-agentos">⚡ Comparison</a> •
+  <a href="#-features">✨ Features</a> •
   <a href="#-quick-start">📖 Quick Start</a> •
   <a href="#-api">📡 API</a>
 </p>
@@ -49,27 +52,56 @@ curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | b
 
 ```mermaid
 flowchart TB
-    User([User Prompt]) --> Orch[Orchestrator<br/>LangGraph State Machine]
-    
-    subgraph Agents[" "]
+    User([User Prompt]) --> Plan[Planner Sub-Agent<br/>Plan Mode]
+    Plan --> Orch[Orchestrator<br/>LangGraph State Machine]
+
+    subgraph SubAgents["Sub-Agent System"]
+        Planner[Planner<br/>Architecture]
+        Verifier[Verifier<br/>Validation]
+        Explorer[Explorer<br/>Code Search]
+        Reviewer[CodeReviewer<br/>Security Review]
+    end
+
+    subgraph Agents["Domain Agents"]
         Dev[DevAgent<br/>Code · CI/CD · Deploy]
         Content[ContentAgent<br/>SEO · Images · CMS]
         Marketing[MarketingAgent<br/>Email · Ads · Analytics]
         Commerce[CommerceAgent<br/>Catalog · Checkout · FAQ]
     end
-    
+
+    Orch --> SubAgents
     Orch --> Agents
-    
+
     subgraph Memory[" "]
         PG[(PostgreSQL<br/>+ pgvector)]
         RC[(Redis Cache)]
     end
-    
+
     Agents --> Memory
     Agents --> HITL{HITL<br/>Human Approval}
     HITL -->|Approved| Output[Deploy / Publish / Charge]
     HITL -->|Rejected| Log[Audit Log]
     Output --> Log
+    SubAgents --> Kanban[Kanban Board<br/>6 Columns]
+    SubAgents --> Pulse[Pulse Dashboard<br/>Real-time Metrics]
+```
+
+### 🔄 Pipeline Flow (Plan → Code → Verify)
+
+```
+User Prompt
+  ↓
+@Planner → Structured Plan (phases, tasks, dependencies, risks)
+  ↓
+Main Agent dispatches to domain agents + sub-agents
+  ↓
+@Verifier validates output → @CodeReviewer audits → Kanban updates
+  ↓
+Git worktree isolation → parallel execution without conflicts
+  ↓
+Pulse dashboards + Slack/Console notifications
+  ↓
+HITL gate → Deploy / Publish / Charge
 ```
 
 <details>
@@ -92,7 +124,9 @@ flowchart TB
 
 ---
 
-## 🎯 Agents
+## 🎯 Agents & Sub-Agents
+
+### Domain Agents
 
 <table>
 <tr>
@@ -123,27 +157,64 @@ flowchart TB
 </tr>
 </table>
 
-### 🔄 Pipeline Flow
+### Sub-Agent System (like Verdent, but better)
 
-```
-User Prompt → Orchestrator decomposes → Dev (code) → Content (create) → Marketing (launch) → Commerce (sell)
-                                                                                          ↓
-                                                                                    HITL validation
-                                                                                          ↓
-                                                                                    Deploy / Publish / Charge
-```
+| Sub-Agent | Role | Auto-Route Trigger |
+|-----------|------|-------------------|
+| **@Planner** | Architecture design, structured plan with phases/tasks/risks | `plan`, `design`, `architecture`, `how to` |
+| **@Verifier** | Code validation, lint, type safety, coverage | `verify`, `validate`, `test`, `check quality` |
+| **@Explorer** | Codebase navigation, dependency tracing | `explore`, `find`, `search`, `where is` |
+| **@CodeReviewer** | Security audit, performance, architecture review | `review`, `audit`, `security check` |
+
+Sub-agents auto-route based on task intent, or invoke explicitly via `POST /api/v1/sub-agent/run`.
+
+Custom sub-agents: create markdown files in `~/.agentos/subagents/<name>.md` with YAML frontmatter.
 
 ---
 
-## ⚡ Features
+## ⚡ Comparison: Verdent.ai vs AgentOS
+
+| Feature | Verdent.ai | AgentOS (v4.0) |
+|---------|-----------|----------------|
+| **Open-source** | ❌ Proprietary | ✅ MIT License |
+| **Multi-domain** | ❌ Code only | ✅ Code + Content + Marketing + Commerce |
+| **Sub-agents** | Built-in + custom | ✅ @Planner, @Verifier, @Explorer, @CodeReviewer + custom |
+| **Plan Mode** | Plan-verify loop | ✅ Structured plan with phases, tasks, risks, dependencies |
+| **Verify Mode** | Built-in | ✅ JSON-format validation |
+| **AGENTS.md rules** | ✅ | ✅ Project + global + plan rules, auto-init |
+| **Kanban board** | Column view | ✅ 6 columns, full CRUD API + WebSocket |
+| **Pulse dashboards** | Real-time | ✅ Agent activity + metrics + timeline |
+| **MCP integration** | ✅ | ✅ Register + call any MCP server |
+| **Git worktree** | Per-task isolation | ✅ Full CRUD management API |
+| **Human-in-the-Loop** | ❌ | ✅ Approve/reject deploy, publish, charge |
+| **Observability** | ❌ | ✅ Prometheus + Jaeger + WebSocket logs |
+| **LLM Cache** | ❌ | ✅ In-memory SHA256-keyed cache |
+| **Multi-model routing** | ✅ BYOK | ✅ Claude/GPT-4o/Mixtral per task type |
+| **RAG memory** | ❌ | ✅ pgvector 768d across sessions |
+| **Parallel execution** | ✅ | ✅ asyncio.gather + worktree isolation |
+| **Deployment** | Desktop + IDE | ✅ Docker Compose + API + Web dashboard |
+| **Scheduler** | Natural language | ✅ Cron-based + API |
+| **Notifications** | Slack/Telegram | ✅ Slack + Console + webhook |
+| **Pricing** | Credits + subscription | ✅ Free, self-hosted |
+
+---
+
+## ✨ Features
 
 | | Feature | Description |
 |---|---------|-------------|
-| 🧠 | **4 Specialized Agents** | Dev, Content, Marketing, Commerce — each with domain-specific tools |
+| 🧠 | **4 Domain Agents** | Dev, Content, Marketing, Commerce — each with domain-specific tools |
+| 🧩 | **Sub-Agent System** | @Planner, @Verifier, @Explorer, @CodeReviewer with auto-routing + custom |
+| 📋 | **Plan Mode** | Structured plans with phases, tasks, risks, dependencies, architecture |
+| ✅ | **Verify Mode** | Automatic code validation with JSON issue tracking |
 | 👤 | **Human-in-the-Loop** | Deploy, publish, charge actions require your approval |
+| 📊 | **Kanban Board** | 6 columns (backlog → done), full CRUD, WebSocket updates |
+| 📈 | **Pulse Dashboards** | Real-time metrics, agent activity, task tracking |
+| 🔗 | **MCP Integration** | Register and call any MCP-compatible tool server |
+| 📝 | **AGENTS.md Rules** | Project rules, global rules, plan rules with auto-init |
 | 🔄 | **LLM Fallback** | OpenRouter → Ollama local → degraded response |
-| 🧩 | **Vector Memory** | PostgreSQL + pgvector (768d embeddings) for project context |
-| ⚡ | **Redis Cache** | Tiered TTL: 60s LLM · 3600s sessions · 86400s projects |
+| 🧩 | **Vector Memory** | PostgreSQL + pgvector (768d) for project context |
+| ⚡ | **Redis Cache** | Tiered TTL: LLM · sessions · projects |
 | ⛔ | **Circuit Breaker** | Auto-disables agents after 3 consecutive failures |
 | 📋 | **JSON Logging** | Immutable structured logs with secret masking |
 | 🏖️ | **Docker Sandbox** | Isolated execution, filtered network, resource limits |
@@ -158,6 +229,7 @@ User Prompt → Orchestrator decomposes → Dev (code) → Content (create) → 
 | 🔔 | **Notifications** | Slack + Console multi-channel broadcasts |
 | 🗓️ | **Scheduler** | Cron-based periodic task execution |
 | 🏢 | **Workspaces** | Multi-tenant project isolation |
+| 🌲 | **Git Worktree** | Safe parallel execution in isolated branches |
 
 <details>
 <summary><b>🔒 Security & Compliance</b></summary>
@@ -167,6 +239,7 @@ User Prompt → Orchestrator decomposes → Dev (code) → Content (create) → 
 - Sandbox with filtered network access
 - JWT/session-based auth for dashboard
 - Audit trail via immutable JSON logs
+- HITL gate on all destructive actions (deploy, publish, charge)
 </details>
 
 ---
@@ -198,7 +271,7 @@ watch docker compose ps  # Wait until all services are "healthy"
 
 ```bash
 curl http://localhost:8000/health
-# → {"status":"ok","version":"3.0.0","environment":"development"}
+# → {"status":"ok","version":"4.0.0","environment":"development"}
 ```
 
 ### 4️⃣ Run a workflow
@@ -207,6 +280,26 @@ curl http://localhost:8000/health
 curl -X POST http://localhost:8000/api/v1/run \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Create a landing page for a SaaS product"}'
+```
+
+### 5️⃣ Create a plan (Plan Mode)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/plan \
+  -H "Content-Type: application/json" \
+  -d '{"goal": "Build an e-commerce site with Stripe payments"}'
+```
+
+### 6️⃣ Check the Kanban board
+
+```bash
+curl http://localhost:8000/api/v1/kanban/default
+```
+
+### 7️⃣ View Pulse dashboard
+
+```bash
+curl http://localhost:8000/api/v1/pulse/default
 ```
 
 ---
@@ -231,21 +324,93 @@ curl -X POST http://localhost:8000/api/v1/run \
 
 ## 📡 API
 
+### Core
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
 | `/health/full` | GET | Full health (DB, Redis, Ollama) |
 | `/metrics` | GET | Prometheus metrics |
 | `/ws/logs` | WS | Real-time log stream |
+
+### Workflow
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/v1/run` | POST | Execute a workflow |
 | `/api/v1/status/{session_id}` | GET | Get workflow status |
 | `/api/v1/trace/{session_id}` | GET | Trace spans for a workflow |
+
+### Plan → Code → Verify
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/plan` | POST | Create structured plan from goal |
+| `/api/v1/verify` | POST | Verify code changes |
+| `/api/v1/sub-agent/run` | POST | Execute any sub-agent |
+| `/api/v1/sub-agents` | GET | List available sub-agents |
+
+### Kanban Board
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/kanban/{project_id}/cards` | POST | Add a card |
+| `/api/v1/kanban/{project_id}` | GET | Get board columns |
+| `/api/v1/kanban/{project_id}/move` | PUT | Move card between columns |
+| `/api/v1/kanban/{project_id}/cards/{card_id}` | DELETE | Delete card |
+
+### Pulse Dashboard
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/pulse/{project_id}` | GET | Dashboard snapshot |
+| `/api/v1/pulse/{project_id}/timeline` | GET | Metrics timeline |
+
+### HITL
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/v1/hitl/approve` | POST | Approve a pending action |
 | `/api/v1/hitl/reject` | POST | Reject a pending action |
 | `/api/v1/hitl/pending` | GET | List pending approvals |
+
+### Scheduler & Workspaces
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/v1/scheduler/create` | POST | Create a scheduled task |
-| `/api/v1/scheduler/list` | GET | List scheduled tasks |
+| `/api/v1/scheduler/tasks` | GET | List scheduled tasks |
 | `/api/v1/workspaces` | GET | List workspaces |
+| `/api/v1/workspaces` | POST | Create workspace |
+
+### MCP Integration
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/mcp/register` | POST | Register an MCP server |
+| `/api/v1/mcp/servers` | GET | List registered MCP servers |
+| `/api/v1/mcp/{server}/call/{tool}` | POST | Call an MCP tool |
+
+### Rules Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/rules` | GET | Get all rules |
+| `/api/v1/rules/init` | POST | Initialize AGENTS.md |
+
+### Git Worktree
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/worktree` | POST | Create worktree |
+| `/api/v1/worktree` | GET | List worktrees |
+| `/api/v1/worktree/rebase` | POST | Rebase to main |
+| `/api/v1/worktree/{branch}` | DELETE | Remove worktree |
+
+### Project & LLM
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/v1/project/export` | POST | Export project data |
 | `/api/v1/project/import` | POST | Import project data |
 | `/api/v1/llm/cache/clear` | POST | Clear LLM response cache |
@@ -253,25 +418,30 @@ curl -X POST http://localhost:8000/api/v1/run \
 | `/docs` | GET | Swagger UI |
 
 <details>
-<summary><b>📝 Example: Submit & approve</b></summary>
+<summary><b>📝 Example: Plan → Code → Verify</b></summary>
 
 ```bash
-# Submit workflow
+# 1. Create a plan
+PLAN=$(curl -s -X POST http://localhost:8000/api/v1/plan \
+  -H "Content-Type: application/json" \
+  -d '{"goal": "Add user authentication"}' | python3 -m json.tool)
+
+# 2. Run workflow from plan
 WORKFLOW=$(curl -s -X POST http://localhost:8000/api/v1/run \
   -H "Content-Type: application/json" \
-  -d '{"prompt":"Deploy my app to staging"}')
-
-# Get session ID from response
+  -d '{"prompt": "Add user authentication"}')
 SESSION_ID=$(echo $WORKFLOW | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
 
-# List pending HITL
-PENDING=$(curl -s http://localhost:8000/api/v1/hitl/pending)
-APPROVAL_ID=$(echo $PENDING | grep -o '"id":"[^"]*"' | cut -d'"' -f4 | head -1)
-
-# Approve
-curl -X POST http://localhost:8000/api/v1/hitl/approve \
+# 3. Verify the output
+curl -X POST http://localhost:8000/api/v1/verify \
   -H "Content-Type: application/json" \
-  -d "{\"approval_id\":\"$APPROVAL_ID\"}"
+  -d '{"task": "Add user authentication", "code_changes": []}'
+
+# 4. Check Kanban
+curl -s http://localhost:8000/api/v1/kanban/default | python3 -m json.tool
+
+# 5. View Pulse
+curl -s http://localhost:8000/api/v1/pulse/default | python3 -m json.tool
 ```
 </details>
 
@@ -282,19 +452,23 @@ curl -X POST http://localhost:8000/api/v1/hitl/approve \
 Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ```
-┌─────────────────────────────────────────────┐
-│  AgentOS Dashboard                          │
-├──────────────────┬──────────────────────────┤
-│  Run Workflow    │  Pending Approvals       │
-│  ┌──────────────┐│  ┌──────────────────────┐│
-│  │ Describe...  ││  │ DevAgent: deploy    ││
-│  └──────────────┘│  │ [Approve] [Reject]  ││
-│  [▶ Run]         │  └──────────────────────┘│
-├──────────────────┼──────────────────────────┤
-│  Agent Results   │  System Status           │
-│  ✓ DevAgent OK   │  ● API · ● DB · ● Redis │
-│  ⏳ Content...   │  ● Ollama · ● Strapi    │
-└──────────────────┴──────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  AgentOS v4.0 Dashboard     [Plan] [Run] [Verify]   │
+├──────────────────┬──────────────────────────────────┤
+│  Plan Mode       │  Kanban Board                    │
+│  ┌──────────────┐│  ┌──────┬───────┬──────┬───────┐│
+│  │ Goal: Build  ││  │ ToDo │ In Pr │Review│ Done  ││
+│  │ an e-com site││  │ 3    │ 2     │ 1    │ 5     ││
+│  └──────────────┘│  └──────┴───────┴──────┴───────┘│
+│  [▶ Create Plan] │  Pulse: ●●● agents active        │
+├──────────────────┴──────────────────────────────────┤
+│  Sub-Agent Activity                                 │
+│  @Planner ✓  @Verifier running  @Explorer idle      │
+├──────────────────┬──────────────────────────────────┤
+│  Agent Results   │  System Status                   │
+│  ✓ DevAgent OK   │  ● API · ● DB · ● Redis          │
+│  ⏳ Content...   │  ● Ollama · ● Jaeger · ● MinIO   │
+└──────────────────┴──────────────────────────────────┘
 ```
 
 **Login**: `admin@agentos.local` / `agentos`
@@ -308,39 +482,58 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ```
 agentos/
-├── docker-compose.yml     # 7 services: postgres, redis, ollama, mailhog, strapi, app, web
+├── docker-compose.yml     # 10 services: postgres, redis, ollama, mailhog, strapi, jaeger, minio, caddy, app, web
 ├── Dockerfile             # Python 3.13 app container
 ├── Makefile               # 12 automation commands
-├── .env.example           # 30+ env vars with demo defaults
+├── .env.example           # 99 env vars with demo defaults
 ├── install.sh             # One-liner curl installer
 ├── docs/                  # GitHub Pages landing page
+├── AGENTS.md              # Project rules (auto-init)
 └── app/
-    ├── main.py            # FastAPI entrypoint with all routes
-    ├── orchestrator.py    # LangGraph state machine (retry×3, circuit breaker)
+    ├── main.py            # FastAPI entrypoint with 30+ routes
+    ├── orchestrator.py    # LangGraph state machine (retry×3, circuit breaker, parallel)
+    ├── scheduler.py       # Cron-based periodic task executor
+    ├── kanban.py          # Kanban board with WebSocket updates
+    ├── pulse.py           # Real-time dashboard metrics
+    ├── git_worktree.py    # Git worktree isolation for parallel agents
     ├── agents/
     │   ├── base.py        # Abstract agent with HITL, LLM fallback
+    │   ├── sub_agent.py   # Sub-agent system (@Planner, @Verifier, @Explorer, @CodeReviewer)
+    │   ├── rules.py       # AGENTS.md rule system
     │   ├── dev.py         # scaffold, test, lint, deploy
     │   ├── content.py     # write, image, calendar, publish
     │   ├── marketing.py   # segment, email, ads, report
     │   └── commerce.py    # catalog, pricing, checkout, inventory, faq
+    ├── workflow/
+    │   ├── planner.py     # Plan Mode — structured plan output
+    │   └── verifier.py    # Verify Mode — automatic validation
+    ├── mcp/
+    │   └── server.py      # MCP Model Context Protocol integration
     ├── memory/
     │   ├── vector_store.py # pgvector 768d + JSON fallback
     │   ├── cache.py        # Redis + local dict fallback
-    │   └── session.py      # Session persistence + fallback
+    │   ├── session.py      # Session persistence + fallback
+    │   └── workspace.py    # Multi-tenant workspace manager
     ├── config/
     │   ├── settings.py     # Pydantic Settings
     │   ├── policies.yaml   # Security + orchestration policies
     │   └── prompts.yaml    # System prompts per agent
     ├── utils/
-    │   ├── logging.py      # JSON immutable logs + secret masking
-    │   ├── api_clients.py  # OpenRouter + Ollama + degraded
+    │   ├── logging.py      # JSON immutable logs + secret masking + WebSocket broadcast
+    │   ├── api_clients.py  # OpenRouter + Ollama + degraded + cache
     │   ├── hitl_gateway.py # Webhook + CLI approval
-    │   └── sandbox.py      # Docker container isolation
+    │   ├── sandbox.py      # Docker container isolation
+    │   ├── metrics.py      # Prometheus counters, histograms, gauges
+    │   ├── telemetry.py    # OpenTelemetry tracing with Jaeger export
+    │   └── notifications.py # Slack + Console multi-channel
     ├── tests/
     │   ├── conftest.py     # Fixtures, mocks, async client
-    │   ├── test_orchestrator.py
-    │   ├── test_hitl.py
-    │   └── test_memory.py
+    │   ├── test_orchestrator.py  # 6 tests
+    │   ├── test_hitl.py         # 7 tests
+    │   ├── test_memory.py       # 9 tests
+    │   ├── test_advanced.py     # 15+ tests (v2/v3 features)
+    │   ├── test_v3_features.py  # 15+ tests (v3 features)
+    │   └── test_v4_features.py  # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
     └── web/                # Next.js 14 App Router dashboard
         ├── app/            # Pages, layouts, components
         └── Dockerfile.web  # Standalone container
@@ -356,7 +549,7 @@ agentos/
 make test
 
 # Run specific tests
-docker compose exec app python -m pytest app/tests/test_hitl.py -v
+docker compose exec app python -m pytest app/tests/test_v4_features.py -v
 
 # Lint
 make lint
@@ -365,7 +558,7 @@ make lint
 | Metric | Target |
 |--------|--------|
 | Coverage | ≥ 90% |
-| Tests | 18+ (orchestration, HITL, memory) |
+| Tests | 77+ (orchestration, HITL, memory, v2/v3/v4 features) |
 | Type checks | mypy strict |
 
 ---
@@ -389,6 +582,7 @@ make lint
 | Docker Web | `ghcr.io/hitechtn/agentos/web:latest` |
 | Landing | [hitechtn.github.io/agentos](https://hitechtn.github.io/agentos/) |
 | License | [MIT](LICENSE) |
+| Latest Release | [v4.0.0](https://github.com/HiTechTN/agentos/releases/tag/v4.0.0) |
 
 ---
 
@@ -407,4 +601,6 @@ make lint
   <a href="https://github.com/HiTechTN/agentos">📦 GitHub</a> ·
   <a href="https://hitechtn.github.io/agentos/">🌐 Landing Page</a> ·
   <a href="https://github.com/HiTechTN/agentos/releases">📝 Releases</a>
+  <br><br>
+  <b>Open-source alternative to Verdent.ai</b>
 </p>
