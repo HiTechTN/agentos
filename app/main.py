@@ -271,3 +271,242 @@ async def clear_llm_cache():
     from app.utils.api_clients import LLMClient
     LLMClient().clear_cache()
     return {"status": "cache_cleared"}
+
+
+# ── Plan Mode ──────────────────────────────────────────────────────────────────
+
+class PlanRequest(BaseModel):
+    goal: str
+    project_id: str = "default"
+    context: dict = {}
+
+
+@app.post("/api/v1/plan")
+async def create_plan(req: PlanRequest):
+    from app.agents.sub_agent import SubAgent, BUILTIN_SUB_AGENTS
+    from app.agents.rules import get_rules
+    import json
+    rules = get_rules()
+    sub = SubAgent(BUILTIN_SUB_AGENTS["planner"])
+    ctx = {"goal": req.goal, "rules": rules.get_all_rules(), "project_context": req.context}
+    result = await sub.run(json.dumps(ctx))
+    metrics.inc("plan_created")
+    return {"plan": result, "project_id": req.project_id}
+
+
+# ── Verify Mode ────────────────────────────────────────────────────────────────
+
+class VerifyRequest(BaseModel):
+    task: str
+    code_changes: list[dict] = []
+    test_results: str = ""
+    lint_output: str = ""
+
+
+@app.post("/api/v1/verify")
+async def verify_work(req: VerifyRequest):
+    from app.agents.sub_agent import SubAgent, BUILTIN_SUB_AGENTS
+    sub = SubAgent(BUILTIN_SUB_AGENTS["verifier"])
+    context = {"task": req.task, "code_changes": req.code_changes,
+               "test_results": req.test_results, "lint_output": req.lint_output}
+    result = await sub.run(str(context))
+    metrics.inc("verify_run")
+    return {"verification": result}
+
+
+# ── Sub-Agent Execution ────────────────────────────────────────────────────────
+
+class SubAgentRequest(BaseModel):
+    name: str
+    task: str
+    context: dict = {}
+
+
+@app.post("/api/v1/sub-agent/run")
+async def run_sub_agent(req: SubAgentRequest):
+    from app.agents.sub_agent import get_or_create_sub_agent, route_to_sub_agent
+    agent_name = req.name
+    if agent_name == "auto":
+        agent_name = route_to_sub_agent(req.task)
+    agent = get_or_create_sub_agent(agent_name)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Sub-agent '{agent_name}' not found")
+    result = await agent.run(req.task, req.context)
+    return {"agent": agent_name, "result": result}
+
+
+@app.get("/api/v1/sub-agents")
+async def list_sub_agents():
+    from app.agents.sub_agent import BUILTIN_SUB_AGENTS
+    return {"sub_agents": list(BUILTIN_SUB_AGENTS.keys())}
+
+
+# ── Kanban Board ───────────────────────────────────────────────────────────────
+
+class KanbanCardCreate(BaseModel):
+    title: str
+    description: str = ""
+    column: str = "backlog"
+    task_id: str = ""
+    agent: str = ""
+
+
+class KanbanCardMove(BaseModel):
+    card_id: str
+    column: str
+
+
+@app.post("/api/v1/kanban/{project_id}/cards")
+async def create_kanban_card(project_id: str, card: KanbanCardCreate):
+    from app.kanban import get_kanban_board
+    board = get_kanban_board(project_id)
+    created = board.add_card(card.title, card.description, card.column, card.task_id, card.agent)
+    metrics.inc("kanban_card_created")
+    return {"card": created.to_dict()}
+
+
+@app.get("/api/v1/kanban/{project_id}")
+async def get_kanban_board_endpoint(project_id: str):
+    from app.kanban import get_kanban_board
+    board = get_kanban_board(project_id)
+    return {"columns": board.get_all()}
+
+
+@app.put("/api/v1/kanban/{project_id}/move")
+async def move_kanban_card(project_id: str, move: KanbanCardMove):
+    from app.kanban import get_kanban_board
+    board = get_kanban_board(project_id)
+    if not board.move_card(move.card_id, move.column):
+        raise HTTPException(status_code=404, detail="Card not found")
+    return {"status": "moved"}
+
+
+@app.delete("/api/v1/kanban/{project_id}/cards/{card_id}")
+async def delete_kanban_card(project_id: str, card_id: str):
+    from app.kanban import get_kanban_board
+    board = get_kanban_board(project_id)
+    if not board.delete_card(card_id):
+        raise HTTPException(status_code=404, detail="Card not found")
+    return {"status": "deleted"}
+
+
+# ── Pulse Dashboard ────────────────────────────────────────────────────────────
+
+@app.get("/api/v1/pulse/{project_id}")
+async def get_pulse(project_id: str):
+    from app.kanban import get_kanban_board
+    from app.pulse import get_pulse
+    from app.orchestrator import get_orchestrator
+    board = get_kanban_board(project_id)
+    pulse = get_pulse()
+    orch = get_orchestrator()
+    agent_statuses = {name: "idle" for name in orch.agents}
+    snapshot = await pulse.snapshot(board.get_all(), agent_statuses)
+    return snapshot.to_dict()
+
+
+@app.get("/api/v1/pulse/{project_id}/timeline")
+async def get_pulse_timeline(project_id: str, limit: int = 60):
+    from app.pulse import get_pulse
+    return {"timeline": get_pulse().get_timeline(limit)}
+
+
+# ── MCP Integration ────────────────────────────────────────────────────────────
+
+class MCPServerRegister(BaseModel):
+    name: str
+    endpoint: str
+    api_key: str = ""
+
+
+@app.post("/api/v1/mcp/register")
+async def register_mcp_server(server: MCPServerRegister):
+    from app.mcp.server import get_mcp_registry
+    registry = get_mcp_registry()
+    registry.register(server.name, server.endpoint, server.api_key)
+    return {"status": "registered", "name": server.name}
+
+
+@app.get("/api/v1/mcp/servers")
+async def list_mcp_servers():
+    from app.mcp.server import get_mcp_registry
+    return {"servers": get_mcp_registry().list_servers()}
+
+
+@app.post("/api/v1/mcp/{server_name}/call/{tool_name}")
+async def call_mcp_tool(server_name: str, tool_name: str, params: dict = {}):
+    from app.mcp.server import get_mcp_registry
+    result = await get_mcp_registry().call_tool(server_name, tool_name, params)
+    return result
+
+
+# ── Rules Management ───────────────────────────────────────────────────────────
+
+@app.get("/api/v1/rules")
+async def get_rules_endpoint():
+    from app.agents.rules import get_rules
+    rules = get_rules()
+    return {
+        "project_rules": rules.get_project_rules(),
+        "global_rules": rules.get_global_rules(),
+        "plan_rules": rules.get_plan_rules(),
+    }
+
+
+@app.post("/api/v1/rules/init")
+async def init_rules():
+    from app.agents.rules import get_rules
+    rules = get_rules()
+    rules.create_default_agents_md()
+    return {"status": "created", "path": "AGENTS.md"}
+
+
+# ── Git Worktree ───────────────────────────────────────────────────────────────
+
+class WorktreeCreate(BaseModel):
+    branch_name: str
+    base_branch: str = "main"
+
+
+@app.post("/api/v1/worktree")
+async def create_worktree(req: WorktreeCreate):
+    from app.git_worktree import get_worktree_manager
+    wm = get_worktree_manager()
+    try:
+        path = await wm.create_worktree(req.branch_name, req.base_branch)
+        return {"status": "created", "branch": req.branch_name, "path": str(path)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/v1/worktree")
+async def list_worktrees():
+    from app.git_worktree import get_worktree_manager
+    wm = get_worktree_manager()
+    try:
+        trees = await wm.list_worktrees()
+        return {"worktrees": trees}
+    except Exception as e:
+        return {"worktrees": [], "error": str(e)}
+
+
+@app.post("/api/v1/worktree/rebase")
+async def rebase_worktree(branch_name: str):
+    from app.git_worktree import get_worktree_manager
+    wm = get_worktree_manager()
+    try:
+        await wm.rebase_to_main(branch_name)
+        return {"status": "rebased", "branch": branch_name}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/v1/worktree/{branch_name}")
+async def remove_worktree(branch_name: str):
+    from app.git_worktree import get_worktree_manager
+    wm = get_worktree_manager()
+    try:
+        await wm.remove_worktree(branch_name)
+        return {"status": "removed", "branch": branch_name}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
