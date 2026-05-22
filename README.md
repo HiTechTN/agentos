@@ -1,8 +1,11 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentOS-v4.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/AgentOS-v5.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
   <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/docker.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Desktop-Tauri_v2-FFC131?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
+  <img src="https://img.shields.io/badge/PWA-Installable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA">
+  <img src="https://img.shields.io/badge/421%20tests-93%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
   <img src="https://img.shields.io/badge/Storage-S3_Friendly-569A31?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO">
   <img src="https://img.shields.io/badge/Sub--Agents-4-brightgreen?style=for-the-badge" alt="Sub-Agents">
@@ -174,7 +177,7 @@ Custom sub-agents: create markdown files in `~/.agentos/subagents/<name>.md` wit
 
 ## ⚡ Comparison: Verdent.ai vs AgentOS
 
-| Feature | Verdent.ai | AgentOS (v4.0) |
+| Feature | Verdent.ai | AgentOS (v5.0) |
 |---------|-----------|----------------|
 | **Open-source** | ❌ Proprietary | ✅ MIT License |
 | **Multi-domain** | ❌ Code only | ✅ Code + Content + Marketing + Commerce |
@@ -192,7 +195,8 @@ Custom sub-agents: create markdown files in `~/.agentos/subagents/<name>.md` wit
 | **Multi-model routing** | ✅ BYOK | ✅ Claude/GPT-4o/Mixtral per task type |
 | **RAG memory** | ❌ | ✅ pgvector 768d across sessions |
 | **Parallel execution** | ✅ | ✅ asyncio.gather + worktree isolation |
-| **Deployment** | Desktop + IDE | ✅ Docker Compose + API + Web dashboard |
+| **Deployment** | Desktop + IDE | ✅ Docker Compose + Web + Desktop (Tauri v2) + PWA |
+| **Cross-platform** | ❌ Desktop-only | ✅ Web + Linux/macOS/Windows + Mobile PWA |
 | **Scheduler** | Natural language | ✅ Cron-based + API |
 | **Notifications** | Slack/Telegram | ✅ Slack + Console + webhook |
 | **Pricing** | Credits + subscription | ✅ Free, self-hosted |
@@ -203,7 +207,8 @@ Custom sub-agents: create markdown files in `~/.agentos/subagents/<name>.md` wit
 
 | | Feature | Description |
 |---|---------|-------------|
-| 🧠 | **4 Domain Agents** | Dev, Content, Marketing, Commerce — each with domain-specific tools |
+| 🖥️ | **Cross-Platform UI** | Next.js 16 · Tauri v2 Desktop · PWA Mobile — same React codebase |
+| 🤖 | **4 Domain Agents** | Dev, Content, Marketing, Commerce — each with domain-specific tools |
 | 🧩 | **Sub-Agent System** | @Planner, @Verifier, @Explorer, @CodeReviewer with auto-routing + custom |
 | 📋 | **Plan Mode** | Structured plans with phases, tasks, risks, dependencies, architecture |
 | ✅ | **Verify Mode** | Automatic code validation with JSON issue tracking |
@@ -331,6 +336,7 @@ curl http://localhost:8000/api/v1/pulse/default
 | `/health` | GET | Health check |
 | `/health/full` | GET | Full health (DB, Redis, Ollama) |
 | `/metrics` | GET | Prometheus metrics |
+| `/guide` | GET | Interactive guide page |
 | `/ws/logs` | WS | Real-time log stream |
 
 ### Workflow
@@ -452,6 +458,31 @@ curl -s http://localhost:8000/api/v1/pulse/default | python3 -m json.tool
 Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ```
+┌──────────────────────────────────────────────────────────┐
+│  AgentOS v5.0 Dashboard          [Chat] [Deploy] [Guide] │
+├──────────────────┬───────────────────────────────────────┤
+│  💬 Chat LLM     │  📊 Pulse Dashboard                   │
+│  ┌──────────────┐│  Latency ●  Agent Activity ●  Tasks   │
+│  │ Type a msg…  ││  ╱‾‾‾╲ ╱╲                            │
+│  └──────────────┘│  ╲___╱ ╲╱ ╱‾╲                         │
+│  [▶ Send]        │      Agent Activity Chart             │
+├──────────────────┼───────────────────────────────────────┤
+│  📋 Kanban Board │  🚀 Deploy Assistant                  │
+│  ToDo│InProg│Done│  1. Server   2. Keys   3. Deploy      │
+├──────────────────┴───────────────────────────────────────┤
+│  ⚡ 421 tests · 93% coverage · Tauri Desktop · PWA       │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Available Platforms
+
+| Platform | Tech | Status |
+|----------|------|--------|
+| 🌐 **Web** | Next.js 16 + Tailwind v4 | ✅ `npm run build` |
+| 🖥️ **Desktop** | Tauri v2 (Rust) | ✅ `.deb` · `.rpm` · `.AppImage` |
+| 📱 **Mobile PWA** | Service Worker + Manifest | ✅ Installable via browser |
+
+**Login**: `admin@agentos.local` / `agentos`
 ┌─────────────────────────────────────────────────────┐
 │  AgentOS v4.0 Dashboard     [Plan] [Run] [Verify]   │
 ├──────────────────┬──────────────────────────────────┤
@@ -488,6 +519,12 @@ agentos/
 ├── .env.example           # 99 env vars with demo defaults
 ├── install.sh             # One-liner curl installer
 ├── docs/                  # GitHub Pages landing page
+├── ui/                    # Cross-platform app (Next.js 16 + Tauri v2 + PWA)
+│   ├── src/               # 10 pages: Dashboard, Chat, Agents, Sessions, Kanban, Pulse, Settings, Deploy, Guide
+│   ├── src-tauri/         # Tauri v2 Rust backend (Linux .deb/.rpm/.AppImage)
+│   ├── public/sw.js       # PWA service worker
+│   └── setup.sh           # One-command environment setup
+├── AGENTS.md
 ├── AGENTS.md              # Project rules (auto-init)
 └── app/
     ├── main.py            # FastAPI entrypoint with 30+ routes
@@ -557,8 +594,8 @@ make lint
 
 | Metric | Target |
 |--------|--------|
-| Coverage | ≥ 90% |
-| Tests | 77+ (orchestration, HITL, memory, v2/v3/v4 features) |
+| Coverage | ≥ 93% |
+| Tests | 421+ (orchestration, HITL, memory, v2/v3/v4/v5 features) |
 | Type checks | mypy strict |
 
 ---
@@ -582,7 +619,7 @@ make lint
 | Docker Web | `ghcr.io/hitechtn/agentos/web:latest` |
 | Landing | [hitechtn.github.io/agentos](https://hitechtn.github.io/agentos/) |
 | License | [MIT](LICENSE) |
-| Latest Release | [v4.0.0](https://github.com/HiTechTN/agentos/releases/tag/v4.0.0) |
+| Latest Release | [v5.0.0](https://github.com/HiTechTN/agentos/releases/tag/v5.0.0) |
 
 ---
 
@@ -595,7 +632,8 @@ make lint
   <img src="https://img.shields.io/badge/PostgreSQL_17-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Redis-FF4438?logo=redis&logoColor=white" alt="Redis">
   <img src="https://img.shields.io/badge/OpenRouter-FF6B6B?logo=openai&logoColor=white" alt="OpenRouter">
-  <img src="https://img.shields.io/badge/Next.js_14-000000?logo=next.js&logoColor=white" alt="Next.js">
+  <img src="https://img.shields.io/badge/Next.js_16-000000?logo=next.js&logoColor=white" alt="Next.js">
+  <img src="https://img.shields.io/badge/Tauri_v2-FFC131?logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/Docker_Compose-2496ED?logo=docker&logoColor=white" alt="Docker">
   <br><br>
   <a href="https://github.com/HiTechTN/agentos">📦 GitHub</a> ·
