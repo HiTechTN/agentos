@@ -1,17 +1,23 @@
 """Tests for AgentOS v4 — sub-agent system, Plan→Code→Verify, Kanban, Pulse, git worktree, MCP, rules."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-import json
 
-from app.agents.sub_agent import SubAgent, SubAgentConfig, BUILTIN_SUB_AGENTS, route_to_sub_agent, get_sub_agent
 from app.agents.rules import RuleSystem
-from app.kanban import KanbanBoard, KanbanCard, COLUMNS
+from app.agents.sub_agent import (
+    BUILTIN_SUB_AGENTS,
+    SubAgent,
+    SubAgentConfig,
+    get_sub_agent,
+    route_to_sub_agent,
+)
+from app.kanban import COLUMNS, KanbanBoard, KanbanCard
+from app.mcp.server import MCPRegistry
 from app.pulse import PulseEngine, PulseSnapshot
-from app.mcp.server import MCPRegistry, MCPServer
-
 
 # ── Sub-Agent System ───────────────────────────────────────────────────────────
+
 
 class TestSubAgent:
     @pytest.mark.asyncio
@@ -36,7 +42,9 @@ class TestSubAgent:
     async def test_sub_agent_run_with_mock(self):
         config = SubAgentConfig(name="TestAgent", system_prompt="You are a test agent.")
         agent = SubAgent(config)
-        with patch.object(agent.llm, "chat", AsyncMock(return_value=MagicMock(content='{"result": "ok"}'))):
+        with patch.object(
+            agent.llm, "chat", AsyncMock(return_value=MagicMock(content='{"result": "ok"}'))
+        ):
             result = await agent.run("test task")
             assert result.get("result") == "ok"
 
@@ -44,7 +52,11 @@ class TestSubAgent:
     async def test_sub_agent_run_with_code_block(self):
         config = SubAgentConfig(name="TestAgent", system_prompt="test")
         agent = SubAgent(config)
-        with patch.object(agent.llm, "chat", AsyncMock(return_value=MagicMock(content='```json\n{"key": "value"}\n```'))):
+        with patch.object(
+            agent.llm,
+            "chat",
+            AsyncMock(return_value=MagicMock(content='```json\n{"key": "value"}\n```')),
+        ):
             result = await agent.run("test")
             assert result.get("key") == "value"
 
@@ -52,7 +64,9 @@ class TestSubAgent:
     async def test_sub_agent_fallback_on_bad_json(self):
         config = SubAgentConfig(name="TestAgent", system_prompt="test")
         agent = SubAgent(config)
-        with patch.object(agent.llm, "chat", AsyncMock(return_value=MagicMock(content="not json at all"))):
+        with patch.object(
+            agent.llm, "chat", AsyncMock(return_value=MagicMock(content="not json at all"))
+        ):
             result = await agent.run("test")
             assert result.get("parsed") is False
             assert "raw_response" in result
@@ -61,12 +75,20 @@ class TestSubAgent:
         assert route_to_sub_agent("verify this code") == "verifier"
         assert route_to_sub_agent("find where auth is") == "explorer"
         assert route_to_sub_agent("review security") == "code_reviewer"
-        assert route_to_sub_agent("plan the architecture") == "planner"
-        assert route_to_sub_agent("hello world") == "planner"
+        assert route_to_sub_agent("plan the approach") == "planner"
+        assert route_to_sub_agent("debug the exception") == "debugger"
+        assert route_to_sub_agent("something completely random") == "planner"
 
     def test_custom_sub_agent_config(self):
-        config = SubAgentConfig(name="Custom", system_prompt="Custom test", model="test-model",
-                                tools=["read", "bash"], temperature=0.5, max_tokens=2048, auto_route=False)
+        config = SubAgentConfig(
+            name="Custom",
+            system_prompt="Custom test",
+            model="test-model",
+            tools=["read", "bash"],
+            temperature=0.5,
+            max_tokens=2048,
+            auto_route=False,
+        )
         assert config.name == "Custom"
         assert config.model == "test-model"
         assert config.temperature == 0.5
@@ -75,6 +97,7 @@ class TestSubAgent:
 
 
 # ── Rules System ───────────────────────────────────────────────────────────────
+
 
 class TestRulesSystem:
     def test_rule_system_initialization(self, tmp_path):
@@ -105,6 +128,7 @@ class TestRulesSystem:
 
 
 # ── Kanban Board ───────────────────────────────────────────────────────────────
+
 
 class TestKanban:
     def test_add_card(self):
@@ -163,12 +187,15 @@ class TestKanban:
 
 # ── Pulse Dashboard ────────────────────────────────────────────────────────────
 
+
 class TestPulse:
     @pytest.mark.asyncio
     async def test_snapshot_creation(self):
         pulse = PulseEngine()
-        snap = await pulse.snapshot({"todo": [{"id": "1"}], "done": [{"id": "2"}]},
-                                    {"dev": "running", "content": "idle"})
+        snap = await pulse.snapshot(
+            {"todo": [{"id": "1"}], "in_progress": [{"id": "2"}], "done": [{"id": "3"}]},
+            {"dev": "running", "content": "idle"},
+        )
         assert snap.active_agents == 1
         assert snap.tasks_completed == 1
         assert snap.tasks_in_progress == 1
@@ -193,6 +220,7 @@ class TestPulse:
 
 
 # ── MCP Integration ────────────────────────────────────────────────────────────
+
 
 class TestMCP:
     @pytest.mark.asyncio

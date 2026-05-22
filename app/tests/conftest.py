@@ -1,13 +1,9 @@
-import asyncio
-import os
-import uuid
-from typing import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
 
-from app.config.settings import Settings, get_settings
+from app.config.settings import Settings
 from app.utils.logging import get_logger
 
 
@@ -23,7 +19,7 @@ def test_settings():
         postgres_user="test",
         postgres_password="test",
         postgres_db="test",
-        redis_password="test",
+        scheduler_enabled=False,
         sandbox_enabled=False,
         hitl_mode="webhook_and_cli",
         hitl_timeout=0,
@@ -33,11 +29,16 @@ def test_settings():
         yield settings
 
 
+
+
+
 @pytest.fixture
 def mock_llm_client():
     with patch("app.agents.base.LLMClient") as mock:
         instance = mock.return_value
-        instance.chat = AsyncMock(return_value=type("Response", (), {"content": "Mocked LLM response"})())
+        instance.chat = AsyncMock(
+            return_value=type("Response", (), {"content": "Mocked LLM response"})()
+        )
         yield instance
 
 
@@ -57,8 +58,10 @@ def logger():
 
 @pytest_asyncio.fixture
 async def async_client():
-    from httpx import AsyncClient, ASGITransport
+    from httpx import ASGITransport, AsyncClient
+
     from app.main import app
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client

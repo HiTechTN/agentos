@@ -1,4 +1,5 @@
 import uuid
+from contextlib import asynccontextmanager
 
 from app.config.settings import get_settings
 
@@ -17,6 +18,9 @@ class Span:
 
         self.start = time.time()
         return self
+
+    def set_attribute(self, key: str, value: str):
+        self.attributes[key] = value
 
     def __exit__(self, *args):
         import time
@@ -42,6 +46,14 @@ class OpenTelemetrySetup:
         self.settings = get_settings()
         self.enabled = self.settings.otlp_enabled
         self._spans: list[Span] = []
+
+    @asynccontextmanager
+    async def trace(self, name: str, trace_id: str = "", attributes: dict | None = None):
+        span = await self.start_span(name, trace_id, attributes)
+        try:
+            yield span
+        finally:
+            await self.end_span(span)
 
     async def start_span(
         self, name: str, trace_id: str = "", attributes: dict | None = None

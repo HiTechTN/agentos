@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from app.orchestrator import AgentOSOrchestrator, AgentOSState
 
@@ -20,9 +21,18 @@ async def test_orchestrator_initializes(orchestrator):
 
 @pytest.mark.asyncio
 async def test_orchestrator_run_basic_prompt(orchestrator):
-    with patch.object(orchestrator, "_decompose_prompt", AsyncMock(return_value=[
-        {"agent": "dev", "action": "analyze", "params": {"prompt": "test"}, "priority": 0}
-    ])):
+    with (
+        patch.object(
+            orchestrator,
+            "_decompose_prompt",
+            AsyncMock(
+                return_value=[
+                    {"agent": "dev", "action": "analyze", "params": {"prompt": "test"}, "priority": 0}
+                ]
+            ),
+        ),
+        patch.object(orchestrator.agents["dev"], "execute", AsyncMock(return_value={"agent": "dev", "action": "analyze", "success": True, "result": {}})),
+    ):
         result = await orchestrator.run("test prompt")
         assert result is not None
         assert "status" in result
@@ -31,13 +41,19 @@ async def test_orchestrator_run_basic_prompt(orchestrator):
 
 @pytest.mark.asyncio
 async def test_orchestrator_analyze_prompt(orchestrator):
-    tasks = await orchestrator._decompose_prompt("Create a landing page")
-    assert isinstance(tasks, list)
-    assert len(tasks) > 0
-    for task in tasks:
-        assert "agent" in task
-        assert "action" in task
-        assert "params" in task
+    from app.utils.api_clients import LLMClient, LLMResponse
+
+    with patch.object(LLMClient, "chat", AsyncMock(return_value=LLMResponse(
+        content='[{"agent":"dev","action":"analyze","params":{"prompt":"Create a landing page"},"priority":0}]',
+        model="test", provider="test"
+    ))):
+        tasks = await orchestrator._decompose_prompt("Create a landing page")
+        assert isinstance(tasks, list)
+        assert len(tasks) > 0
+        for task in tasks:
+            assert "agent" in task
+            assert "action" in task
+            assert "params" in task
 
 
 @pytest.mark.asyncio
@@ -58,10 +74,17 @@ async def test_orchestrator_agent_execution(orchestrator):
         "start_time": 0.0,
     }
 
-    with patch("app.agents.dev.DevAgent.execute", AsyncMock(return_value={
-        "agent": "dev", "action": "analyze", "success": True,
-        "result": {"data": {"analysis": "test"}}
-    })):
+    with patch(
+        "app.agents.dev.DevAgent.execute",
+        AsyncMock(
+            return_value={
+                "agent": "dev",
+                "action": "analyze",
+                "success": True,
+                "result": {"data": {"analysis": "test"}},
+            }
+        ),
+    ):
         result = await orchestrator._execute_dev(state)
         assert "results" in result or "current_task_index" in result
 
@@ -113,8 +136,12 @@ async def test_orchestrator_retry_on_failure(orchestrator):
     async def failing_execute(task, session_id="", trace_id=""):
         nonlocal call_count
         call_count += 1
-        return {"agent": "dev", "action": "deploy", "success": False,
-                "error": {"code": "TEST_FAIL", "message": "Simulated failure"}}
+        return {
+            "agent": "dev",
+            "action": "deploy",
+            "success": False,
+            "error": {"code": "TEST_FAIL", "message": "Simulated failure"},
+        }
 
     with patch("app.agents.dev.DevAgent.execute", failing_execute):
         result = await orchestrator._execute_dev(state)
@@ -158,10 +185,11 @@ async def test_orchestrator_multi_agent_sequence(orchestrator):
     async def mock_commerce(task, session_id="", trace_id=""):
         return {**mock_result, "agent": "commerce", "action": task.get("action", "")}
 
-    with patch("app.agents.dev.DevAgent.execute", mock_dev), \
-         patch("app.agents.content.ContentAgent.execute", mock_content), \
-         patch("app.agents.commerce.CommerceAgent.execute", mock_commerce):
-
+    with (
+        patch("app.agents.dev.DevAgent.execute", mock_dev),
+        patch("app.agents.content.ContentAgent.execute", mock_content),
+        patch("app.agents.commerce.CommerceAgent.execute", mock_commerce),
+    ):
         r1 = await orchestrator._execute_dev(state)
         r2 = await orchestrator._execute_content({**state, "current_task_index": 1})
         r3 = await orchestrator._execute_commerce({**state, "current_task_index": 2})
@@ -193,5 +221,4 @@ async def test_decide_execution_order(orchestrator):
     }
 
     decision = orchestrator._decide_execution_order(state)
-    assert decision in ("dev", "content", "marketing", "commerce", "finalize", "error",
-                        "parallel")
+    assert decision in ("dev", "content", "marketing", "commerce", "finalize", "error", "parallel")
