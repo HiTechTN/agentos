@@ -172,7 +172,12 @@ class AgentOSOrchestrator:
             [
                 {
                     "role": "system",
-                    "content": """Decompose user prompt into AgentOS tasks. Agents: dev (code/scaffold/deploy), content (write/image/publish), marketing (segment/email/ads/report), commerce (catalog/pricing/checkout/inventory/faq). Return JSON array: [{"agent":"dev","action":"scaffold","params":{},"priority":0}]""",
+                    "content": (
+                        "Decompose user prompt into AgentOS tasks. Agents: dev (code/scaffold/deploy), "  # noqa: E501
+                        "content (write/image/publish), marketing (segment/email/ads/report), "  # noqa: E501
+                        "commerce (catalog/pricing/checkout/inventory/faq). "  # noqa: E501
+                        'Return JSON array: [{"agent":"dev","action":"scaffold","params":{},"priority":0}]'  # noqa: E501
+                    ),
                 },
                 {"role": "user", "content": prompt},
             ],

@@ -15,6 +15,7 @@ def test_settings():
         environment="test",
         openrouter_api_key="sk-test-key",
         ollama_base_url="http://test-ollama:11434",
+        redis_url="memory://",
         postgres_host="localhost",
         postgres_user="test",
         postgres_password="test",

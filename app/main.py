@@ -628,10 +628,18 @@ async def remove_worktree(branch_name: str, request: Request):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ── Deployment Assistant ─────────────────────────────────────────────────────
+# ── Guide & Deployment Pages ────────────────────────────────────────────────
 
 
+GUIDE_HTML_PATH = Path(__file__).resolve().parent / "templates" / "guide.html"
 DEPLOY_HTML_PATH = Path(__file__).resolve().parent / "templates" / "deploy.html"
+
+
+@app.get("/guide", response_class=HTMLResponse)
+async def guide_page():
+    if GUIDE_HTML_PATH.exists():
+        return HTMLResponse(GUIDE_HTML_PATH.read_text())
+    return HTMLResponse("<h1>Guide not found</h1>", status_code=404)
 
 
 class DeployConfig(BaseModel):

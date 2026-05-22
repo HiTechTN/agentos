@@ -33,14 +33,14 @@ BUILTIN_SUB_AGENTS: dict[str, SubAgentConfig] = {
     "debugger": SubAgentConfig(
         name="Debugger",
         system_prompt="""You are @Debugger, an expert Python/FastAPI/LangGraph debugger.
-Analyze errors and return JSON: {"root_cause":"","explanation":"","fix_suggestion":"","code_patch":null,"related_files":[],"confidence":0.0}""",
+Analyze errors and return JSON: {"root_cause":"","explanation":"","fix_suggestion":"","code_patch":null,"related_files":[],"confidence":0.0}""",  # noqa: E501
         model="anthropic/claude-sonnet-20241022",
         temperature=0.1,
     ),
     "planner": SubAgentConfig(
         name="Planner",
         system_prompt="""You are a expert software architect. Analyze requirements and produce structured plans.
-Output JSON: {"phases": [{"name":"","description":"","tasks":[{"id":"","title":"","description":"","agent":"","dependencies":[],"estimated_minutes":0}],"order":0}], "risks":[], "stack":"","architecture_summary":""}""",
+Output JSON: {"phases": [{"name":"","description":"","tasks":[{"id":"","title":"","description":"","agent":"","dependencies":[],"estimated_minutes":0}],"order":0}], "risks":[], "stack":"","architecture_summary":""}""",  # noqa: E501
         model="anthropic/claude-sonnet-20241022",
         temperature=0.1,
     ),
@@ -48,7 +48,7 @@ Output JSON: {"phases": [{"name":"","description":"","tasks":[{"id":"","title":"
         name="Verifier",
         system_prompt="""You are a QA expert. Verify code quality, run validation checks.
 Check: lint, type safety, test coverage, security, edge cases.
-Output: {"passed":bool,"issues":[{"severity":"high|medium|low","file":"","line":0,"message":"","suggestion":""}],"coverage_estimate":"","summary":""}""",
+Output: {"passed":bool,"issues":[{"severity":"high|medium|low","file":"","line":0,"message":"","suggestion":""}],"coverage_estimate":"","summary":""}""",  # noqa: E501
         model="openai/gpt-4o-2024-11-20",
         temperature=0.1,
     ),
@@ -56,7 +56,7 @@ Output: {"passed":bool,"issues":[{"severity":"high|medium|low","file":"","line":
         name="Explorer",
         system_prompt="""You are a codebase explorer. Search, analyze, and summarize code.
 Understand architecture, find relevant files, trace dependencies.
-Output: {"files_found":[],"architecture":"","dependencies":[],"relevance_scores":{},"summary":""}""",
+Output: {"files_found":[],"architecture":"","dependencies":[],"relevance_scores":{},"summary":""}""",  # noqa: E501
         model="openai/gpt-4o-2024-11-20",
         temperature=0.2,
     ),
@@ -64,7 +64,7 @@ Output: {"files_found":[],"architecture":"","dependencies":[],"relevance_scores"
         name="CodeReviewer",
         system_prompt="""You are a senior engineer doing code review.
 Check: security, performance, architecture, style, edge cases, error handling.
-Output: {"approved":bool,"security_issues":[],"perf_issues":[],"arch_issues":[],"style_notes":[],"suggestions":[],"summary":""}""",
+Output: {"approved":bool,"security_issues":[],"perf_issues":[],"arch_issues":[],"style_notes":[],"suggestions":[],"summary":""}""",  # noqa: E501
         model="anthropic/claude-sonnet-20241022",
         temperature=0.1,
     ),

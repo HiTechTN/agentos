@@ -133,6 +133,22 @@ class LLMClient:
         }
         return routing.get(task_type, self.settings.model_for_default)
 
+    async def complete(
+        self,
+        model: object,
+        system: str,
+        messages: list[dict],
+        temperature: float = 0.1,
+        max_tokens: int = 4096,
+    ) -> LLMResponse:
+        full_messages = [{"role": "system", "content": system}] + messages
+        return await self.chat(
+            self.settings.model_for_default,
+            full_messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
     def clear_cache(self):
         self._llm_cache.clear()
         logger.log_action("llm_client", "cache_cleared", "completed")

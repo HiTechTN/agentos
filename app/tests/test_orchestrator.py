@@ -27,11 +27,16 @@ async def test_orchestrator_run_basic_prompt(orchestrator):
             "_decompose_prompt",
             AsyncMock(
                 return_value=[
-                    {"agent": "dev", "action": "analyze", "params": {"prompt": "test"}, "priority": 0}
+                    {"agent": "dev", "action": "analyze",  # noqa: E501
+                     "params": {"prompt": "test"}, "priority": 0}
                 ]
             ),
         ),
-        patch.object(orchestrator.agents["dev"], "execute", AsyncMock(return_value={"agent": "dev", "action": "analyze", "success": True, "result": {}})),
+        patch.object(
+            orchestrator.agents["dev"], "execute",
+            AsyncMock(return_value=  # noqa: E501
+                       {"agent": "dev", "action": "analyze", "success": True, "result": {}}),
+        ),
     ):
         result = await orchestrator.run("test prompt")
         assert result is not None
@@ -43,10 +48,14 @@ async def test_orchestrator_run_basic_prompt(orchestrator):
 async def test_orchestrator_analyze_prompt(orchestrator):
     from app.utils.api_clients import LLMClient, LLMResponse
 
-    with patch.object(LLMClient, "chat", AsyncMock(return_value=LLMResponse(
-        content='[{"agent":"dev","action":"analyze","params":{"prompt":"Create a landing page"},"priority":0}]',
+    resp = LLMResponse(
+        content=(
+            '[{"agent":"dev","action":"analyze",'
+            '"params":{"prompt":"Create a landing page"},"priority":0}]'
+        ),
         model="test", provider="test"
-    ))):
+    )
+    with patch.object(LLMClient, "chat", AsyncMock(return_value=resp)):
         tasks = await orchestrator._decompose_prompt("Create a landing page")
         assert isinstance(tasks, list)
         assert len(tasks) > 0

@@ -1,13 +1,12 @@
-"""Tests for v2.0/v3.0 features: parallel execution, metrics, telemetry, notifications, caching, multi-model routing, scheduler, workspaces."""
+"""v2/v3: parallel exec, metrics, telemetry, notifications, caching, routing, scheduler."""
 
-import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.memory.workspace import WorkspaceManager
 from app.orchestrator import AgentOSOrchestrator, AgentOSState
-from app.utils.logging import LogBroadcaster, get_broadcaster
+from app.utils.logging import LogBroadcaster
 from app.utils.metrics import MetricsCollector
 from app.utils.notifications import NotificationManager
 from app.utils.telemetry import Span
@@ -148,7 +147,7 @@ class TestLLMCache:
         key = client._cache_key("model-x", [{"role": "user", "content": "hi"}], 0.7)
         client._llm_cache[key] = LLMResponse(content="cached", model="model-x", provider="test")
         with patch.object(client.settings, "llm_cache_enabled", True):
-            result = await client.chat("model-x", [{"role": "user", "content": "hi"}], temperature=0.7)
+            result = await client.chat("model-x", [{"role": "user", "content": "hi"}], temperature=0.7)  # noqa: E501
         assert result.content == "cached"
 
     def test_cache_miss(self):

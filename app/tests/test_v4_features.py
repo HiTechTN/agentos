@@ -1,4 +1,4 @@
-"""Tests for AgentOS v4 — sub-agent system, Plan→Code→Verify, Kanban, Pulse, git worktree, MCP, rules."""
+"""Tests for AgentOS v4: sub-agent system, Plan/Code/Verify, Kanban, Pulse, git worktree, MCP."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 

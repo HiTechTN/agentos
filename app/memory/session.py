@@ -52,8 +52,11 @@ class SessionManager:
             await self._init_db()
             async with self._session_factory() as session:
                 stmt = text("""
-                    INSERT INTO sessions (id, project_id, workflow_id, status, context, created_at, updated_at)
-                    VALUES (:id, :project_id, :workflow_id, :status, :context, :created_at, :updated_at)
+                    INSERT INTO sessions
+                        (id, project_id, workflow_id, status, context, created_at, updated_at)
+                    VALUES (
+                        :id, :project_id, :workflow_id, :status, :context, :created_at, :updated_at
+                    )
                 """)
                 await session.execute(
                     stmt,

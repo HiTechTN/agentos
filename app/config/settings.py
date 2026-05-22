@@ -126,6 +126,7 @@ class Settings(BaseSettings):
 
     # Notifications
     slack_webhook_url: str = ""
+    discord_webhook_url: str = ""
     notification_email_from: str = "agentos@localhost"
     notification_smtp_host: str = "mailhog"
     notification_smtp_port: int = 1025

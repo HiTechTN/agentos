@@ -143,7 +143,7 @@ async def test_workspace():
 
 @pytest.mark.asyncio
 async def test_llm_cache():
-    from app.utils.api_clients import LLMClient, LLMResponse
+    from app.utils.api_clients import LLMClient
 
     client = LLMClient()
     k1 = client._cache_key("gpt-4o", [{"role": "user", "content": "hi"}], 0.7)
@@ -152,7 +152,7 @@ async def test_llm_cache():
     assert k1 == k2 and k1 != k3
 
     msgs = [{"role": "user", "content": "cached"}]
-    mock_resp = type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": "resp"})()})]})()
+    mock_resp = type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": "resp"})()})]})()  # noqa: E501
     mock_openai = AsyncMock()
     mock_openai.chat.completions.create = AsyncMock(return_value=mock_resp)
 

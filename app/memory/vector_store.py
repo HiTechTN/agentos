@@ -47,8 +47,10 @@ class VectorStore:
             await self._init_db()
             async with self._session_factory() as session:
                 stmt = text("""
-                    INSERT INTO embeddings (id, project_id, content, metadata, embedding, created_at)
-                    VALUES (:id, :project_id, :content, :metadata, :embedding, :created_at)
+                    INSERT INTO embeddings
+                        (id, project_id, content, metadata, embedding, created_at)
+                    VALUES
+                        (:id, :project_id, :content, :metadata, :embedding, :created_at)
                 """)
                 await session.execute(
                     stmt,
