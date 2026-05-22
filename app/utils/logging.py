@@ -1,8 +1,7 @@
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 MASKED_FIELDS = {"api_key", "token", "password", "secret", "authorization"}
 
@@ -35,9 +34,9 @@ class LogBroadcaster:
     async def broadcast(self, record: dict):
         for cb in self._subscribers:
             try:
-                if hasattr(cb, '__call__'):
+                if hasattr(cb, "__call__"):
                     result = cb(record)
-                    if hasattr(result, '__await__'):
+                    if hasattr(result, "__await__"):
                         await result
             except Exception:
                 pass
@@ -68,7 +67,7 @@ class AgentOSLogger(logging.Logger):
         details: dict | None = None,
     ) -> tuple[str, dict]:
         record = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": level,
             "logger": self.name,
             "agent_id": agent_id,
@@ -90,10 +89,13 @@ class AgentOSLogger(logging.Logger):
         project_id: str | None = None,
         details: dict | None = None,
     ) -> str:
-        line, record = self._json_log("INFO", agent_id, action, status, trace_id, project_id, details)
+        line, record = self._json_log(
+            "INFO", agent_id, action, status, trace_id, project_id, details
+        )
         self.info(line)
         try:
             import asyncio
+
             asyncio.ensure_future(_broadcaster.broadcast(record))
         except Exception:
             pass
@@ -109,10 +111,13 @@ class AgentOSLogger(logging.Logger):
         details: dict | None = None,
     ) -> str:
         err_details = {"error": error, **(details or {})}
-        line, record = self._json_log("ERROR", agent_id, action, "failed", trace_id, project_id, err_details)
+        line, record = self._json_log(
+            "ERROR", agent_id, action, "failed", trace_id, project_id, err_details
+        )
         self.error(line)
         try:
             import asyncio
+
             asyncio.ensure_future(_broadcaster.broadcast(record))
         except Exception:
             pass
@@ -126,10 +131,13 @@ class AgentOSLogger(logging.Logger):
         trace_id: str | None = None,
         project_id: str | None = None,
     ) -> str:
-        line, record = self._json_log("WARN", agent_id, action, "warning", trace_id, project_id, {"message": message})
+        line, record = self._json_log(
+            "WARN", agent_id, action, "warning", trace_id, project_id, {"message": message}
+        )
         self.warning(line)
         try:
             import asyncio
+
             asyncio.ensure_future(_broadcaster.broadcast(record))
         except Exception:
             pass

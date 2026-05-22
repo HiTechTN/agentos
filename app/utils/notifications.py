@@ -1,6 +1,3 @@
-import json
-from typing import Any
-
 import httpx
 
 from app.config.settings import get_settings
@@ -13,7 +10,9 @@ class NotificationManager:
     def __init__(self):
         self.settings = get_settings()
 
-    async def send(self, channel: str, title: str, message: str, details: dict | None = None) -> bool:
+    async def send(
+        self, channel: str, title: str, message: str, details: dict | None = None
+    ) -> bool:
         channel_map = {
             "slack": self._send_slack,
             "discord": self._send_discord,
@@ -26,7 +25,9 @@ class NotificationManager:
 
         try:
             await handler(title, message, details)
-            logger.log_action("notifications", f"sent_{channel}", "completed", details={"title": title})
+            logger.log_action(
+                "notifications", f"sent_{channel}", "completed", details={"title": title}
+            )
             return True
         except Exception as e:
             logger.log_warn("notifications", f"{channel}_failed", str(e))
@@ -49,10 +50,14 @@ class NotificationManager:
             ]
         }
         if details:
-            payload["blocks"].append({
-                "type": "section",
-                "fields": [{"type": "mrkdwn", "text": f"*{k}*: {v}"} for k, v in details.items()],
-            })
+            payload["blocks"].append(
+                {
+                    "type": "section",
+                    "fields": [
+                        {"type": "mrkdwn", "text": f"*{k}*: {v}"} for k, v in details.items()
+                    ],
+                }
+            )
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(self.settings.slack_webhook_url, json=payload)
             resp.raise_for_status()
@@ -60,16 +65,20 @@ class NotificationManager:
     async def _send_discord(self, title: str, message: str, details: dict | None = None):
         if not self.settings.discord_webhook_url:
             return
-        embed = {"title": title, "description": message, "color": 0x4c6ef5}
+        embed = {"title": title, "description": message, "color": 0x4C6EF5}
         if details:
-            embed["fields"] = [{"name": k, "value": str(v), "inline": True} for k, v in details.items()]
+            embed["fields"] = [
+                {"name": k, "value": str(v), "inline": True} for k, v in details.items()
+            ]
         payload = {"embeds": [embed]}
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(self.settings.discord_webhook_url, json=payload)
             resp.raise_for_status()
 
     async def _send_console(self, title: str, message: str, details: dict | None = None):
-        logger.log_action("notification", title, "info", details={"message": message, **(details or {})})
+        logger.log_action(
+            "notification", title, "info", details={"message": message, **(details or {})}
+        )
 
 
 _notification_manager: NotificationManager | None = None

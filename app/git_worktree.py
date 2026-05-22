@@ -1,9 +1,6 @@
 """Git worktree isolation for parallel agent execution."""
 
 import asyncio
-import os
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +38,12 @@ class GitWorktreeManager:
         await self._run_git("push", "origin", branch_name, "--set-upstream")
         await self._run_git("worktree", "add", str(worktree_path), branch_name)
         await self._run_git("checkout", base_branch)
-        self.logger.log_action("worktree", "create", "completed", details={"branch": branch_name, "path": str(worktree_path)})
+        self.logger.log_action(
+            "worktree",
+            "create",
+            "completed",
+            details={"branch": branch_name, "path": str(worktree_path)},
+        )
         return worktree_path
 
     async def remove_worktree(self, branch_name: str):

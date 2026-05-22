@@ -1,8 +1,6 @@
 """Verify Mode — automatic code validation after execution."""
 
-from typing import Any
-
-from app.agents.sub_agent import SubAgent, BUILTIN_SUB_AGENTS
+from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
 from app.utils.logging import get_logger
 
 logger = get_logger("verifier")
@@ -29,8 +27,13 @@ class Verifier:
         self.sub_agent = SubAgent(BUILTIN_SUB_AGENTS["verifier"])
         self.logger = get_logger("verifier")
 
-    async def verify(self, task: str, code_changes: list[dict] | None = None,
-                     test_results: str = "", lint_output: str = "") -> VerificationResult:
+    async def verify(
+        self,
+        task: str,
+        code_changes: list[dict] | None = None,
+        test_results: str = "",
+        lint_output: str = "",
+    ) -> VerificationResult:
         self.logger.log_action("verifier", "verify", "started", details={"task": task[:100]})
         result = VerificationResult()
 

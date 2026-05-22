@@ -1,14 +1,13 @@
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config.settings import get_settings
-from app.utils.logging import get_logger
 from app.utils.api_clients import EmbeddingClient
+from app.utils.logging import get_logger
 
 logger = get_logger("vector_store")
 
@@ -32,7 +31,9 @@ class VectorStore:
                 await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
             logger.log_action("vector_store", "db_init", "connected", details={"db": "postgres"})
         except Exception as e:
-            logger.log_warn("vector_store", "db_init", f"PostgreSQL unavailable, using JSON fallback: {e}")
+            logger.log_warn(
+                "vector_store", "db_init", f"PostgreSQL unavailable, using JSON fallback: {e}"
+            )
             self._use_json_fallback = True
 
     async def store(self, project_id: str, content: str, metadata: dict | None = None) -> str:
@@ -49,14 +50,17 @@ class VectorStore:
                     INSERT INTO embeddings (id, project_id, content, metadata, embedding, created_at)
                     VALUES (:id, :project_id, :content, :metadata, :embedding, :created_at)
                 """)
-                await session.execute(stmt, {
-                    "id": entry_id,
-                    "project_id": project_id,
-                    "content": content,
-                    "metadata": json.dumps(metadata or {}),
-                    "embedding": str(embedding),
-                    "created_at": datetime.now(timezone.utc),
-                })
+                await session.execute(
+                    stmt,
+                    {
+                        "id": entry_id,
+                        "project_id": project_id,
+                        "content": content,
+                        "metadata": json.dumps(metadata or {}),
+                        "embedding": str(embedding),
+                        "created_at": datetime.now(UTC),
+                    },
+                )
                 await session.commit()
             return entry_id
         except Exception as e:
@@ -80,11 +84,14 @@ class VectorStore:
                     ORDER BY similarity DESC
                     LIMIT :top_k
                 """)
-                result = await session.execute(stmt, {
-                    "embedding": str(embedding),
-                    "project_id": project_id,
-                    "top_k": top_k,
-                })
+                result = await session.execute(
+                    stmt,
+                    {
+                        "embedding": str(embedding),
+                        "project_id": project_id,
+                        "top_k": top_k,
+                    },
+                )
                 rows = result.fetchall()
                 return [
                     {"id": r[0], "content": r[1], "metadata": r[2], "similarity": float(r[3])}
@@ -109,30 +116,42 @@ class VectorStore:
 
     def _json_fallback_path(self) -> str:
         import os
+
         return os.path.join(self.settings.project_id, "memory_fallback.json")
 
-    async def _store_json(self, entry_id: str, project_id: str, content: str, metadata: dict | None, embedding: list[float]) -> str:
+    async def _store_json(
+        self,
+        entry_id: str,
+        project_id: str,
+        content: str,
+        metadata: dict | None,
+        embedding: list[float],
+    ) -> str:
         import os
+
         path = self._json_fallback_path()
         os.makedirs(os.path.dirname(path), exist_ok=True)
         entries = []
         if os.path.exists(path):
             with open(path) as f:
                 entries = json.load(f)
-        entries.append({
-            "id": entry_id,
-            "project_id": project_id,
-            "content": content,
-            "metadata": metadata or {},
-            "embedding": embedding,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
+        entries.append(
+            {
+                "id": entry_id,
+                "project_id": project_id,
+                "content": content,
+                "metadata": metadata or {},
+                "embedding": embedding,
+                "created_at": datetime.now(UTC).isoformat(),
+            }
+        )
         with open(path, "w") as f:
             json.dump(entries, f, default=str)
         return entry_id
 
     def _search_json(self, project_id: str, query: str, top_k: int) -> list[dict]:
         import os
+
         path = self._json_fallback_path()
         if not os.path.exists(path):
             return []
@@ -140,7 +159,12 @@ class VectorStore:
             entries = json.load(f)
         filtered = [e for e in entries if e.get("project_id") == project_id]
         return [
-            {"id": e["id"], "content": e["content"], "metadata": e.get("metadata", {}), "similarity": 0.0}
+            {
+                "id": e["id"],
+                "content": e["content"],
+                "metadata": e.get("metadata", {}),
+                "similarity": 0.0,
+            }
             for e in filtered[:top_k]
         ]
 

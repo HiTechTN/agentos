@@ -1,7 +1,6 @@
 import asyncio
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from app.utils.logging import get_logger
 
@@ -12,7 +11,10 @@ class HITLPendingError(Exception):
     def __init__(self, approval_id: str, action: str, message: str = ""):
         self.approval_id = approval_id
         self.action = action
-        self.message = message or f"HITL required for action: {action}. Use /api/v1/hitl/approve with id={approval_id}"
+        self.message = (
+            message
+            or f"HITL required for action: {action}. Use /api/v1/hitl/approve with id={approval_id}"
+        )
         super().__init__(self.message)
 
 
@@ -28,7 +30,7 @@ class PendingApproval:
         self.action = action
         self.details = details
         self.status = "pending"
-        self.created_at = datetime.now(timezone.utc)
+        self.created_at = datetime.now(UTC)
         self._event = asyncio.Event()
 
     def approve(self) -> dict:

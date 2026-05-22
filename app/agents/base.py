@@ -5,8 +5,8 @@ import yaml
 
 from app.config.settings import get_settings
 from app.utils.api_clients import LLMClient, LLMUnavailableError
+from app.utils.hitl_gateway import HITLPendingError, get_hitl_gateway
 from app.utils.logging import get_logger
-from app.utils.hitl_gateway import get_hitl_gateway, HITLPendingError
 
 
 class AgentError(Exception):
@@ -37,6 +37,7 @@ class BaseAgent(ABC):
 
     def _load_prompts(self):
         import os
+
         prompts_path = os.path.join(os.path.dirname(__file__), "..", "config", "prompts.yaml")
         try:
             with open(prompts_path) as f:
@@ -83,18 +84,39 @@ class BaseAgent(ABC):
         except HITLPendingError as e:
             raise e
         except AgentError as e:
-            self.logger.log_error(self.name, action, e.code, trace_id, session_id, {"detail": e.detail})
-            return {"agent": self.name, "action": action, "success": False, "error": {"code": e.code, "message": str(e)}}
+            self.logger.log_error(
+                self.name, action, e.code, trace_id, session_id, {"detail": e.detail}
+            )
+            return {
+                "agent": self.name,
+                "action": action,
+                "success": False,
+                "error": {"code": e.code, "message": str(e)},
+            }
         except LLMUnavailableError as e:
             self.logger.log_error(self.name, action, "llm_unavailable", trace_id, session_id)
-            return {"agent": self.name, "action": action, "success": False, "error": {"code": "LLM_UNAVAILABLE", "message": str(e)}, "degraded": True}
+            return {
+                "agent": self.name,
+                "action": action,
+                "success": False,
+                "error": {"code": "LLM_UNAVAILABLE", "message": str(e)},
+                "degraded": True,
+            }
         except Exception as e:
-            self.logger.log_error(self.name, action, "unexpected_error", trace_id, session_id, {"detail": str(e)})
-            return {"agent": self.name, "action": action, "success": False, "error": {"code": "UNEXPECTED", "message": str(e)}}
+            self.logger.log_error(
+                self.name, action, "unexpected_error", trace_id, session_id, {"detail": str(e)}
+            )
+            return {
+                "agent": self.name,
+                "action": action,
+                "success": False,
+                "error": {"code": "UNEXPECTED", "message": str(e)},
+            }
 
     async def _retrieve_context(self, session_id: str, task: dict) -> str:
         try:
             from app.memory.vector_store import get_vector_store
+
             vs = get_vector_store()
             query = f"{task.get('action', '')}: {task.get('params', {}).get('prompt', '')}"
             results = await vs.search(session_id, query, top_k=3)
@@ -107,8 +129,7 @@ class BaseAgent(ABC):
         return ""
 
     @abstractmethod
-    async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any:
-        ...
+    async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any: ...
 
     async def _llm_call(self, messages: list[dict], temperature: float = 0.7) -> str:
         response = await self.llm.chat(
@@ -118,7 +139,9 @@ class BaseAgent(ABC):
         )
         return response.content
 
-    async def _llm_call_routed(self, task_type: str, messages: list[dict], temperature: float = 0.7) -> str:
+    async def _llm_call_routed(
+        self, task_type: str, messages: list[dict], temperature: float = 0.7
+    ) -> str:
         response = await self.llm.chat_with_model_selection(
             task_type=task_type,
             messages=messages,

@@ -1,7 +1,6 @@
 """Pulse — real-time visual dashboard data."""
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from app.utils.logging import get_logger
 
@@ -13,10 +12,15 @@ class PulseMetric:
         self.name = name
         self.value = value
         self.unit = unit
-        self.timestamp = datetime.now(timezone.utc).isoformat()
+        self.timestamp = datetime.now(UTC).isoformat()
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "value": self.value, "unit": self.unit, "timestamp": self.timestamp}
+        return {
+            "name": self.name,
+            "value": self.value,
+            "unit": self.unit,
+            "timestamp": self.timestamp,
+        }
 
 
 class PulseSnapshot:
@@ -28,7 +32,7 @@ class PulseSnapshot:
         self.tasks_review: int = 0
         self.cards_by_column: dict[str, int] = {}
         self.agent_activity: dict[str, str] = {}
-        self.timestamp = datetime.now(timezone.utc).isoformat()
+        self.timestamp = datetime.now(UTC).isoformat()
 
     def add_metric(self, name: str, value: float, unit: str = ""):
         self.metrics.append(PulseMetric(name, value, unit))
@@ -51,8 +55,11 @@ class PulseEngine:
         self.logger = get_logger("pulse_engine")
         self.history: list[PulseSnapshot] = []
 
-    async def snapshot(self, kanban_data: dict[str, list] | None = None,
-                       agent_statuses: dict[str, str] | None = None) -> PulseSnapshot:
+    async def snapshot(
+        self,
+        kanban_data: dict[str, list] | None = None,
+        agent_statuses: dict[str, str] | None = None,
+    ) -> PulseSnapshot:
         snap = PulseSnapshot()
         if kanban_data:
             snap.cards_by_column = {col: len(cards) for col, cards in kanban_data.items()}

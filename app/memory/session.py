@@ -1,10 +1,9 @@
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config.settings import get_settings
 from app.utils.logging import get_logger
@@ -28,7 +27,9 @@ class SessionManager:
             self._session_factory = async_sessionmaker(self._engine, expire_on_commit=False)
             logger.log_action("session", "db_init", "connected")
         except Exception as e:
-            logger.log_warn("session", "db_init", f"PostgreSQL unavailable, using JSON fallback: {e}")
+            logger.log_warn(
+                "session", "db_init", f"PostgreSQL unavailable, using JSON fallback: {e}"
+            )
             self._use_json_fallback = True
 
     async def create(self, project_id: str, workflow_id: str = "") -> str:
@@ -39,8 +40,8 @@ class SessionManager:
             "workflow_id": workflow_id or f"wf-{session_id[:8]}",
             "status": "pending",
             "context": {},
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         }
 
         if self._use_json_fallback:
@@ -54,15 +55,18 @@ class SessionManager:
                     INSERT INTO sessions (id, project_id, workflow_id, status, context, created_at, updated_at)
                     VALUES (:id, :project_id, :workflow_id, :status, :context, :created_at, :updated_at)
                 """)
-                await session.execute(stmt, {
-                    "id": session_id,
-                    "project_id": project_id,
-                    "workflow_id": session_data["workflow_id"],
-                    "status": session_data["status"],
-                    "context": json.dumps(session_data["context"]),
-                    "created_at": session_data["created_at"],
-                    "updated_at": session_data["updated_at"],
-                })
+                await session.execute(
+                    stmt,
+                    {
+                        "id": session_id,
+                        "project_id": project_id,
+                        "workflow_id": session_data["workflow_id"],
+                        "status": session_data["status"],
+                        "context": json.dumps(session_data["context"]),
+                        "created_at": session_data["created_at"],
+                        "updated_at": session_data["updated_at"],
+                    },
+                )
                 await session.commit()
         except Exception as e:
             logger.log_warn("session", "create", f"DB failed, memory fallback: {e}")
@@ -70,8 +74,10 @@ class SessionManager:
 
         return session_id
 
-    async def update(self, session_id: str, context: dict | None = None, status: str | None = None) -> bool:
-        now = datetime.now(timezone.utc).isoformat()
+    async def update(
+        self, session_id: str, context: dict | None = None, status: str | None = None
+    ) -> bool:
+        now = datetime.now(UTC).isoformat()
 
         if self._use_json_fallback or session_id in self._sessions:
             if session_id not in self._sessions:
@@ -119,8 +125,12 @@ class SessionManager:
                         "workflow_id": row[2],
                         "status": row[3],
                         "context": json.loads(row[4]) if isinstance(row[4], str) else row[4],
-                        "created_at": row[5].isoformat() if hasattr(row[5], 'isoformat') else row[5],
-                        "updated_at": row[6].isoformat() if hasattr(row[6], 'isoformat') else row[6],
+                        "created_at": row[5].isoformat()
+                        if hasattr(row[5], "isoformat")
+                        else row[5],
+                        "updated_at": row[6].isoformat()
+                        if hasattr(row[6], "isoformat")
+                        else row[6],
                     }
                 return None
         except Exception as e:

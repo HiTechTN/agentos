@@ -46,6 +46,7 @@ class Cache:
                 return None
 
         import time
+
         entry = self._local_cache.get(key)
         if entry:
             expires, value = entry
@@ -70,6 +71,7 @@ class Cache:
                     logger.log_warn("cache", "redis_set", f"Redis write failed: {e}")
 
         import time
+
         self._local_cache[key] = (time.time(), value)
         return True
 

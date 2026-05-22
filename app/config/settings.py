@@ -1,5 +1,5 @@
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     project_id: str = "demo-project"
     environment: str = "development"
-    version: str = "3.0.0"
+    version: str = "5.0.0"
 
     # LLM - OpenRouter
     openrouter_api_key: str = ""
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     postgres_db: str = "agentos"
     postgres_user: str = "agentos"
     postgres_password: str = ""
-    database_url: Optional[str] = None
+    database_url: str | None = None
 
     @property
     def resolved_database_url(self) -> str:
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     redis_host: str = "redis"
     redis_port: int = 6379
     redis_password: str = ""
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
 
     @property
     def resolved_redis_url(self) -> str:
@@ -65,9 +65,21 @@ class Settings(BaseSettings):
         return f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}/0"
 
     # TTL
+    llm_cache_enabled: bool = True
     llm_cache_ttl: int = 60
     session_cache_ttl: int = 3600
     project_cache_ttl: int = 86400
+
+    # JWT Authentication
+    jwt_secret: SecretStr = SecretStr("agentos-jwt-secret-change-in-prod")
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_hours: int = 24
+
+    # Rate Limiting
+    rate_limit_default: str = "100/minute"
+    rate_limit_run: str = "10/minute"
+    rate_limit_plan: str = "20/minute"
+    rate_limit_verify: str = "30/minute"
 
     # NextAuth
     nextauth_secret: str = "agentos-nextauth-secret-change-in-prod"
@@ -122,10 +134,15 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = True
     scheduler_check_interval: int = 60
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+        "protected_namespaces": ("settings_",),
+    }
 
 
-_settings: Optional[Settings] = None
+_settings: Settings | None = None
 
 
 def get_settings() -> Settings:

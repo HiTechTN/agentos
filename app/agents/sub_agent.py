@@ -2,8 +2,8 @@
 
 import json
 import os
-from typing import Any, Protocol
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from app.utils.api_clients import LLMClient
 from app.utils.logging import get_logger
@@ -30,6 +30,13 @@ class SubAgentConfig:
 
 
 BUILTIN_SUB_AGENTS: dict[str, SubAgentConfig] = {
+    "debugger": SubAgentConfig(
+        name="Debugger",
+        system_prompt="""You are @Debugger, an expert Python/FastAPI/LangGraph debugger.
+Analyze errors and return JSON: {"root_cause":"","explanation":"","fix_suggestion":"","code_patch":null,"related_files":[],"confidence":0.0}""",
+        model="anthropic/claude-sonnet-20241022",
+        temperature=0.1,
+    ),
     "planner": SubAgentConfig(
         name="Planner",
         system_prompt="""You are a expert software architect. Analyze requirements and produce structured plans.
@@ -72,10 +79,17 @@ class SubAgent:
         self.logger = get_logger(f"subagent_{config.name}")
 
     async def run(self, task: str, context: dict | None = None) -> dict:
-        self.logger.log_action("sub_agent", "run", "started", details={"name": self.config.name, "task": task[:100]})
+        self.logger.log_action(
+            "sub_agent", "run", "started", details={"name": self.config.name, "task": task[:100]}
+        )
         messages = [{"role": "system", "content": self.config.system_prompt}]
         if context:
-            messages.append({"role": "system", "content": f"Context:\n{json.dumps(context, default=str)[:4000]}"})
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"Context:\n{json.dumps(context, default=str)[:4000]}",
+                }
+            )
         messages.append({"role": "user", "content": task})
 
         model = self.config.model or "openai/gpt-4o-2024-11-20"
@@ -110,6 +124,7 @@ def _load_custom_config(path: str) -> SubAgentConfig | None:
         with open(path) as f:
             content = f.read()
         import yaml
+
         parts = content.split("---", 2)
         if len(parts) >= 3:
             meta = yaml.safe_load(parts[1])
@@ -147,4 +162,6 @@ def route_to_sub_agent(task: str, context: dict | None = None) -> str:
         return "code_reviewer"
     if any(w in task_lower for w in ["plan", "design", "architecture", "how to", "approach"]):
         return "planner"
+    if any(w in task_lower for w in ["error", "exception", "debug", "fix", "crash", "traceback"]):
+        return "debugger"
     return "planner"

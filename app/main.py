@@ -3,16 +3,21 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config.settings import get_settings
 from app.orchestrator import get_orchestrator
+from app.utils.auth import get_current_user
 from app.utils.hitl_gateway import get_hitl_gateway
 from app.utils.logging import get_logger
 from app.utils.metrics import get_metrics
+from app.utils.rate_limit import limiter
+from app.utils.request_id import RequestIDMiddleware
 from app.utils.telemetry import get_telemetry
 
 settings = get_settings()
@@ -51,6 +56,7 @@ class SchedulerTask(BaseModel):
 async def lifespan(app: FastAPI):
     logger.log_action("api", "startup", "started", details={"version": settings.version})
     from app.scheduler import get_scheduler
+
     if settings.scheduler_enabled:
         scheduler = get_scheduler()
         await scheduler.start()
@@ -73,10 +79,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(RequestIDMiddleware)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
+
+
+@app.middleware("http")
+async def optional_auth_middleware(request: Request, call_next):
+    """Optional JWT auth — populates request.state.user if valid token provided."""
+    if request.url.path.startswith("/api/v1/") and request.url.path not in (
+        "/health",
+        "/metrics",
+        "/docs",
+        "/openapi.json",
+    ):
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            try:
+                credentials = type("HC", (), {"credentials": auth_header[7:]})()
+                request.state.user = await get_current_user(credentials)
+            except Exception:
+                request.state.user = None
+        else:
+            request.state.user = None
+    response = await call_next(request)
+    return response
+
 
 @app.get("/health")
 async def health():
     import asyncpg
+
     statuses = {"api": "ok", "version": settings.version}
     try:
         conn = await asyncpg.connect(settings.resolved_database_url.replace("+asyncpg", ""))
@@ -87,6 +120,7 @@ async def health():
         statuses["database"] = "error"
     try:
         import redis.asyncio as aioredis
+
         r = aioredis.from_url(settings.resolved_redis_url)
         await r.ping()
         await r.aclose()
@@ -95,6 +129,7 @@ async def health():
         statuses["redis"] = "error"
     try:
         import httpx
+
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(f"{settings.ollama_base_url}/api/tags")
             if resp.status_code == 200:
@@ -123,6 +158,7 @@ async def websocket_logs(websocket: WebSocket):
             pass
 
     from app.utils.logging import get_broadcaster
+
     broadcaster = get_broadcaster()
     broadcaster.subscribe(send_log)
 
@@ -138,7 +174,8 @@ async def websocket_logs(websocket: WebSocket):
 
 
 @app.post("/api/v1/run")
-async def run_workflow(req: RunRequest):
+@limiter.limit(settings.rate_limit_run)
+async def run_workflow(req: RunRequest, request: Request):
     start = time.time()
     orchestrator = get_orchestrator()
     result = await orchestrator.run(prompt=req.prompt, project_id=req.project_id)
@@ -151,6 +188,7 @@ async def run_workflow(req: RunRequest):
 @app.get("/api/v1/status/{session_id}")
 async def get_status(session_id: str):
     from app.memory.session import get_session_manager
+
     sm = get_session_manager()
     session = await sm.get(session_id)
     if not session:
@@ -159,12 +197,14 @@ async def get_status(session_id: str):
 
 
 @app.post("/api/v1/hitl/approve")
-async def approve_action(req: ApproveRequest):
+@limiter.limit("30/minute")
+async def approve_action(req: ApproveRequest, request: Request):
     hitl = get_hitl_gateway()
     try:
         result = hitl.approve(req.approval_id)
         metrics.inc("hitl_approved")
         from app.utils.notifications import get_notifications
+
         await get_notifications().notify_all(
             "HITL Approved", f"Approval {req.approval_id[:8]} was approved"
         )
@@ -174,7 +214,8 @@ async def approve_action(req: ApproveRequest):
 
 
 @app.post("/api/v1/hitl/reject")
-async def reject_action(req: RejectRequest):
+@limiter.limit("30/minute")
+async def reject_action(req: RejectRequest, request: Request):
     hitl = get_hitl_gateway()
     try:
         result = hitl.reject(req.approval_id, req.reason)
@@ -198,11 +239,11 @@ async def get_logs(limit: int = 100, trace_id: str = ""):
 
 
 @app.post("/api/v1/project/export")
-async def export_project(req: ProjectExport):
+@limiter.limit("30/minute")
+async def export_project(req: ProjectExport, request: Request):
     from app.memory.session import get_session_manager
-    from app.memory.vector_store import get_vector_store
+
     sm = get_session_manager()
-    vs = get_vector_store()
     export_data = {
         "project_id": req.project_id,
         "version": settings.version,
@@ -219,8 +260,10 @@ async def export_project(req: ProjectExport):
 
 
 @app.post("/api/v1/project/import")
-async def import_project(data: dict):
+@limiter.limit("30/minute")
+async def import_project(data: dict, request: Request):
     from app.memory.session import get_session_manager
+
     sm = get_session_manager()
     if not data.get("project_id"):
         raise HTTPException(status_code=400, detail="project_id required")
@@ -230,8 +273,10 @@ async def import_project(data: dict):
 
 
 @app.post("/api/v1/scheduler/create")
-async def create_scheduled_task(task: SchedulerTask):
+@limiter.limit("20/minute")
+async def create_scheduled_task(task: SchedulerTask, request: Request):
     from app.scheduler import get_scheduler
+
     scheduler = get_scheduler()
     task_id = await scheduler.add_task(
         name=task.name,
@@ -246,6 +291,7 @@ async def create_scheduled_task(task: SchedulerTask):
 @app.get("/api/v1/scheduler/tasks")
 async def list_scheduled_tasks():
     from app.scheduler import get_scheduler
+
     tasks = get_scheduler().list_tasks()
     return {"tasks": tasks}
 
@@ -253,13 +299,16 @@ async def list_scheduled_tasks():
 @app.get("/api/v1/workspaces")
 async def list_workspaces():
     from app.memory.workspace import get_workspace_manager
+
     wm = get_workspace_manager()
     return {"workspaces": wm.list_workspaces()}
 
 
 @app.post("/api/v1/workspaces")
-async def create_workspace(data: dict):
+@limiter.limit("30/minute")
+async def create_workspace(data: dict, request: Request):
     from app.memory.workspace import get_workspace_manager
+
     wm = get_workspace_manager()
     wid = data.get("workspace_id", str(uuid.uuid4())[:8])
     wm.create_workspace(wid)
@@ -267,13 +316,16 @@ async def create_workspace(data: dict):
 
 
 @app.post("/api/v1/llm/cache/clear")
-async def clear_llm_cache():
+@limiter.limit("10/minute")
+async def clear_llm_cache(request: Request):
     from app.utils.api_clients import LLMClient
+
     LLMClient().clear_cache()
     return {"status": "cache_cleared"}
 
 
 # ── Plan Mode ──────────────────────────────────────────────────────────────────
+
 
 class PlanRequest(BaseModel):
     goal: str
@@ -282,10 +334,11 @@ class PlanRequest(BaseModel):
 
 
 @app.post("/api/v1/plan")
-async def create_plan(req: PlanRequest):
-    from app.agents.sub_agent import SubAgent, BUILTIN_SUB_AGENTS
+@limiter.limit(settings.rate_limit_plan)
+async def create_plan(req: PlanRequest, request: Request):
     from app.agents.rules import get_rules
-    import json
+    from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
+
     rules = get_rules()
     sub = SubAgent(BUILTIN_SUB_AGENTS["planner"])
     ctx = {"goal": req.goal, "rules": rules.get_all_rules(), "project_context": req.context}
@@ -296,6 +349,7 @@ async def create_plan(req: PlanRequest):
 
 # ── Verify Mode ────────────────────────────────────────────────────────────────
 
+
 class VerifyRequest(BaseModel):
     task: str
     code_changes: list[dict] = []
@@ -304,17 +358,24 @@ class VerifyRequest(BaseModel):
 
 
 @app.post("/api/v1/verify")
-async def verify_work(req: VerifyRequest):
-    from app.agents.sub_agent import SubAgent, BUILTIN_SUB_AGENTS
+@limiter.limit(settings.rate_limit_verify)
+async def verify_work(req: VerifyRequest, request: Request):
+    from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
+
     sub = SubAgent(BUILTIN_SUB_AGENTS["verifier"])
-    context = {"task": req.task, "code_changes": req.code_changes,
-               "test_results": req.test_results, "lint_output": req.lint_output}
+    context = {
+        "task": req.task,
+        "code_changes": req.code_changes,
+        "test_results": req.test_results,
+        "lint_output": req.lint_output,
+    }
     result = await sub.run(str(context))
     metrics.inc("verify_run")
     return {"verification": result}
 
 
 # ── Sub-Agent Execution ────────────────────────────────────────────────────────
+
 
 class SubAgentRequest(BaseModel):
     name: str
@@ -323,8 +384,10 @@ class SubAgentRequest(BaseModel):
 
 
 @app.post("/api/v1/sub-agent/run")
-async def run_sub_agent(req: SubAgentRequest):
+@limiter.limit("15/minute")
+async def run_sub_agent(req: SubAgentRequest, request: Request):
     from app.agents.sub_agent import get_or_create_sub_agent, route_to_sub_agent
+
     agent_name = req.name
     if agent_name == "auto":
         agent_name = route_to_sub_agent(req.task)
@@ -338,10 +401,30 @@ async def run_sub_agent(req: SubAgentRequest):
 @app.get("/api/v1/sub-agents")
 async def list_sub_agents():
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS
+
     return {"sub_agents": list(BUILTIN_SUB_AGENTS.keys())}
 
 
+# ── Debug Sub-Agent ────────────────────────────────────────────────────────────
+
+
+class DebugRequest(BaseModel):
+    error: str
+    context: dict = {}
+
+
+@app.post("/api/v1/sub-agent/debug")
+@limiter.limit("15/minute")
+async def debug_error(req: DebugRequest, request: Request):
+    from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
+
+    sub = SubAgent(BUILTIN_SUB_AGENTS["debugger"])
+    result = await sub.run(req.error, req.context)
+    return {"debugger": result}
+
+
 # ── Kanban Board ───────────────────────────────────────────────────────────────
+
 
 class KanbanCardCreate(BaseModel):
     title: str
@@ -357,8 +440,10 @@ class KanbanCardMove(BaseModel):
 
 
 @app.post("/api/v1/kanban/{project_id}/cards")
-async def create_kanban_card(project_id: str, card: KanbanCardCreate):
+@limiter.limit("30/minute")
+async def create_kanban_card(project_id: str, card: KanbanCardCreate, request: Request):
     from app.kanban import get_kanban_board
+
     board = get_kanban_board(project_id)
     created = board.add_card(card.title, card.description, card.column, card.task_id, card.agent)
     metrics.inc("kanban_card_created")
@@ -368,13 +453,16 @@ async def create_kanban_card(project_id: str, card: KanbanCardCreate):
 @app.get("/api/v1/kanban/{project_id}")
 async def get_kanban_board_endpoint(project_id: str):
     from app.kanban import get_kanban_board
+
     board = get_kanban_board(project_id)
     return {"columns": board.get_all()}
 
 
 @app.put("/api/v1/kanban/{project_id}/move")
-async def move_kanban_card(project_id: str, move: KanbanCardMove):
+@limiter.limit("30/minute")
+async def move_kanban_card(project_id: str, move: KanbanCardMove, request: Request):
     from app.kanban import get_kanban_board
+
     board = get_kanban_board(project_id)
     if not board.move_card(move.card_id, move.column):
         raise HTTPException(status_code=404, detail="Card not found")
@@ -382,8 +470,10 @@ async def move_kanban_card(project_id: str, move: KanbanCardMove):
 
 
 @app.delete("/api/v1/kanban/{project_id}/cards/{card_id}")
-async def delete_kanban_card(project_id: str, card_id: str):
+@limiter.limit("30/minute")
+async def delete_kanban_card(project_id: str, card_id: str, request: Request):
     from app.kanban import get_kanban_board
+
     board = get_kanban_board(project_id)
     if not board.delete_card(card_id):
         raise HTTPException(status_code=404, detail="Card not found")
@@ -392,11 +482,13 @@ async def delete_kanban_card(project_id: str, card_id: str):
 
 # ── Pulse Dashboard ────────────────────────────────────────────────────────────
 
+
 @app.get("/api/v1/pulse/{project_id}")
 async def get_pulse(project_id: str):
     from app.kanban import get_kanban_board
-    from app.pulse import get_pulse
     from app.orchestrator import get_orchestrator
+    from app.pulse import get_pulse
+
     board = get_kanban_board(project_id)
     pulse = get_pulse()
     orch = get_orchestrator()
@@ -408,10 +500,12 @@ async def get_pulse(project_id: str):
 @app.get("/api/v1/pulse/{project_id}/timeline")
 async def get_pulse_timeline(project_id: str, limit: int = 60):
     from app.pulse import get_pulse
+
     return {"timeline": get_pulse().get_timeline(limit)}
 
 
 # ── MCP Integration ────────────────────────────────────────────────────────────
+
 
 class MCPServerRegister(BaseModel):
     name: str
@@ -420,8 +514,10 @@ class MCPServerRegister(BaseModel):
 
 
 @app.post("/api/v1/mcp/register")
-async def register_mcp_server(server: MCPServerRegister):
+@limiter.limit("20/minute")
+async def register_mcp_server(server: MCPServerRegister, request: Request):
     from app.mcp.server import get_mcp_registry
+
     registry = get_mcp_registry()
     registry.register(server.name, server.endpoint, server.api_key)
     return {"status": "registered", "name": server.name}
@@ -430,21 +526,28 @@ async def register_mcp_server(server: MCPServerRegister):
 @app.get("/api/v1/mcp/servers")
 async def list_mcp_servers():
     from app.mcp.server import get_mcp_registry
+
     return {"servers": get_mcp_registry().list_servers()}
 
 
 @app.post("/api/v1/mcp/{server_name}/call/{tool_name}")
-async def call_mcp_tool(server_name: str, tool_name: str, params: dict = {}):
+@limiter.limit("30/minute")
+async def call_mcp_tool(
+    server_name: str, tool_name: str, params: dict = {}, request: Request = None
+):
     from app.mcp.server import get_mcp_registry
+
     result = await get_mcp_registry().call_tool(server_name, tool_name, params)
     return result
 
 
 # ── Rules Management ───────────────────────────────────────────────────────────
 
+
 @app.get("/api/v1/rules")
 async def get_rules_endpoint():
     from app.agents.rules import get_rules
+
     rules = get_rules()
     return {
         "project_rules": rules.get_project_rules(),
@@ -454,8 +557,10 @@ async def get_rules_endpoint():
 
 
 @app.post("/api/v1/rules/init")
-async def init_rules():
+@limiter.limit("10/minute")
+async def init_rules(request: Request):
     from app.agents.rules import get_rules
+
     rules = get_rules()
     rules.create_default_agents_md()
     return {"status": "created", "path": "AGENTS.md"}
@@ -463,14 +568,17 @@ async def init_rules():
 
 # ── Git Worktree ───────────────────────────────────────────────────────────────
 
+
 class WorktreeCreate(BaseModel):
     branch_name: str
     base_branch: str = "main"
 
 
 @app.post("/api/v1/worktree")
-async def create_worktree(req: WorktreeCreate):
+@limiter.limit("10/minute")
+async def create_worktree(req: WorktreeCreate, request: Request):
     from app.git_worktree import get_worktree_manager
+
     wm = get_worktree_manager()
     try:
         path = await wm.create_worktree(req.branch_name, req.base_branch)
@@ -482,6 +590,7 @@ async def create_worktree(req: WorktreeCreate):
 @app.get("/api/v1/worktree")
 async def list_worktrees():
     from app.git_worktree import get_worktree_manager
+
     wm = get_worktree_manager()
     try:
         trees = await wm.list_worktrees()
@@ -491,8 +600,10 @@ async def list_worktrees():
 
 
 @app.post("/api/v1/worktree/rebase")
-async def rebase_worktree(branch_name: str):
+@limiter.limit("10/minute")
+async def rebase_worktree(branch_name: str, request: Request):
     from app.git_worktree import get_worktree_manager
+
     wm = get_worktree_manager()
     try:
         await wm.rebase_to_main(branch_name)
@@ -502,8 +613,10 @@ async def rebase_worktree(branch_name: str):
 
 
 @app.delete("/api/v1/worktree/{branch_name}")
-async def remove_worktree(branch_name: str):
+@limiter.limit("10/minute")
+async def remove_worktree(branch_name: str, request: Request):
     from app.git_worktree import get_worktree_manager
+
     wm = get_worktree_manager()
     try:
         await wm.remove_worktree(branch_name)

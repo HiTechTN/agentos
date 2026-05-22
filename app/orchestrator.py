@@ -1,15 +1,17 @@
-import json, time, uuid, asyncio
-from typing import Any
+import asyncio
+import json
+import time
+import uuid
+from typing import Any, TypedDict
 
-from langgraph.graph import StateGraph, END
-from typing import TypedDict
 import yaml
+from langgraph.graph import END, StateGraph
 
-from app.agents import DevAgent, ContentAgent, MarketingAgent, CommerceAgent
+from app.agents import CommerceAgent, ContentAgent, DevAgent, MarketingAgent
 from app.memory.session import get_session_manager
 from app.memory.vector_store import get_vector_store
-from app.utils.logging import get_logger
 from app.utils.hitl_gateway import HITLPendingError, get_hitl_gateway
+from app.utils.logging import get_logger
 from app.utils.metrics import get_metrics
 from app.utils.telemetry import get_telemetry
 
@@ -38,6 +40,7 @@ TASK_PRIORITY_DEFAULT = 0
 
 def load_policies() -> dict:
     import os
+
     path = os.path.join(os.path.dirname(__file__), "config", "policies.yaml")
     try:
         with open(path) as f:
@@ -55,8 +58,10 @@ class AgentOSOrchestrator:
         self.metrics = get_metrics()
         self.policies = load_policies()
         self.agents = {
-            "dev": DevAgent(), "content": ContentAgent(),
-            "marketing": MarketingAgent(), "commerce": CommerceAgent(),
+            "dev": DevAgent(),
+            "content": ContentAgent(),
+            "marketing": MarketingAgent(),
+            "commerce": CommerceAgent(),
         }
         self.graph = self._build_graph()
 
@@ -73,19 +78,39 @@ class AgentOSOrchestrator:
         workflow.add_node("handle_error", self._handle_error)
         workflow.add_node("finalize", self._finalize)
         workflow.set_entry_point("analyze_prompt")
-        workflow.add_conditional_edges("analyze_prompt", self._decide_routing, {"route": "route_tasks", "error": "handle_error"})
-        workflow.add_conditional_edges("route_tasks", self._decide_execution_order, {
-            "dev": "execute_dev", "content": "execute_content",
-            "marketing": "execute_marketing", "commerce": "execute_commerce",
-            "parallel": "execute_parallel", "finalize": "check_results", "error": "handle_error",
-        })
+        workflow.add_conditional_edges(
+            "analyze_prompt",
+            self._decide_routing,
+            {"route": "route_tasks", "error": "handle_error"},
+        )
+        workflow.add_conditional_edges(
+            "route_tasks",
+            self._decide_execution_order,
+            {
+                "dev": "execute_dev",
+                "content": "execute_content",
+                "marketing": "execute_marketing",
+                "commerce": "execute_commerce",
+                "parallel": "execute_parallel",
+                "finalize": "check_results",
+                "error": "handle_error",
+            },
+        )
         workflow.add_edge("execute_dev", "check_results")
         workflow.add_edge("execute_content", "check_results")
         workflow.add_edge("execute_marketing", "check_results")
         workflow.add_edge("execute_commerce", "check_results")
         workflow.add_edge("execute_parallel", "check_results")
-        workflow.add_conditional_edges("check_results", self._decide_next, {"continue": "route_tasks", "finalize": "finalize", "error": "handle_error"})
-        workflow.add_conditional_edges("handle_error", self._decide_retry, {"retry": "route_tasks", "circuit_open": "finalize", "fail": "finalize", "end": END})
+        workflow.add_conditional_edges(
+            "check_results",
+            self._decide_next,
+            {"continue": "route_tasks", "finalize": "finalize", "error": "handle_error"},
+        )
+        workflow.add_conditional_edges(
+            "handle_error",
+            self._decide_retry,
+            {"retry": "route_tasks", "circuit_open": "finalize", "fail": "finalize", "end": END},
+        )
         workflow.add_edge("finalize", END)
         return workflow.compile()
 
@@ -94,13 +119,29 @@ class AgentOSOrchestrator:
         session_id = await self.session_manager.create(project_id or "default", trace_id)
         project_id = project_id or "default"
         initial_state: AgentOSState = {
-            "project_id": project_id, "session_id": session_id, "trace_id": trace_id,
-            "prompt": prompt, "tasks": [], "current_task_index": 0, "agent_sequence": [],
-            "results": {}, "errors": [], "pending_hitl": [], "status": "running",
-            "circuit_breaker": {k: 0 for k in self.agents}, "start_time": time.time(),
+            "project_id": project_id,
+            "session_id": session_id,
+            "trace_id": trace_id,
+            "prompt": prompt,
+            "tasks": [],
+            "current_task_index": 0,
+            "agent_sequence": [],
+            "results": {},
+            "errors": [],
+            "pending_hitl": [],
+            "status": "running",
+            "circuit_breaker": {k: 0 for k in self.agents},
+            "start_time": time.time(),
             "parallel_batch": [],
         }
-        self.logger.log_action("orchestrator", "workflow_start", "started", trace_id, project_id, {"prompt": prompt[:200]})
+        self.logger.log_action(
+            "orchestrator",
+            "workflow_start",
+            "started",
+            trace_id,
+            project_id,
+            {"prompt": prompt[:200]},
+        )
         async with get_telemetry().trace("workflow", trace_id) as span:
             span.set_attribute("prompt", prompt[:100])
         try:
@@ -108,7 +149,12 @@ class AgentOSOrchestrator:
             return result
         except Exception as e:
             self.logger.log_error("orchestrator", "workflow", str(e), trace_id, project_id)
-            return {"status": "failed", "error": {"code": "ORCHESTRATION_FAILED", "message": str(e)}, "session_id": session_id, "trace_id": trace_id}
+            return {
+                "status": "failed",
+                "error": {"code": "ORCHESTRATION_FAILED", "message": str(e)},
+                "session_id": session_id,
+                "trace_id": trace_id,
+            }
 
     async def _analyze_prompt(self, state: AgentOSState) -> dict:
         try:
@@ -119,13 +165,27 @@ class AgentOSOrchestrator:
 
     async def _decompose_prompt(self, prompt: str) -> list[dict]:
         from app.utils.api_clients import LLMClient
+
         llm = LLMClient()
-        response = await llm.chat("openai/gpt-4o-2024-11-20", [
-            {"role": "system", "content": """Decompose user prompt into AgentOS tasks. Agents: dev (code/scaffold/deploy), content (write/image/publish), marketing (segment/email/ads/report), commerce (catalog/pricing/checkout/inventory/faq). Return JSON array: [{"agent":"dev","action":"scaffold","params":{},"priority":0}]""" },
-            {"role": "user", "content": prompt},
-        ], temperature=0.1)
+        response = await llm.chat(
+            "openai/gpt-4o-2024-11-20",
+            [
+                {
+                    "role": "system",
+                    "content": """Decompose user prompt into AgentOS tasks. Agents: dev (code/scaffold/deploy), content (write/image/publish), marketing (segment/email/ads/report), commerce (catalog/pricing/checkout/inventory/faq). Return JSON array: [{"agent":"dev","action":"scaffold","params":{},"priority":0}]""",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.1,
+        )
         try:
-            cleaned = response.content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            cleaned = (
+                response.content.strip()
+                .removeprefix("```json")
+                .removeprefix("```")
+                .removesuffix("```")
+                .strip()
+            )
             tasks = json.loads(cleaned)
             if isinstance(tasks, dict):
                 tasks = [tasks]
@@ -134,7 +194,9 @@ class AgentOSOrchestrator:
             return tasks
         except (json.JSONDecodeError, AttributeError) as e:
             self.logger.log_warn("orchestrator", "decompose", f"Failed to parse tasks: {e}")
-            return [{"agent": "dev", "action": "analyze", "params": {"prompt": prompt}, "priority": 0}]
+            return [
+                {"agent": "dev", "action": "analyze", "params": {"prompt": prompt}, "priority": 0}
+            ]
 
     def _decide_routing(self, state: AgentOSState) -> str:
         return "error" if state.get("errors") else "route"
@@ -143,7 +205,7 @@ class AgentOSOrchestrator:
         tasks = state.get("tasks", [])
         if not tasks or state["current_task_index"] >= len(tasks):
             return "finalize"
-        remaining = tasks[state["current_task_index"]:]
+        remaining = tasks[state["current_task_index"] :]
         agents_remaining = [t["agent"] for t in remaining]
         unique_agents = list(dict.fromkeys(agents_remaining))
         if len(unique_agents) >= 2:
@@ -159,14 +221,26 @@ class AgentOSOrchestrator:
         async def run_task(task: dict) -> tuple[str, dict]:
             agent = self.agents.get(task["agent"])
             if not agent:
-                return task["agent"], {"agent": task["agent"], "action": task["action"], "success": False, "error": {"code": "UNKNOWN_AGENT"}}
+                return task["agent"], {
+                    "agent": task["agent"],
+                    "action": task["action"],
+                    "success": False,
+                    "error": {"code": "UNKNOWN_AGENT"},
+                }
             try:
-                result = await agent.execute(task=task, session_id=state["session_id"], trace_id=state["trace_id"])
+                result = await agent.execute(
+                    task=task, session_id=state["session_id"], trace_id=state["trace_id"]
+                )
                 return task["agent"], result
             except HITLPendingError as e:
                 return task["agent"], {"_hitl": e.approval_id}
             except Exception as e:
-                return task["agent"], {"agent": task["agent"], "action": task["action"], "success": False, "error": {"code": "EXECUTION_ERROR", "message": str(e)}}
+                return task["agent"], {
+                    "agent": task["agent"],
+                    "action": task["action"],
+                    "success": False,
+                    "error": {"code": "EXECUTION_ERROR", "message": str(e)},
+                }
 
         results = await asyncio.gather(*[run_task(t) for t in batch], return_exceptions=False)
         new_results = dict(state.get("results", {}))
@@ -190,11 +264,19 @@ class AgentOSOrchestrator:
     async def _execute_agent(self, state: AgentOSState, agent_name: str) -> dict:
         agent = self.agents.get(agent_name)
         if not agent:
-            return {"errors": [{"code": "UNKNOWN_AGENT", "message": f"Unknown agent: {agent_name}"}]}
+            return {
+                "errors": [{"code": "UNKNOWN_AGENT", "message": f"Unknown agent: {agent_name}"}]
+            }
         cb_key = agent_name
         if state["circuit_breaker"].get(cb_key, 0) >= CIRCUIT_BREAKER_THRESHOLD:
-            self.logger.log_warn("orchestrator", "circuit_open", f"Circuit breaker open for {agent_name}")
-            return {"errors": [{"code": "CIRCUIT_OPEN", "message": f"Circuit breaker open for {agent_name}"}]}
+            self.logger.log_warn(
+                "orchestrator", "circuit_open", f"Circuit breaker open for {agent_name}"
+            )
+            return {
+                "errors": [
+                    {"code": "CIRCUIT_OPEN", "message": f"Circuit breaker open for {agent_name}"}
+                ]
+            }
         tasks = state["tasks"]
         idx = state["current_task_index"]
         current_tasks = [tasks[idx]] if idx < len(tasks) else []
@@ -203,24 +285,41 @@ class AgentOSOrchestrator:
         for task in current_tasks:
             for attempt in range(MAX_RETRIES):
                 try:
-                    result = await agent.execute(task=task, session_id=state["session_id"], trace_id=state["trace_id"])
+                    result = await agent.execute(
+                        task=task, session_id=state["session_id"], trace_id=state["trace_id"]
+                    )
                     if result.get("success"):
                         state["circuit_breaker"][cb_key] = 0
                         new_results = dict(state.get("results", {}))
                         new_results[f"{agent_name}_{task['action']}"] = result
-                        return {"results": new_results, "current_task_index": idx + 1, "circuit_breaker": state["circuit_breaker"]}
+                        return {
+                            "results": new_results,
+                            "current_task_index": idx + 1,
+                            "circuit_breaker": state["circuit_breaker"],
+                        }
                     else:
-                        state["circuit_breaker"][cb_key] = state["circuit_breaker"].get(cb_key, 0) + 1
+                        state["circuit_breaker"][cb_key] = (
+                            state["circuit_breaker"].get(cb_key, 0) + 1
+                        )
                         if attempt < MAX_RETRIES - 1:
                             continue
-                        return {"errors": state["errors"] + [result.get("error", {"code": "AGENT_FAILED"})], "circuit_breaker": state["circuit_breaker"]}
+                        return {
+                            "errors": state["errors"]
+                            + [result.get("error", {"code": "AGENT_FAILED"})],
+                            "circuit_breaker": state["circuit_breaker"],
+                        }
                 except HITLPendingError as e:
-                    return {"pending_hitl": state.get("pending_hitl", []) + [e.approval_id], "status": "waiting_hitl"}
+                    return {
+                        "pending_hitl": state.get("pending_hitl", []) + [e.approval_id],
+                        "status": "waiting_hitl",
+                    }
                 except Exception as e:
                     state["circuit_breaker"][cb_key] = state["circuit_breaker"].get(cb_key, 0) + 1
                     if attempt < MAX_RETRIES - 1:
                         continue
-                    return {"errors": state["errors"] + [{"code": "EXECUTION_ERROR", "message": str(e)}]}
+                    return {
+                        "errors": state["errors"] + [{"code": "EXECUTION_ERROR", "message": str(e)}]
+                    }
         return {"current_task_index": idx + 1}
 
     async def _execute_dev(self, state: AgentOSState) -> dict:
@@ -258,7 +357,11 @@ class AgentOSOrchestrator:
     def _decide_retry(self, state: AgentOSState) -> str:
         for name, count in state["circuit_breaker"].items():
             if count >= CIRCUIT_BREAKER_THRESHOLD:
-                self.logger.log_error("orchestrator", "circuit_breaker", f"Circuit opened for {name} after {count} failures")
+                self.logger.log_error(
+                    "orchestrator",
+                    "circuit_breaker",
+                    f"Circuit opened for {name} after {count} failures",
+                )
                 return "circuit_open"
         return "fail"
 
@@ -273,8 +376,23 @@ class AgentOSOrchestrator:
     async def _finalize(self, state: AgentOSState) -> dict:
         elapsed = time.time() - state["start_time"]
         status = "completed" if not state.get("errors") else "completed_with_errors"
-        await self.session_manager.update(state["session_id"], context={"results": state.get("results", {}), "errors": state.get("errors", [])}, status=status)
-        self.logger.log_action("orchestrator", "workflow_complete", status, state["trace_id"], state["project_id"], {"elapsed_seconds": round(elapsed, 2), "tasks": len(state["tasks"]), "errors": len(state.get("errors", []))})
+        await self.session_manager.update(
+            state["session_id"],
+            context={"results": state.get("results", {}), "errors": state.get("errors", [])},
+            status=status,
+        )
+        self.logger.log_action(
+            "orchestrator",
+            "workflow_complete",
+            status,
+            state["trace_id"],
+            state["project_id"],
+            {
+                "elapsed_seconds": round(elapsed, 2),
+                "tasks": len(state["tasks"]),
+                "errors": len(state.get("errors", [])),
+            },
+        )
         self.metrics.timing("execution_duration", elapsed)
         return {"status": status, "elapsed_seconds": round(elapsed, 2)}
 

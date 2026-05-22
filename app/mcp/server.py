@@ -1,8 +1,5 @@
 """MCP (Model Context Protocol) integration for external tools."""
 
-import json
-from typing import Any
-
 import httpx
 
 from app.utils.logging import get_logger
@@ -18,7 +15,9 @@ class MCPServer:
         self.logger = get_logger(f"mcp_{name}")
 
     async def call_tool(self, tool_name: str, params: dict | None = None) -> dict:
-        self.logger.log_action("mcp", "call_tool", "started", details={"server": self.name, "tool": tool_name})
+        self.logger.log_action(
+            "mcp", "call_tool", "started", details={"server": self.name, "tool": tool_name}
+        )
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -32,7 +31,9 @@ class MCPServer:
                 resp.raise_for_status()
                 return resp.json()
         except Exception as e:
-            self.logger.log_error("mcp", "call_tool", str(e), details={"server": self.name, "tool": tool_name})
+            self.logger.log_error(
+                "mcp", "call_tool", str(e), details={"server": self.name, "tool": tool_name}
+            )
             return {"error": str(e)}
 
     async def list_tools(self) -> list[dict]:
@@ -53,7 +54,9 @@ class MCPRegistry:
 
     def register(self, name: str, endpoint: str, api_key: str = ""):
         self.servers[name] = MCPServer(name, endpoint, api_key)
-        logger.log_action("mcp", "register", "completed", details={"name": name, "endpoint": endpoint})
+        logger.log_action(
+            "mcp", "register", "completed", details={"name": name, "endpoint": endpoint}
+        )
 
     def get(self, name: str) -> MCPServer | None:
         return self.servers.get(name)

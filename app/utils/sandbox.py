@@ -1,6 +1,4 @@
-import json
 import uuid
-from typing import Any
 
 from app.config.settings import get_settings
 from app.utils.logging import get_logger
@@ -51,6 +49,7 @@ class SandboxManager:
 
         try:
             import docker
+
             client = docker.from_env()
             container_network = self.settings.sandbox_network if network_access else "none"
 

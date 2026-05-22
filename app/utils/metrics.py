@@ -1,4 +1,3 @@
-import time
 from typing import Any
 
 from app.config.settings import get_settings
@@ -25,17 +24,20 @@ class MetricsCollector:
         self._gauges[name] = value
 
     def render_prometheus(self) -> str:
-        lines = ['# HELP agentos_metrics AgentOS application metrics', '# TYPE agentos_metrics untyped']
+        lines = [
+            "# HELP agentos_metrics AgentOS application metrics",
+            "# TYPE agentos_metrics untyped",
+        ]
         for name, val in self._counters.items():
-            lines.append(f'agentos_{name}_total {val}')
+            lines.append(f"agentos_{name}_total {val}")
         for name, vals in self._timings.items():
             if vals:
                 avg = sum(vals) / len(vals)
-                lines.append(f'agentos_{name}_duration_seconds_avg {avg:.4f}')
-                lines.append(f'agentos_{name}_duration_seconds_count {len(vals)}')
+                lines.append(f"agentos_{name}_duration_seconds_avg {avg:.4f}")
+                lines.append(f"agentos_{name}_duration_seconds_count {len(vals)}")
         for name, val in self._gauges.items():
-            lines.append(f'agentos_{name} {val}')
-        return '\n'.join(lines) + '\n'
+            lines.append(f"agentos_{name} {val}")
+        return "\n".join(lines) + "\n"
 
 
 _metrics: MetricsCollector | None = None

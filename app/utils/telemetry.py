@@ -1,6 +1,4 @@
 import uuid
-from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from app.config.settings import get_settings
 
@@ -16,11 +14,13 @@ class Span:
 
     def __enter__(self):
         import time
+
         self.start = time.time()
         return self
 
     def __exit__(self, *args):
         import time
+
         self.end = time.time()
 
     @property
@@ -43,7 +43,9 @@ class OpenTelemetrySetup:
         self.enabled = self.settings.otlp_enabled
         self._spans: list[Span] = []
 
-    async def start_span(self, name: str, trace_id: str = "", attributes: dict | None = None) -> Span:
+    async def start_span(
+        self, name: str, trace_id: str = "", attributes: dict | None = None
+    ) -> Span:
         span = Span(name, trace_id, attributes)
         span.__enter__()
         return span
@@ -57,24 +59,41 @@ class OpenTelemetrySetup:
     async def _export(self, span: Span):
         try:
             import httpx
+
             async with httpx.AsyncClient(timeout=5) as client:
                 await client.post(
                     f"{self.settings.otlp_endpoint}/v1/traces",
                     json={
-                        "resourceSpans": [{
-                            "resource": {"attributes": [{"key": "service.name", "value": {"stringValue": self.settings.service_name}}]},
-                            "scopeSpans": [{
-                                "scope": {"name": "agentos"},
-                                "spans": [{
-                                    "traceId": span.trace_id.replace("-", ""),
-                                    "spanId": span.span_id,
-                                    "name": span.name,
-                                    "startTimeUnixNano": int(span.start * 1e9),
-                                    "endTimeUnixNano": int(span.end * 1e9),
-                                    "attributes": [{"key": k, "value": {"stringValue": str(v)}} for k, v in span.attributes.items()],
-                                }],
-                            }],
-                        }],
+                        "resourceSpans": [
+                            {
+                                "resource": {
+                                    "attributes": [
+                                        {
+                                            "key": "service.name",
+                                            "value": {"stringValue": self.settings.service_name},
+                                        }
+                                    ]
+                                },
+                                "scopeSpans": [
+                                    {
+                                        "scope": {"name": "agentos"},
+                                        "spans": [
+                                            {
+                                                "traceId": span.trace_id.replace("-", ""),
+                                                "spanId": span.span_id,
+                                                "name": span.name,
+                                                "startTimeUnixNano": int(span.start * 1e9),
+                                                "endTimeUnixNano": int(span.end * 1e9),
+                                                "attributes": [
+                                                    {"key": k, "value": {"stringValue": str(v)}}
+                                                    for k, v in span.attributes.items()
+                                                ],
+                                            }
+                                        ],
+                                    }
+                                ],
+                            }
+                        ],
                     },
                 )
         except Exception:

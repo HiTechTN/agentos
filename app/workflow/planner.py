@@ -1,11 +1,10 @@
 """Plan Mode — structured plan output from user requirements."""
 
 import json
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
-from app.agents.sub_agent import SubAgent, BUILTIN_SUB_AGENTS
 from app.agents.rules import get_rules
+from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
 from app.utils.api_clients import LLMClient
 from app.utils.logging import get_logger
 
@@ -21,15 +20,23 @@ class PlanPhase:
 
     def to_dict(self) -> dict:
         return {
-            "name": self.name, "description": self.description,
-            "order": self.order, "tasks": [t.to_dict() for t in self.tasks],
+            "name": self.name,
+            "description": self.description,
+            "order": self.order,
+            "tasks": [t.to_dict() for t in self.tasks],
         }
 
 
 class PlanTask:
-    def __init__(self, title: str, description: str = "", agent: str = "dev",
-                 dependencies: list[str] | None = None, estimated_minutes: int = 30):
-        self.id = f"task_{datetime.now(timezone.utc).timestamp()}"
+    def __init__(
+        self,
+        title: str,
+        description: str = "",
+        agent: str = "dev",
+        dependencies: list[str] | None = None,
+        estimated_minutes: int = 30,
+    ):
+        self.id = f"task_{datetime.now(UTC).timestamp()}"
         self.title = title
         self.description = description
         self.agent = agent
@@ -38,8 +45,11 @@ class PlanTask:
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id, "title": self.title, "description": self.description,
-            "agent": self.agent, "dependencies": self.dependencies,
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "agent": self.agent,
+            "dependencies": self.dependencies,
             "estimated_minutes": self.estimated_minutes,
         }
 
@@ -51,12 +61,14 @@ class Plan:
         self.risks: list[str] = []
         self.stack: str = ""
         self.architecture_summary: str = ""
-        self.created_at = datetime.now(timezone.utc).isoformat()
+        self.created_at = datetime.now(UTC).isoformat()
 
     def to_dict(self) -> dict:
         return {
-            "goal": self.goal, "phases": [p.to_dict() for p in self.phases],
-            "risks": self.risks, "stack": self.stack,
+            "goal": self.goal,
+            "phases": [p.to_dict() for p in self.phases],
+            "risks": self.risks,
+            "stack": self.stack,
             "architecture_summary": self.architecture_summary,
             "created_at": self.created_at,
         }
@@ -105,8 +117,12 @@ class Planner:
         plan.stack = result.get("stack", "")
         plan.architecture_summary = result.get("architecture_summary", "")
 
-        self.logger.log_action("planner", "create_plan", "completed",
-                               details={"phases": len(plan.phases), "tasks": sum(len(p.tasks) for p in plan.phases)})
+        self.logger.log_action(
+            "planner",
+            "create_plan",
+            "completed",
+            details={"phases": len(plan.phases), "tasks": sum(len(p.tasks) for p in plan.phases)},
+        )
         return plan
 
 

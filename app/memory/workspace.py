@@ -23,7 +23,9 @@ class WorkspaceManager:
     def create_workspace(self, workspace_id: str) -> Workspace:
         if workspace_id not in self._workspaces:
             self._workspaces[workspace_id] = Workspace(workspace_id)
-            logger.log_action("workspace", "created", "completed", details={"workspace_id": workspace_id})
+            logger.log_action(
+                "workspace", "created", "completed", details={"workspace_id": workspace_id}
+            )
         return self._workspaces[workspace_id]
 
     def get_workspace(self, workspace_id: str) -> Workspace | None:
@@ -32,7 +34,9 @@ class WorkspaceManager:
     def delete_workspace(self, workspace_id: str) -> bool:
         if workspace_id in self._workspaces:
             del self._workspaces[workspace_id]
-            logger.log_action("workspace", "deleted", "completed", details={"workspace_id": workspace_id})
+            logger.log_action(
+                "workspace", "deleted", "completed", details={"workspace_id": workspace_id}
+            )
             return True
         return False
 

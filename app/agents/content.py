@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from app.agents.base import BaseAgent, AgentError, ToolResult
+from app.agents.base import AgentError, BaseAgent, ToolResult
 from app.utils.hitl_gateway import HITLPendingError
 
 
@@ -38,11 +38,14 @@ class ContentAgent(BaseAgent):
     async def _write_content(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"""Write SEO-optimized content for:
+            {
+                "role": "user",
+                "content": f"""Write SEO-optimized content for:
 {json.dumps(params, indent=2)}
 
 Generate full article with: H1/H2/H3 structure, meta description, keyword integration,
-readability score target > 60. Return as structured markdown."""},
+readability score target > 60. Return as structured markdown.""",
+            },
         ]
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"content": content})
@@ -51,6 +54,7 @@ readability score target > 60. Return as structured markdown."""},
         prompt = params.get("prompt", params.get("description", "Generate an image"))
         try:
             import replicate
+
             if self.settings.replicate_api_token:
                 client = replicate.Client(api_token=self.settings.replicate_api_token)
                 output = client.run(
@@ -62,27 +66,38 @@ readability score target > 60. Return as structured markdown."""},
         except ImportError:
             pass
         except Exception as e:
-            self.logger.log_warn(self.name, "image_gen", f"Replicate unavailable, using LLM description: {e}")
+            self.logger.log_warn(
+                self.name, "image_gen", f"Replicate unavailable, using LLM description: {e}"
+            )
 
         messages = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"""Describe the image to generate for:
+            {
+                "role": "user",
+                "content": f"""Describe the image to generate for:
 {prompt}
 
 Provide detailed image description including composition, colors, style, and mood.
-Note: Image generation API is in fallback mode, returning prompt only."""},
+Note: Image generation API is in fallback mode, returning prompt only.""",
+            },
         ]
         content = await self._llm_call(messages)
-        return ToolResult(success=True, data={"image_description": content, "prompt": prompt, "mode": "description_only"})
+        return ToolResult(
+            success=True,
+            data={"image_description": content, "prompt": prompt, "mode": "description_only"},
+        )
 
     async def _create_calendar(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"""Create editorial calendar for:
+            {
+                "role": "user",
+                "content": f"""Create editorial calendar for:
 {json.dumps(params, indent=2)}
 
 Generate a 4-week calendar with topics, publish dates, content types, keywords,
-and distribution channels. Return as structured data."""},
+and distribution channels. Return as structured data.""",
+            },
         ]
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"calendar": content})
@@ -101,17 +116,23 @@ and distribution channels. Return as structured data."""},
                     }
                     resp = await client.post("/api/articles", json=payload)
                     if resp.status_code in (200, 201):
-                        return ToolResult(success=True, data={"cms": "strapi", "id": resp.json().get("data", {}).get("id")})
+                        return ToolResult(
+                            success=True,
+                            data={"cms": "strapi", "id": resp.json().get("data", {}).get("id")},
+                        )
             except Exception as e:
                 self.logger.log_warn(self.name, "cms_publish", f"Strapi unavailable: {e}")
 
         content = params.get("content", "")
-        import os
         os.makedirs("/tmp/agentos_content", exist_ok=True)
         path = f"/tmp/agentos_content/{params.get('title', 'content').replace(' ', '_')}.md"
         with open(path, "w") as f:
             f.write(content)
         return ToolResult(
             success=True,
-            data={"cms": "markdown_file", "path": path, "note": "Strapi unavailable, content saved as Markdown"},
+            data={
+                "cms": "markdown_file",
+                "path": path,
+                "note": "Strapi unavailable, content saved as Markdown",
+            },
         )

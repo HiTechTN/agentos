@@ -1,29 +1,49 @@
-FROM python:3.13-slim-bookworm AS builder
+# AgentOS v5.0 — Multi-stage, non-root, uv-based
+FROM python:3.13-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev && \
+    gcc libpq-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-FROM python:3.13-slim-bookworm
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+COPY app/ ./app/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+FROM python:3.13-slim AS runtime
+
+RUN groupadd --gid 1001 agentos && \
+    useradd --uid 1001 --gid agentos --shell /bin/bash --create-home agentos && \
+    apt-get update && apt-get install -y --no-install-recommends \
     libpq5 curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/app ./app
+COPY --from=builder /app/pyproject.toml /app/uv.lock /app/pyproject.toml /app/uv.lock ./
+COPY alembic.ini ./alembic.ini
+COPY app/migrations/ ./app/migrations/
 
-COPY . .
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"
 
-RUN useradd -m -u 1000 agentos && chown -R agentos:agentos /app
 USER agentos
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONFAULTHANDLER=1
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--workers", "4", "--access-log", "--log-level", "info"]

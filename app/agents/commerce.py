@@ -1,8 +1,7 @@
 import json
-import os
 from typing import Any
 
-from app.agents.base import BaseAgent, AgentError, ToolResult
+from app.agents.base import AgentError, BaseAgent, ToolResult
 from app.memory.cache import get_cache
 
 
@@ -16,6 +15,7 @@ class CommerceAgent(BaseAgent):
     async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any:
         if action in self.HITL_ACTIONS:
             from app.utils.hitl_gateway import HITLPendingError
+
             try:
                 details = {"action": action, "params": params, "agent": self.name}
                 await self._require_hitl(session_id, action, details)
@@ -40,11 +40,14 @@ class CommerceAgent(BaseAgent):
     async def _manage_catalog(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"""Manage product catalog:
+            {
+                "role": "user",
+                "content": f"""Manage product catalog:
 {json.dumps(params, indent=2)}
 
 Generate product entries with: name, description, SKU, price, category, tags, images.
-Return as structured product catalog data."""},
+Return as structured product catalog data.""",
+            },
         ]
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"catalog": content})
@@ -52,11 +55,14 @@ Return as structured product catalog data."""},
     async def _optimize_pricing(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"""Optimize pricing for:
+            {
+                "role": "user",
+                "content": f"""Optimize pricing for:
 {json.dumps(params, indent=2)}
 
 Analyze market position, competitor pricing, demand elasticity.
-Provide pricing recommendations with rationale."""},
+Provide pricing recommendations with rationale.""",
+            },
         ]
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"pricing": content})
@@ -68,6 +74,7 @@ Provide pricing recommendations with rationale."""},
 
         try:
             import stripe
+
             stripe.api_key = self.settings.stripe_api_key
 
             session = stripe.checkout.Session.create(
@@ -76,7 +83,9 @@ Provide pricing recommendations with rationale."""},
                 success_url=success_url,
                 cancel_url=cancel_url,
             )
-            return ToolResult(success=True, data={"checkout_url": session.url, "session_id": session.id})
+            return ToolResult(
+                success=True, data={"checkout_url": session.url, "session_id": session.id}
+            )
         except ImportError:
             pass
         except Exception as e:
@@ -100,7 +109,11 @@ Provide pricing recommendations with rationale."""},
         cache_key = f"inventory:{session_id}"
 
         if operation == "add":
-            self._inventory[item_id] = {"item_id": item_id, "quantity": quantity, **params.get("metadata", {})}
+            self._inventory[item_id] = {
+                "item_id": item_id,
+                "quantity": quantity,
+                **params.get("metadata", {}),
+            }
             await cache.set(cache_key, self._inventory, ttl=3600)
             return ToolResult(success=True, data={"inventory": self._inventory, "operation": "add"})
 
@@ -113,7 +126,9 @@ Provide pricing recommendations with rationale."""},
             if item_id in self._inventory:
                 self._inventory[item_id]["quantity"] = quantity
                 await cache.set(cache_key, self._inventory, ttl=3600)
-                return ToolResult(success=True, data={"inventory": self._inventory, "operation": "update"})
+                return ToolResult(
+                    success=True, data={"inventory": self._inventory, "operation": "update"}
+                )
             raise AgentError("INVENTORY_ITEM_NOT_FOUND", f"Item {item_id} not found in inventory")
 
         raise AgentError("UNKNOWN_OPERATION", f"Unknown inventory operation: {operation}")
@@ -121,11 +136,14 @@ Provide pricing recommendations with rationale."""},
     async def _generate_faq(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": f"""Generate FAQ for:
+            {
+                "role": "user",
+                "content": f"""Generate FAQ for:
 {json.dumps(params, indent=2)}
 
 Generate 10-15 Q&A pairs covering: product features, pricing, shipping, returns,
-technical support. Include structured data for Schema.org markup."""},
+technical support. Include structured data for Schema.org markup.""",
+            },
         ]
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"faq": content})
@@ -136,6 +154,7 @@ technical support. Include structured data for Schema.org markup."""},
 
         try:
             import stripe
+
             stripe.api_key = self.settings.stripe_api_key
 
             payment = stripe.PaymentIntent.create(
@@ -143,7 +162,10 @@ technical support. Include structured data for Schema.org markup."""},
                 currency=currency,
                 metadata={"session_id": session_id, "trace_id": trace_id},
             )
-            return ToolResult(success=True, data={"payment_intent": payment.id, "amount": amount, "currency": currency})
+            return ToolResult(
+                success=True,
+                data={"payment_intent": payment.id, "amount": amount, "currency": currency},
+            )
         except ImportError:
             pass
         except Exception as e:

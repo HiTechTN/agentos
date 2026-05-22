@@ -1,7 +1,7 @@
 import hashlib
 import json
+
 import httpx
-from typing import Any
 from openai import AsyncOpenAI
 
 from app.config.settings import get_settings
@@ -98,7 +98,9 @@ class LLMClient:
                 resp.raise_for_status()
                 data = resp.json()
                 content = data.get("message", {}).get("content", "")
-            return LLMResponse(content=content, model=ollama_model, provider="ollama", degraded=True)
+            return LLMResponse(
+                content=content, model=ollama_model, provider="ollama", degraded=True
+            )
         except Exception as e:
             raise LLMUnavailableError(
                 f"OpenRouter and Ollama unavailable. OpenRouter: failed, Ollama: {e}"
@@ -173,5 +175,7 @@ class EmbeddingClient:
                 data = resp.json()
                 return data.get("embedding", [0.0] * 768)
         except Exception:
-            logger.log_error("embedding_client", "embed_fallback", "All embedding providers unavailable")
+            logger.log_error(
+                "embedding_client", "embed_fallback", "All embedding providers unavailable"
+            )
             return [0.0] * 768

@@ -105,7 +105,9 @@ class RuleSystem:
 - Keep functions under 50 lines
 """
             target.write_text(content)
-            logger.log_action("rules", "create_agents_md", "completed", details={"path": str(target)})
+            logger.log_action(
+                "rules", "create_agents_md", "completed", details={"path": str(target)}
+            )
 
 
 _rules_system: RuleSystem | None = None
