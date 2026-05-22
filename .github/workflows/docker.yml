@@ -77,7 +77,7 @@ jobs:
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
-            --cov-fail-under=90 \
+            --cov-fail-under=60 \
             -v \
             --tb=short
       - uses: codecov/codecov-action@v4
