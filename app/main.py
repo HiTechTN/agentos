@@ -1,11 +1,14 @@
 import json
+import os
+import subprocess
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -623,3 +626,100 @@ async def remove_worktree(branch_name: str, request: Request):
         return {"status": "removed", "branch": branch_name}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ── Deployment Assistant ─────────────────────────────────────────────────────
+
+
+DEPLOY_HTML_PATH = Path(__file__).resolve().parent / "templates" / "deploy.html"
+
+
+class DeployConfig(BaseModel):
+    host: str
+    user: str = "deploy"
+    key: str = ""
+    openrouter_api_key: str = ""
+    jwt_secret: str = ""
+    openai_api_key: str = ""
+    database_url: str = ""
+    redis_url: str = ""
+
+
+@app.get("/deploy", response_class=HTMLResponse)
+async def deploy_assistant():
+    if DEPLOY_HTML_PATH.exists():
+        return HTMLResponse(DEPLOY_HTML_PATH.read_text())
+    return HTMLResponse("<h1>Deploy assistant not found</h1>", status_code=404)
+
+
+@app.post("/api/v1/deploy/configure")
+async def configure_deploy(cfg: DeployConfig, request: Request):
+    secrets: dict[str, str] = {}
+    if cfg.host:
+        secrets["DEPLOY_HOST"] = cfg.host
+    if cfg.user:
+        secrets["DEPLOY_USER"] = cfg.user
+    if cfg.key:
+        secrets["DEPLOY_KEY"] = cfg.key
+    if cfg.openrouter_api_key:
+        secrets["OPENROUTER_API_KEY"] = cfg.openrouter_api_key
+    if cfg.openai_api_key:
+        secrets["OPENAI_API_KEY"] = cfg.openai_api_key
+    if cfg.database_url:
+        secrets["DATABASE_URL"] = cfg.database_url
+    if cfg.redis_url:
+        secrets["REDIS_URL"] = cfg.redis_url
+
+    if cfg.jwt_secret:
+        secrets["JWT_SECRET"] = cfg.jwt_secret
+    else:
+        import secrets as sec
+
+        secrets["JWT_SECRET"] = sec.token_hex(32)
+
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    commands: list[str] = []
+    errors: list[str] = []
+
+    if not repo:
+        repo = "HiTechTN/agentos"
+        for name, value in secrets.items():
+            _run = f'gh secret set {name} --repo "{repo}" --body "***"'
+            commands.append(_run)
+    else:
+        for name, value in secrets.items():
+            try:
+                result = subprocess.run(
+                    ["gh", "secret", "set", name, "--repo", repo, "--body", value],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                )
+                if result.returncode == 0:
+                    commands.append(f"✓ {name} configured")
+                else:
+                    errors.append(f"{name}: {result.stderr.strip()}")
+            except Exception as e:
+                errors.append(f"{name}: {e}")
+
+    if not errors:
+        try:
+            subprocess.run(
+                ["gh", "workflow", "run", "CI/CD Pipeline", "--repo", repo, "--ref", "main"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            commands.append("✓ Deployment workflow triggered")
+        except Exception as e:
+            errors.append(f"workflow trigger: {e}")
+
+    return {
+        "status": "ok" if not errors else "partial",
+        "repo": repo,
+        "commands": commands,
+        "errors": errors if errors else None,
+        "message": "Configuration terminée. Le pipeline CI/CD va démarrer automatiquement."
+        if not errors
+        else "Certains secrets n'ont pas pu être configurés.",
+    }

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentOS — Déploiement Automatique</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-secondary: #8b949e;
+    --accent: #58a6ff;
+    --accent-hover: #79c0ff;
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 48px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  header p { color: var(--text-secondary); font-size: 1.05rem; margin-top: 8px; }
+  .version-badge {
+    display: inline-block;
+    background: #1f6feb33;
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header h2 { font-size: 1.15rem; font-weight: 600; }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    background: var(--accent);
+    color: #000;
+    border-radius: 50%;
+    font-size: .8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Form */
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: .875rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .form-group label .optional { color: var(--text-secondary); font-weight: 400; }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: .9rem;
+    transition: border .2s;
+  }
+  .form-group input:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px #1f6feb33;
+  }
+  .form-group textarea { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: .8rem; resize: vertical; min-height: 80px; }
+  .form-group .help-text {
+    font-size: .8rem;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .form-group .help-text .icon { flex-shrink: 0; }
+  .help-links {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: #0d1117;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    font-size: .8rem;
+    display: none;
+  }
+  .help-links.open { display: block; }
+  .help-links a {
+    color: var(--accent);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 16px;
+    padding: 2px 0;
+  }
+  .help-links a:hover { text-decoration: underline; }
+  .toggle-help {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: .8rem;
+    padding: 2px 0;
+  }
+  .toggle-help:hover { color: var(--accent-hover); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--text-secondary); }
+  .btn-success { background: var(--success); color: #000; }
+  .btn-success:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+
+  /* Output */
+  .output {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: .8rem;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+  }
+  .output.visible { display: block; }
+  .output .success { color: var(--success); }
+  .output .error { color: var(--danger); }
+  .output .info { color: var(--accent); }
+  .output .cmd { color: var(--warning); }
+
+  /* Progress */
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 16px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar.active { display: block; }
+  .progress-bar .fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width .5s ease;
+    border-radius: 2px;
+  }
+
+  /* Status indicator */
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-dot.ok { background: var(--success); }
+  .status-dot.warn { background: var(--warning); }
+  .status-dot.err { background: var(--danger); }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .container { padding: 16px 12px; }
+    header h1 { font-size: 1.5rem; }
+    .btn-group { flex-direction: column; }
+    .btn { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>🚀 AgentOS — Déploiement Automatique</h1>
+    <p>Assistant de configuration pour déployer AgentOS v5.0 en production via GitHub Actions</p>
+    <span class="version-badge">v5.0.0 • CI/CD Pipeline</span>
+  </header>
+
+  <!-- Step 1: Server -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">1</span>
+      <h2>Serveur de Production</h2>
+    </div>
+    <p style="color:var(--text-secondary);font-size:.9rem;margin-bottom:16px;">
+      Un VPS ou serveur dédié avec Docker &ge; 24 et Docker Compose &ge; 2.0.
+      Configuration minimale : 2 CPU, 4 Go RAM, 20 Go SSD.
+    </p>
+
+    <div class="form-group">
+      <label for="deploy-host">Adresse du serveur <span class="optional">(IP ou domaine)</span></label>
+      <input type="text" id="deploy-host" placeholder="ex: 192.168.1.42 ou agentos.example.com">
+      <div class="help-text"><span class="icon">💡</span> L'adresse IP publique ou le nom de domaine de votre serveur</div>
+      <button class="toggle-help" onclick="toggleHelp('host-help')">📚 Voir les guides &rarr;</button>
+      <div class="help-links" id="host-help">
+        <a href="https://www.digitalocean.com/" target="_blank">DigitalOcean</a>
+        <a href="https://www.hetzner.com/cloud" target="_blank">Hetzner Cloud</a>
+        <a href="https://aws.amazon.com/ec2/" target="_blank">AWS EC2</a>
+        <a href="https://cloud.google.com/compute" target="_blank">GCP Compute</a>
+        <a href="https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions" target="_blank">Documentation GitHub Secrets</a>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="deploy-user">Utilisateur SSH</label>
+      <input type="text" id="deploy-user" placeholder="ex: deploy ou root" value="deploy">
+      <div class="help-text"><span class="icon">💡</span> Utilisateur avec droits sudo et clé SSH autorisée</div>
+      <button class="toggle-help" onclick="toggleHelp('user-help')">📚 Créer un utilisateur &rarr;</button>
+      <div class="help-links" id="user-help">
+        <code style="display:block;background:#0d1117;padding:10px;border-radius:4px;margin-bottom:8px;color:var(--warning);">adduser deploy && usermod -aG sudo deploy</code>
+        <a href="https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu" target="_blank">Guide de configuration initiale du serveur</a>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="deploy-key">Clé privée SSH <span class="optional">(contenu du fichier .pem ou id_rsa)</span></label>
+      <textarea id="deploy-key" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----
+MIIEpAIBAAKCAQEA..."></textarea>
+      <div class="help-text"><span class="icon">🔑</span> La clé privée SSH qui correspond à la clé publique ajoutée au serveur</div>
+      <button class="toggle-help" onclick="toggleHelp('key-help')">📚 Générer une clé SSH &rarr;</button>
+      <div class="help-links" id="key-help">
+        <code style="display:block;background:#0d1117;padding:10px;border-radius:4px;margin-bottom:8px;color:var(--warning);">ssh-keygen -t ed25519 -C "deploy-agentos" -f ~/.ssh/agentos_deploy</code>
+        <code style="display:block;background:#0d1117;padding:10px;border-radius:4px;margin-bottom:8px;color:var(--warning);">ssh-copy-id -i ~/.ssh/agentos_deploy.pub deploy@&lt;IP_DU_SERVEUR&gt;</code>
+        <a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent" target="_blank">Documentation GitHub SSH</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: API Keys -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">2</span>
+      <h2>Clés API &amp; Services</h2>
+    </div>
+    <p style="color:var(--text-secondary);font-size:.9rem;margin-bottom:16px;">
+      Ces clés seront transmises à votre serveur de production via les variables d'environnement.
+    </p>
+
+    <div class="form-group">
+      <label for="openrouter-key">OpenRouter API Key <span class="optional">(recommandé)</span></label>
+      <input type="password" id="openrouter-key" placeholder="sk-or-v1-xxxxxxxxxxxx">
+      <div class="help-text"><span class="icon">🤖</span> Clé API pour les modèles LLM (Claude, GPT-4, Mixtral, etc.)</div>
+      <button class="toggle-help" onclick="toggleHelp('openrouter-help')">📚 Obtenir une clé &rarr;</button>
+      <div class="help-links" id="openrouter-help">
+        <a href="https://openrouter.ai/keys" target="_blank">OpenRouter — Créer une clé API</a>
+        <a href="https://openrouter.ai/models" target="_blank">Modèles disponibles</a>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="jwt-secret">JWT Secret <span class="optional">(autogénéré si vide)</span></label>
+      <input type="password" id="jwt-secret" placeholder="Laissez vide pour génération automatique">
+      <button class="toggle-help" onclick="toggleHelp('jwt-help')">📚 Générer un secret &rarr;</button>
+      <div class="help-links" id="jwt-help">
+        <code style="display:block;background:#0d1117;padding:10px;border-radius:4px;color:var(--warning);">openssl rand -hex 32</code>
+        <p style="margin-top:6px;font-size:.8rem;">Copiez le résultat de cette commande dans le champ ci-dessus.</p>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="openai-key">OpenAI API Key <span class="optional">(optionnel, fallback)</span></label>
+      <input type="password" id="openai-key" placeholder="sk-xxxxxxxxxxxx">
+      <div class="help-text"><span class="icon">💡</span> Utilisé si OpenRouter est indisponible</div>
+      <button class="toggle-help" onclick="toggleHelp('openai-help')">📚 Obtenir une clé &rarr;</button>
+      <div class="help-links" id="openai-help">
+        <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI — API Keys</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Base de données -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">3</span>
+      <h2>Services</h2>
+    </div>
+
+    <div class="form-group">
+      <label for="db-url">URL de la base de données PostgreSQL</label>
+      <input type="text" id="db-url" placeholder="postgresql+asyncpg://user:password@host:5432/agentos">
+      <div class="help-text"><span class="icon">🗄️</span> Nécessite l'extension pgvector. PostgreSQL &ge; 15 recommandé.</div>
+      <button class="toggle-help" onclick="toggleHelp('db-help')">📚 Configurer PostgreSQL &rarr;</button>
+      <div class="help-links" id="db-help">
+        <a href="https://www.elephantsql.com/" target="_blank">ElephantSQL (PostgreSQL managé)</a>
+        <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-22-04" target="_blank">Installer PostgreSQL sur Ubuntu</a>
+        <a href="https://supabase.com/" target="_blank">Supabase (PostgreSQL + pgvector)</a>
+        <p style="margin-top:8px;font-size:.8rem;color:var(--text-secondary);">
+          Format attendu : <code style="color:var(--warning)">postgresql+asyncpg://user:password@host:5432/database</code>
+        </p>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="redis-url">URL Redis</label>
+      <input type="text" id="redis-url" placeholder="redis://:password@host:6379/0">
+      <div class="help-text"><span class="icon">⚡</span> Utilisé pour le cache LLM et le rate limiting</div>
+      <button class="toggle-help" onclick="toggleHelp('redis-help')">📚 Configurer Redis &rarr;</button>
+      <div class="help-links" id="redis-help">
+        <a href="https://redis.com/try-free/" target="_blank">Redis Cloud (gratuit jusqu'à 30 Mo)</a>
+        <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-22-04" target="_blank">Installer Redis sur Ubuntu</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="card" style="border-color: var(--accent);">
+    <div class="card-header">
+      <span class="step-badge" style="background: var(--success); color: #000;">✓</span>
+      <h2>Actions</h2>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="generateCommands()">📋 Générer les commandes GitHub</button>
+      <button class="btn btn-success" onclick="applyNow()">🚀 Appliquer et déployer</button>
+      <button class="btn btn-secondary" onclick="resetForm()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="progress-bar" id="progress-bar">
+      <div class="fill" id="progress-fill"></div>
+    </div>
+
+    <div class="output" id="output"></div>
+  </div>
+
+  <!-- Résumé des secrets -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">i</span>
+      <h2>Statut GitHub Secrets</h2>
+    </div>
+    <div id="secrets-status" style="font-size:.9rem;">
+      <p style="color:var(--text-secondary);">Cliquez sur "Générer les commandes" ou "Appliquer" pour vérifier la configuration GitHub.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleHelp(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+function getVal(id) { return document.getElementById(id).value.trim(); }
+function escapeSh(str) {
+  return str.replace(/'/g, "'\\''");
+}
+
+function writeOutput(msg, type) {
+  const out = document.getElementById('output');
+  out.classList.add('visible');
+  if (type) out.innerHTML += `<span class="${type}">${msg}</span>\n`;
+  else out.innerHTML += msg + '\n';
+  out.scrollTop = out.scrollHeight;
+}
+
+function clearOutput() {
+  const out = document.getElementById('output');
+  out.innerHTML = '';
+  out.classList.remove('visible');
+  document.getElementById('progress-bar').classList.remove('active');
+}
+
+function showProgress(pct) {
+  const bar = document.getElementById('progress-bar');
+  bar.classList.add('active');
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function generateCommands() {
+  clearOutput();
+  
+  const host = getVal('deploy-host');
+  const user = getVal('deploy-user') || 'deploy';
+  const key = getVal('deploy-key');
+  const orKey = getVal('openrouter-key');
+  const jwt = getVal('jwt-secret') || require('crypto').randomBytes(32).toString('hex');
+  const openai = getVal('openai-key');
+  const dbUrl = getVal('db-url');
+  const redisUrl = getVal('redis-url');
+
+  if (!host) { writeOutput('❌ Veuillez renseigner l\'adresse du serveur (DEPLOY_HOST).', 'error'); return; }
+
+  const cmds = [];
+  const repo = 'HiTechTN/agentos';
+
+  cmds.push(`# === AgentOS v5.0 — Configuration GitHub Secrets ===`);
+  cmds.push(`# Repository: ${repo}`);
+  cmds.push(`# Exécutez ces commandes dans votre terminal local\n`);
+
+  if (host) cmds.push(`gh secret set DEPLOY_HOST --repo "${repo}" --body '${escapeSh(host)}'`);
+  if (user) cmds.push(`gh secret set DEPLOY_USER --repo "${repo}" --body '${escapeSh(user)}'`);
+  if (key) cmds.push(`gh secret set DEPLOY_KEY --repo "${repo}" --body '${escapeSh(key)}'`);
+  if (orKey) cmds.push(`gh secret set OPENROUTER_API_KEY --repo "${repo}" --body '${escapeSh(orKey)}'`);
+  if (openai) cmds.push(`gh secret set OPENAI_API_KEY --repo "${repo}" --body '${escapeSh(openai)}'`);
+  if (dbUrl) cmds.push(`gh secret set DATABASE_URL --repo "${repo}" --body '${escapeSh(dbUrl)}'`);
+  if (redisUrl) cmds.push(`gh secret set REDIS_URL --repo "${repo}" --body '${escapeSh(redisUrl)}'`);
+
+  if (!jwt.startsWith(getVal('jwt-secret')) || getVal('jwt-secret') === '') {
+    writeOutput('⚠️  JWT_SECRET sera généré automatiquement.', 'warn');
+  }
+
+  writeOutput('# === Commandes à exécuter ===\n');
+  cmds.forEach(c => writeOutput(c, 'cmd'));
+  writeOutput('\n# 🔑 Copiez ces commandes et exécutez-les dans votre terminal');
+  writeOutput('# Après exécution, lancez le déploiement avec :');
+  writeOutput(`gh workflow run "CI/CD Pipeline" --repo "${repo}" --ref main`, 'info');
+}
+
+async function applyNow() {
+  clearOutput();
+
+  const host = getVal('deploy-host');
+  if (!host) { writeOutput('❌ Veuillez renseigner l\'adresse du serveur (DEPLOY_HOST).', 'error'); return; }
+
+  writeOutput('🚀 Déploiement en cours...', 'info');
+  showProgress(10);
+
+  const payload = {
+    host,
+    user: getVal('deploy-user') || 'deploy',
+    key: getVal('deploy-key'),
+    openrouter_api_key: getVal('openrouter-key'),
+    jwt_secret: getVal('jwt-secret'),
+    openai_api_key: getVal('openai-key'),
+    database_url: getVal('db-url'),
+    redis_url: getVal('redis-url'),
+  };
+
+  try {
+    showProgress(30);
+    const resp = await fetch('/api/v1/deploy/configure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    
+    showProgress(70);
+    const result = await resp.json();
+    
+    if (resp.ok) {
+      writeOutput('✅ Configuration réussie !', 'success');
+      if (result.commands) {
+        result.commands.forEach(c => writeOutput(c, 'cmd'));
+      }
+      writeOutput(`\n🔗 Voir le déploiement : https://github.com/${result.repo}/actions`, 'info');
+      showProgress(100);
+    } else {
+      writeOutput(`❌ Erreur : ${result.detail || JSON.stringify(result)}`, 'error');
+      showProgress(0);
+    }
+  } catch (e) {
+    writeOutput(`❌ Erreur de connexion : ${e.message}`, 'error');
+    showProgress(0);
+    writeOutput('\n💡 Vous pouvez utiliser le bouton "Générer les commandes" pour une configuration manuelle.', 'info');
+  }
+}
+
+function resetForm() {
+  if (!confirm('Réinitialiser tous les champs ?')) return;
+  document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+  clearOutput();
+  document.querySelectorAll('.help-links').forEach(el => el.classList.remove('open'));
+  writeOutput('🔄 Formulaire réinitialisé.', 'info');
+}
+</script>
+</body>
+</html>
