@@ -13,13 +13,12 @@
 </p>
 
 <h1 align="center">🤖 AgentOS</h1>
-<p align="center"><b>AI Agent Orchestration System</b> · The open-source alternative to Verdent.ai · Transformez une intention en workflow IA exécutable</p>
+<p align="center"><b>AI Agent Orchestration System</b> · Transformez une intention en workflow IA exécutable</p>
 
 <p align="center">
   <a href="#-quick-install">🚀 Quick Install</a> •
   <a href="#-architecture">🏗️ Architecture</a> •
   <a href="#-agents--sub-agents">🎯 Agents</a> •
-  <a href="#-comparison-verdentai-vs-agentos">⚡ Comparison</a> •
   <a href="#-features">✨ Features</a> •
   <a href="#-quick-start">📖 Quick Start</a> •
   <a href="#-api">📡 API</a>
@@ -160,7 +159,7 @@ HITL gate → Deploy / Publish / Charge
 </tr>
 </table>
 
-### Sub-Agent System (like Verdent, but better)
+### Sub-Agent System
 
 | Sub-Agent | Role | Auto-Route Trigger |
 |-----------|------|-------------------|
@@ -172,34 +171,6 @@ HITL gate → Deploy / Publish / Charge
 Sub-agents auto-route based on task intent, or invoke explicitly via `POST /api/v1/sub-agent/run`.
 
 Custom sub-agents: create markdown files in `~/.agentos/subagents/<name>.md` with YAML frontmatter.
-
----
-
-## ⚡ Comparison: Verdent.ai vs AgentOS
-
-| Feature | Verdent.ai | AgentOS (v5.0) |
-|---------|-----------|----------------|
-| **Open-source** | ❌ Proprietary | ✅ MIT License |
-| **Multi-domain** | ❌ Code only | ✅ Code + Content + Marketing + Commerce |
-| **Sub-agents** | Built-in + custom | ✅ @Planner, @Verifier, @Explorer, @CodeReviewer + custom |
-| **Plan Mode** | Plan-verify loop | ✅ Structured plan with phases, tasks, risks, dependencies |
-| **Verify Mode** | Built-in | ✅ JSON-format validation |
-| **AGENTS.md rules** | ✅ | ✅ Project + global + plan rules, auto-init |
-| **Kanban board** | Column view | ✅ 6 columns, full CRUD API + WebSocket |
-| **Pulse dashboards** | Real-time | ✅ Agent activity + metrics + timeline |
-| **MCP integration** | ✅ | ✅ Register + call any MCP server |
-| **Git worktree** | Per-task isolation | ✅ Full CRUD management API |
-| **Human-in-the-Loop** | ❌ | ✅ Approve/reject deploy, publish, charge |
-| **Observability** | ❌ | ✅ Prometheus + Jaeger + WebSocket logs |
-| **LLM Cache** | ❌ | ✅ In-memory SHA256-keyed cache |
-| **Multi-model routing** | ✅ BYOK | ✅ Claude/GPT-4o/Mixtral per task type |
-| **RAG memory** | ❌ | ✅ pgvector 768d across sessions |
-| **Parallel execution** | ✅ | ✅ asyncio.gather + worktree isolation |
-| **Deployment** | Desktop + IDE | ✅ Docker Compose + Web + Desktop (Tauri v2) + PWA |
-| **Cross-platform** | ❌ Desktop-only | ✅ Web + Linux/macOS/Windows + Mobile PWA |
-| **Scheduler** | Natural language | ✅ Cron-based + API |
-| **Notifications** | Slack/Telegram | ✅ Slack + Console + webhook |
-| **Pricing** | Credits + subscription | ✅ Free, self-hosted |
 
 ---
 
@@ -276,7 +247,7 @@ watch docker compose ps  # Wait until all services are "healthy"
 
 ```bash
 curl http://localhost:8000/health
-# → {"status":"ok","version":"4.0.0","environment":"development"}
+# → {"status":"ok","version":"5.0.0","environment":"development"}
 ```
 
 ### 4️⃣ Run a workflow
@@ -483,26 +454,6 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 | 📱 **Mobile PWA** | Service Worker + Manifest | ✅ Installable via browser |
 
 **Login**: `admin@agentos.local` / `agentos`
-┌─────────────────────────────────────────────────────┐
-│  AgentOS v4.0 Dashboard     [Plan] [Run] [Verify]   │
-├──────────────────┬──────────────────────────────────┤
-│  Plan Mode       │  Kanban Board                    │
-│  ┌──────────────┐│  ┌──────┬───────┬──────┬───────┐│
-│  │ Goal: Build  ││  │ ToDo │ In Pr │Review│ Done  ││
-│  │ an e-com site││  │ 3    │ 2     │ 1    │ 5     ││
-│  └──────────────┘│  └──────┴───────┴──────┴───────┘│
-│  [▶ Create Plan] │  Pulse: ●●● agents active        │
-├──────────────────┴──────────────────────────────────┤
-│  Sub-Agent Activity                                 │
-│  @Planner ✓  @Verifier running  @Explorer idle      │
-├──────────────────┬──────────────────────────────────┤
-│  Agent Results   │  System Status                   │
-│  ✓ DevAgent OK   │  ● API · ● DB · ● Redis          │
-│  ⏳ Content...   │  ● Ollama · ● Jaeger · ● MinIO   │
-└──────────────────┴──────────────────────────────────┘
-```
-
-**Login**: `admin@agentos.local` / `agentos`
 
 ---
 
@@ -524,7 +475,6 @@ agentos/
 │   ├── src-tauri/         # Tauri v2 Rust backend (Linux .deb/.rpm/.AppImage)
 │   ├── public/sw.js       # PWA service worker
 │   └── setup.sh           # One-command environment setup
-├── AGENTS.md
 ├── AGENTS.md              # Project rules (auto-init)
 └── app/
     ├── main.py            # FastAPI entrypoint with 30+ routes
@@ -571,7 +521,7 @@ agentos/
     │   ├── test_advanced.py     # 15+ tests (v2/v3 features)
     │   ├── test_v3_features.py  # 15+ tests (v3 features)
     │   └── test_v4_features.py  # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
-    └── web/                # Next.js 14 App Router dashboard
+    └── web/                # Legacy dashboard (deprecated, see ui/)
         ├── app/            # Pages, layouts, components
         └── Dockerfile.web  # Standalone container
 ```
@@ -640,6 +590,4 @@ make lint
   <a href="https://hitechtn.github.io/agentos/">🌐 Landing Page</a> ·
   <a href="https://github.com/HiTechTN/agentos/blob/main/GUIDE.md">📖 Guide</a> ·
   <a href="https://github.com/HiTechTN/agentos/releases">📝 Releases</a>
-  <br><br>
-  <b>Open-source alternative to Verdent.ai</b>
 </p>

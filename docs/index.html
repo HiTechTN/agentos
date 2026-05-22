@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentOS v5.0 - AI Agent Orchestration System · Open-source alternative to Verdent.ai</title>
-<meta name="description" content="AgentOS v5.0 orchestrates 8 AI agents (4 domain + 4 sub-agents) with Plan-Code-Verify workflow, Kanban boards, Pulse dashboards, MCP integration, and cross-platform UI (Web + Desktop + PWA). The open-source alternative to Verdent.ai.">
+<title>AgentOS v5.0 - AI Agent Orchestration System</title>
+<meta name="description" content="AgentOS v5.0 orchestrates 8 AI agents (4 domain + 4 sub-agents) with Plan-Code-Verify workflow, Kanban boards, Pulse dashboards, MCP integration, and cross-platform UI (Web + Desktop + PWA). Self-hosted, MIT licensed.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234c6ef5'/><text x='16' y='22' text-anchor='middle' font-size='18' font-weight='bold' fill='white'>A</text></svg>">
 <style>
 :root {
@@ -52,23 +52,11 @@ nav .container { display: flex; align-items: center; justify-content: space-betw
 .hero h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.15; margin-bottom: 16px; }
 .hero h1 span { background: linear-gradient(135deg, var(--primary), #748ffc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .hero .subtitle { font-size: 1.1rem; color: var(--text-secondary); max-width: 680px; margin: 0 auto 12px; }
-.hero .vs-badge { display: inline-block; background: var(--warning); color: #000; font-size: .75rem; font-weight: 700; padding: 4px 14px; border-radius: 20px; margin-bottom: 24px; }
 .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
 .hero-stats { display: flex; justify-content: center; gap: 40px; margin-top: 50px; flex-wrap: wrap; }
 .hero-stats div { text-align: center; }
 .hero-stats strong { display: block; font-size: 1.8rem; color: var(--text); }
 .hero-stats span { font-size: .82rem; color: var(--text-secondary); }
-
-/* Comparison */
-.comparison { padding: 60px 0; background: var(--bg-alt); }
-.comparison h2 { text-align: center; font-size: 1.8rem; margin-bottom: 36px; }
-.comparison-table { max-width: 800px; margin: 0 auto; border-collapse: collapse; width: 100%; font-size: .9rem; }
-.comparison-table th, .comparison-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
-.comparison-table th:first-child { width: 40%; }
-.comparison-table th { font-weight: 600; background: var(--bg); }
-.comparison-table tr:hover { background: var(--bg-alt); }
-.check { color: var(--success); font-weight: 700; }
-.cross { color: #e03131; }
 
 /* Pipeline */
 .pipeline { padding: 80px 0; background: var(--bg-alt); }
@@ -161,8 +149,6 @@ footer a:hover { color: var(--primary); }
   .pipeline-flow { flex-direction: column; }
   .pipeline-arrow { transform: rotate(90deg); }
   .hero-stats { gap: 20px; }
-  .comparison-table { font-size: .8rem; }
-  .comparison-table th, .comparison-table td { padding: 8px 10px; }
 }
 </style>
 </head>
@@ -184,13 +170,12 @@ footer a:hover { color: var(--primary); }
 
 <section class="hero">
   <div class="container">
-    <span class="vs-badge">&#x26A1; Open-source alternative to Verdent.ai</span>
     <h1>From one sentence to<br><span>working software</span> in minutes</h1>
     <p class="subtitle">AgentOS orchestrates 8 AI agents — 4 domain specialists + 4 sub-agents — with Plan &#x2192; Code &#x2192; Verify workflow. Cross-platform: Web (Next.js 16), Desktop (Tauri v2), Mobile PWA. Kanban, Pulse, MCP, git worktree isolation. Self-hosted, MIT licensed.</p>
     <div class="hero-btns">
       <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">&#x1F680; Deploy with Docker</a>
-      <a href="#comparison" class="btn btn-outline btn-lg">vs Verdent.ai</a>
       <a href="#how" class="btn btn-outline btn-lg">How it works</a>
+      <a href="https://github.com/HiTechTN/agentos/blob/main/GUIDE.md" class="btn btn-outline btn-lg">&#x1F4D6; Guide</a>
     </div>
     <div class="hero-stats">
       <div><strong>8</strong><span>AI agents</span></div>
@@ -199,34 +184,6 @@ footer a:hover { color: var(--primary); }
       <div><strong>3</strong><span>platform targets</span></div>
       <div><strong>&lt; 15 min</strong><span>first deploy</span></div>
     </div>
-  </div>
-</section>
-
-<section class="comparison" id="comparison">
-  <div class="container">
-    <h2>&#x2694;&#xFE0F; AgentOS vs Verdent.ai</h2>
-    <table class="comparison-table">
-      <tr><th>Feature</th><th>Verdent.ai</th><th>AgentOS v5.0</th></tr>
-      <tr><td>Open-source</td><td class="cross">&#x2718; Proprietary</td><td class="check">&#x2714; MIT License</td></tr>
-      <tr><td>Multi-domain (code + content + marketing + commerce)</td><td class="cross">&#x2718; Code only</td><td class="check">&#x2714; 4 domains</td></tr>
-      <tr><td>Sub-agent system</td><td class="check">&#x2714; Built-in + custom</td><td class="check">&#x2714; @Planner, @Verifier, @Explorer, @CodeReviewer + custom</td></tr>
-      <tr><td>Plan &#x2192; Code &#x2192; Verify</td><td class="check">&#x2714;</td><td class="check">&#x2714; Structured plans + auto-verification</td></tr>
-      <tr><td>Kanban board</td><td class="check">&#x2714; Column view</td><td class="check">&#x2714; 6 columns + WebSocket</td></tr>
-      <tr><td>Pulse dashboards</td><td class="check">&#x2714;</td><td class="check">&#x2714; Agent activity + timeline</td></tr>
-      <tr><td>MCP integration</td><td class="check">&#x2714;</td><td class="check">&#x2714; Register + call any server</td></tr>
-      <tr><td>AGENTS.md rules</td><td class="check">&#x2714;</td><td class="check">&#x2714; Project + global + plan rules</td></tr>
-      <tr><td>Git worktree isolation</td><td class="check">&#x2714;</td><td class="check">&#x2714; Full CRUD API</td></tr>
-      <tr><td>Human-in-the-Loop</td><td class="cross">&#x2718;</td><td class="check">&#x2714; Approve/reject deploy, publish, charge</td></tr>
-      <tr><td>Observability (Prometheus + Jaeger + WebSocket)</td><td class="cross">&#x2718;</td><td class="check">&#x2714; Full stack</td></tr>
-      <tr><td>LLM response cache</td><td class="cross">&#x2718;</td><td class="check">&#x2714; SHA256-keyed, configurable TTL</td></tr>
-      <tr><td>RAG memory across sessions</td><td class="cross">&#x2718;</td><td class="check">&#x2714; pgvector 768d</td></tr>
-      <tr><td>Multi-model routing</td><td class="check">&#x2714; BYOK</td><td class="check">&#x2714; Claude/GPT-4o/Mixtral per task type</td></tr>
-      <tr><td>Scheduler</td><td class="check">&#x2714; Natural language</td><td class="check">&#x2714; Cron-based + API</td></tr>
-      <tr><td>Platforms</td><td>Desktop + VS Code</td><td>&#x2714; Web + Desktop (Tauri) + Mobile PWA</td></tr>
-      <tr><td>Deployment</td><td>Desktop + IDE</td><td>&#x2714; Docker Compose + Web + Desktop + PWA</td></tr>
-      <tr><td>Deployment</td><td>Desktop + VS Code</td><td>&#x2714; Docker Compose + Web</td></tr>
-      <tr><td>Pricing</td><td>Credits + subscription</td><td>&#x2714; Free, self-hosted</td></tr>
-    </table>
   </div>
 </section>
 
@@ -258,7 +215,7 @@ footer a:hover { color: var(--primary); }
 
 <section class="subagents" id="subagents">
   <div class="container">
-    <h2>&#x1F916; Sub-Agent System <span class="tag-new">NEW in v4.0</span></h2>
+    <h2>&#x1F916; Sub-Agent System</h2>
     <div class="subagents-grid">
       <div class="subagent-card">
         <span class="tag" style="background:#e7f5ff;color:#1971c2">Planner</span>
@@ -410,7 +367,7 @@ footer a:hover { color: var(--primary); }
 
 <footer>
   <div class="container">
-    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v5.0.0 &mdash; MIT License &mdash; <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> &mdash; Built with Python &amp; Next.js 16 &amp; Tauri v2 &mdash; Open-source alternative to Verdent.ai</p>
+    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v5.0.0 &mdash; MIT License &mdash; <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> &mdash; Built with Python &amp; Next.js 16 &amp; Tauri v2</p>
   </div>
 </footer>
 
