@@ -33,11 +33,11 @@ export default function GuidePage() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>📄 GUIDE.md</CardTitle><CardDescription>Version markdown sur GitHub</CardDescription></CardHeader>
+              <CardHeader><CardTitle>🖥️ Desktop App</CardTitle><CardDescription>Application native Tauri v2</CardDescription></CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">Le même contenu au format markdown, lisible directement sur GitHub.</p>
-                <a href="https://github.com/HiTechTN/agentos/blob/main/GUIDE.md" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline">Voir sur GitHub <ExternalLink className="h-4 w-4 ml-1" /></Button>
+                <p className="text-sm text-muted-foreground mb-4">AgentOS disponible en application de bureau : .deb, .rpm, .AppImage.</p>
+                <a href="https://github.com/HiTechTN/agentos/releases" target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline">Télécharger <ExternalLink className="h-4 w-4 ml-1" /></Button>
                 </a>
               </CardContent>
             </Card>
