@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(0.04 0 0);
+  --color-foreground: oklch(0.93 0 0);
+  --color-card: oklch(0.08 0 0);
+  --color-card-foreground: oklch(0.93 0 0);
+  --color-popover: oklch(0.08 0 0);
+  --color-popover-foreground: oklch(0.93 0 0);
+  --color-primary: oklch(0.67 0.15 264);
+  --color-primary-foreground: oklch(0.04 0 0);
+  --color-secondary: oklch(0.12 0 0);
+  --color-secondary-foreground: oklch(0.8 0 0);
+  --color-muted: oklch(0.12 0 0);
+  --color-muted-foreground: oklch(0.55 0 0);
+  --color-accent: oklch(0.67 0.15 264);
+  --color-accent-foreground: oklch(0.93 0 0);
+  --color-destructive: oklch(0.6 0.24 25);
+  --color-destructive-foreground: oklch(0.93 0 0);
+  --color-border: oklch(0.16 0 0);
+  --color-input: oklch(0.16 0 0);
+  --color-ring: oklch(0.67 0.15 264);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@utility gradient-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba);
+}
+
+@utility glass {
+  background-color: color-mix(in oklab, var(--color-card) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in oklab, var(--color-border) 50%, transparent);
+}
