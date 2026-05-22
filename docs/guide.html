@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentOS v5.0 — Guide Complet</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-alt: #151b23;
+    --surface: #161b22;
+    --surface-hover: #1c2333;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #58a6ff;
+    --accent-hover: #79c0ff;
+    --accent-glow: #58a6ff33;
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+    --purple: #bc8cff;
+    --orange: #f0883e;
+    --pink: #f778ba;
+    --gradient: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba);
+    --radius: 8px;
+    --sidebar-w: 280px;
+    --header-h: 60px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .85em; }
+  ::selection { background: var(--accent-glow); }
+
+  /* ── HEADER ── */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    background: #0d1117ee;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 100;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 2px;
+    background: var(--gradient);
+    opacity: .6;
+  }
+  header .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.05rem; }
+  header .logo span { color: var(--accent); }
+  header .logo .badge {
+    font-size: .65rem; font-weight: 600; padding: 2px 8px;
+    background: var(--accent-glow); color: var(--accent); border-radius: 10px;
+  }
+  header nav { display: flex; align-items: center; gap: 12px; }
+  header nav a {
+    color: var(--text-secondary); font-size: .85rem; font-weight: 500; padding: 6px 12px;
+    border-radius: 6px; transition: all .2s;
+  }
+  header nav a:hover { color: var(--text); background: var(--surface-hover); text-decoration: none; }
+  header nav a.gh-link { display: flex; align-items: center; gap: 6px; }
+  .menu-btn { display: none; background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; padding: 4px; }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; margin-top: var(--header-h); min-height: calc(100vh - var(--header-h)); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    top: var(--header-h); left: 0;
+    width: var(--sidebar-w);
+    height: calc(100vh - var(--header-h));
+    overflow-y: auto;
+    background: var(--bg-alt);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    z-index: 50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .sidebar-section { margin-bottom: 4px; }
+  .sidebar-section .section-title {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px; font-size: .75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--text-muted); cursor: pointer; user-select: none;
+    transition: color .2s;
+  }
+  .sidebar-section .section-title:hover { color: var(--text-secondary); }
+  .sidebar-section .section-title .arrow { transition: transform .2s; font-size: .7rem; }
+  .sidebar-section .section-title .arrow.open { transform: rotate(90deg); }
+  .sidebar-items { overflow: hidden; max-height: 2000px; transition: max-height .3s ease; }
+  .sidebar-items.collapsed { max-height: 0; }
+  .sidebar-item {
+    display: block; padding: 5px 16px 5px 28px; font-size: .8rem; color: var(--text-secondary);
+    border-left: 2px solid transparent; transition: all .15s; cursor: pointer;
+  }
+  .sidebar-item:hover { color: var(--text); background: var(--surface-hover); text-decoration: none; }
+  .sidebar-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-glow); }
+
+  /* ── SEARCH ── */
+  .search-box {
+    margin: 8px 12px 12px; position: relative;
+  }
+  .search-box input {
+    width: 100%; padding: 8px 12px 8px 36px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: .8rem; outline: none; transition: border .2s;
+  }
+  .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 40px 48px 80px;
+    max-width: 960px;
+  }
+  .main h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -.02em; }
+  .main h1 .hl { color: var(--accent); }
+  .main .subtitle { color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 32px; }
+  .main h2 {
+    font-size: 1.5rem; font-weight: 700; margin: 48px 0 16px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border); scroll-margin-top: calc(var(--header-h) + 16px);
+    position: relative;
+  }
+  .main h2::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 80px; height: 3px;
+    background: var(--gradient);
+    border-radius: 2px;
+  }
+  .main h2 .anchor { color: var(--accent); opacity: 0; transition: opacity .2s; margin-right: 8px; }
+  .main h2:hover .anchor { opacity: 1; }
+  .main h3 {
+    font-size: 1.1rem; font-weight: 600; margin: 32px 0 12px;
+    scroll-margin-top: calc(var(--header-h) + 16px);
+  }
+  .main h4 { font-size: 1rem; font-weight: 600; margin: 24px 0 8px; color: var(--text-secondary); }
+  .main p { margin-bottom: 16px; color: var(--text-secondary); }
+  .main ul, .main ol { margin: 0 0 16px 24px; color: var(--text-secondary); }
+  .main li { margin-bottom: 4px; }
+  .main li strong { color: var(--text); }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    position: relative;
+    margin: 16px 0;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .code-block .code-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 12px; background: var(--surface-hover); border-bottom: 1px solid var(--border);
+    font-size: .75rem; color: var(--text-muted);
+  }
+  .code-block .code-header .lang { font-weight: 600; color: var(--text-secondary); }
+  .code-block .code-header .copy-btn {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: .75rem; display: flex; align-items: center; gap: 4px; padding: 2px 6px;
+    border-radius: 4px; transition: all .2s;
+  }
+  .code-block .code-header .copy-btn:hover { color: var(--text); background: var(--surface); }
+  .code-block pre {
+    padding: 16px; overflow-x: auto; font-family: var(--mono); font-size: .8rem;
+    line-height: 1.6; color: var(--text); scrollbar-width: thin;
+  }
+  .code-block pre::-webkit-scrollbar { height: 4px; }
+  .code-block pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .code-block code { background: none; padding: 0; font-size: inherit; }
+  .hljs-keyword { color: var(--purple); }
+  .hljs-string { color: var(--success); }
+  .hljs-comment { color: var(--text-muted); font-style: italic; }
+  .hljs-function { color: var(--accent); }
+  .hljs-number { color: var(--orange); }
+  .hljs-built_in { color: var(--pink); }
+
+  /* ── TABLES ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface); font-weight: 600; color: var(--text); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  td { color: var(--text-secondary); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-hover); }
+
+  /* ── CARDS ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; transition: all .3s ease; position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: var(--gradient); opacity: 0; transition: opacity .3s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 32px #58a6ff11; }
+  .card:hover::before { opacity: 1; }
+  .card .icon { font-size: 1.6rem; margin-bottom: 8px; }
+  .card h4 { font-size: .95rem; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .card p { font-size: .82rem; margin: 0; }
+  .card .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+  .card .tag {
+    font-size: .65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    background: var(--accent-glow); color: var(--accent);
+  }
+  .card .tag.green { background: #3fb95022; color: var(--success); }
+  .card .tag.purple { background: #bc8cff22; color: var(--purple); }
+  .card .tag.orange { background: #f0883e22; color: var(--orange); }
+
+  /* ── STEPS ── */
+  .steps { margin: 16px 0; }
+  .step {
+    display: flex; gap: 16px; padding: 16px 0; border-left: 2px solid var(--border);
+    padding-left: 20px; position: relative;
+  }
+  .step::before {
+    content: attr(data-num);
+    position: absolute; left: -13px; top: 14px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #000;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 700;
+  }
+  .step .step-body { flex: 1; }
+  .step .step-body h4 { margin: 0 0 4px; color: var(--text); }
+  .step .step-body p { margin: 0 0 8px; font-size: .85rem; }
+  .step .step-body .code-block { margin: 8px 0; }
+
+  /* ── DIAGRAM ── */
+  .diagram {
+    background: #0d1117; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; margin: 16px 0; overflow-x: auto;
+    font-family: var(--mono); font-size: .75rem; line-height: 1.5;
+  }
+  .diagram .box {
+    border: 1px solid var(--accent); border-radius: 6px; padding: 8px 16px;
+    display: inline-block; margin: 2px; background: var(--accent-glow);
+  }
+  .diagram .arrow { color: var(--text-muted); margin: 0 4px; }
+  .diagram .hub { color: var(--warning); }
+  .diagram .comment { color: var(--text-muted); font-style: italic; }
+
+  /* ── TABS ── */
+  .tabs { margin: 16px 0; }
+  .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+  .tab-bar button {
+    padding: 10px 16px; background: none; border: none; color: var(--text-secondary);
+    font-size: .82rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all .15s; font-family: var(--font);
+  }
+  .tab-bar button:hover { color: var(--text); background: var(--surface-hover); }
+  .tab-bar button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; padding: 16px 0; }
+  .tab-panel.active { display: block; }
+
+  /* ── COLLAPSE ── */
+  .collapse {
+    border: 1px solid var(--border); border-radius: var(--radius); margin: 8px 0; overflow: hidden;
+  }
+  .collapse-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--surface); cursor: pointer; user-select: none;
+    transition: background .2s;
+  }
+  .collapse-header:hover { background: var(--surface-hover); }
+  .collapse-header h4 { margin: 0; font-size: .9rem; }
+  .collapse-header .chevron { transition: transform .2s; font-size: .8rem; }
+  .collapse-header .chevron.open { transform: rotate(180deg); }
+  .collapse-body { padding: 0 16px; max-height: 0; overflow: hidden; transition: all .3s ease; }
+  .collapse-body.open { padding: 16px; max-height: 2000px; }
+
+  /* ── TOC (mobile) ── */
+  .toc-mobile {
+    display: none;
+    position: fixed; bottom: 20px; right: 20px; z-index: 90;
+  }
+  .toc-mobile button {
+    width: 52px; height: 52px; border-radius: 50%; border: none;
+    background: var(--accent); color: #000; font-size: 1.3rem; cursor: pointer;
+    box-shadow: 0 4px 16px #00000044; transition: all .2s;
+  }
+  .toc-mobile button:hover { transform: scale(1.05); }
+
+  /* ── BACK TO TOP ── */
+  .back-to-top {
+    position: fixed; bottom: 80px; right: 20px; z-index: 90;
+    width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text-secondary); cursor: pointer;
+    font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px #00000044; transition: all .3s; opacity: 0; pointer-events: none;
+  }
+  .back-to-top.visible { opacity: 1; pointer-events: auto; }
+  .back-to-top:hover { background: var(--surface-hover); color: var(--text); transform: translateY(-2px); }
+
+  /* ── FADE-IN ANIMATION ── */
+  .fade-in {
+    opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease;
+  }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── SCROLLBAR ── */
+  .main::-webkit-scrollbar { width: 8px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .main::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); transition: transform .3s ease; }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; background: #00000066; z-index: 45;
+    }
+    .sidebar-overlay.open { display: block; }
+    .main { margin-left: 0; padding: 24px 20px 80px; }
+    .menu-btn { display: block; }
+    .toc-mobile { display: block; }
+    .cards { grid-template-columns: 1fr; }
+    header nav a span { display: none; }
+    header nav a.gh-link span { display: inline; }
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    header, .sidebar, .toc-mobile { display: none; }
+    .main { margin: 0; padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+    <div class="logo">
+      🤖 <span>AgentOS</span>
+      <span class="badge">Guide v5.0</span>
+    </div>
+  </div>
+  <nav>
+    <a href="/" target="_blank">🏠 App</a>
+    <a href="/docs" target="_blank">📘 API</a>
+    <a href="/deploy" target="_blank">🚀 Déploiement</a>
+    <a href="https://github.com/HiTechTN/agentos" target="_blank" class="gh-link">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span>GitHub</span>
+    </a>
+  </nav>
+</header>
+
+<!-- ── SIDEBAR OVERLAY (mobile) ── -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- ── LAYOUT ── -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Rechercher..." oninput="searchGuide(this.value)">
+    </div>
+    <nav id="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Démarrage</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item active" href="#architecture">Architecture</a>
+          <a class="sidebar-item" href="#composants">Composants</a>
+          <a class="sidebar-item" href="#flux">Flux de travail</a>
+          <a class="sidebar-item" href="#arborescence">Arborescence</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Interface</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#ui">Cross-Platform</a>
+          <a class="sidebar-item" href="#ui-stack">Stack technique</a>
+          <a class="sidebar-item" href="#ui-pages">Pages</a>
+          <a class="sidebar-item" href="#ui-build">Build</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Déploiement</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#prerequis">Prérequis</a>
+          <a class="sidebar-item" href="#assistant">Assistant GUI</a>
+          <a class="sidebar-item" href="#manuel">Déploiement manuel</a>
+          <a class="sidebar-item" href="#cicd">CI/CD</a>
+          <a class="sidebar-item" href="#securisation">Sécurisation</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>API</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#endpoints">Endpoints</a>
+          <a class="sidebar-item" href="#auth">Authentification</a>
+          <a class="sidebar-item" href="#rate-limit">Rate Limiting</a>
+          <a class="sidebar-item" href="#websocket">WebSocket</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Features</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#agents">Agents</a>
+          <a class="sidebar-item" href="#sub-agents">Sub-Agents</a>
+          <a class="sidebar-item" href="#hitl">HITL</a>
+          <a class="sidebar-item" href="#kanban">Kanban</a>
+          <a class="sidebar-item" href="#pulse">Pulse</a>
+          <a class="sidebar-item" href="#llm-cache">LLM Cache</a>
+          <a class="sidebar-item" href="#debugger">@Debugger</a>
+          <a class="sidebar-item" href="#orchestrateur">Orchestrateur</a>
+          <a class="sidebar-item" href="#scheduler">Scheduler</a>
+          <a class="sidebar-item" href="#mcp">MCP</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Configuration</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#env">Variables</a>
+          <a class="sidebar-item" href="#connexion">Chaînes de connexion</a>
+          <a class="sidebar-item" href="#docker-compose">Docker Compose</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Développement</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#setup">Setup local</a>
+          <a class="sidebar-item" href="#commandes">Commandes</a>
+          <a class="sidebar-item" href="#ajouter-agent">Ajouter un agent</a>
+          <a class="sidebar-item" href="#migrations">Migrations</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Dépannage</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#problemes">Problèmes courants</a>
+          <a class="sidebar-item" href="#logs">Logs</a>
+          <a class="sidebar-item" href="#debugging">Debugging</a>
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="main" id="main-content">
+
+    <h1>Guide <span class="hl">AgentOS</span> v5.0</h1>
+    <p class="subtitle">Plateforme d'orchestration multi-agent — Architecture, déploiement, API et développement</p>
+
+    <!-- ═══════════════ 1. ARCHITECTURE ═══════════════ -->
+    <h2 id="architecture">🏗️ 1. Architecture</h2>
+    <p>AgentOS est une plateforme d'orchestration multi-agent basée sur <strong>FastAPI</strong> + <strong>LangGraph</strong>, avec persistance <strong>PostgreSQL/pgvector</strong> et cache <strong>Redis</strong>.</p>
+
+    <div class="diagram">
+      <div class="box">🌐 Client</div>
+      <div class="arrow">→</div>
+      <div class="box" style="border-color:var(--success);background:#3fb95022;">FastAPI<br/><span style="font-size:.65rem;color:var(--text-muted)">REST + WebSocket</span></div>
+      <div class="arrow">→</div>
+      <div class="box" style="border-color:var(--purple);background:#bc8cff22;">Orchestrator<br/><span style="font-size:.65rem;color:var(--text-muted)">LangGraph StateGraph</span></div>
+      <div class="arrow">↓</div>
+      <br/>
+      <span class="hub">├─</span> <div class="box" style="border-color:var(--accent);">🤖 DevAgent</div>
+      <span class="hub">├─</span> <div class="box" style="border-color:var(--accent);">✍️ ContentAgent</div>
+      <span class="hub">├─</span> <div class="box" style="border-color:var(--accent);">📊 MarketingAgent</div>
+      <span class="hub">└─</span> <div class="box" style="border-color:var(--accent);">🛒 CommerceAgent</div>
+      <br/>
+      <div class="arrow">⇅</div>
+      <br/>
+      <div class="box" style="border-color:var(--warning);background:#d2992222;">🗄️ PostgreSQL</div>
+      <div class="box" style="border-color:var(--danger);background:#f8514922;">⚡ Redis</div>
+      <div class="box" style="border-color:var(--pink);background:#f778ba22;">🤖 LLM API</div>
+    </div>
+
+    <h3 id="composants">1.2 Composants clés</h3>
+    <div class="cards">
+      <div class="card"><div class="icon">🌐</div><h4>API FastAPI</h4><p>Interface REST + WebSocket avec middleware JWT, rate limiting, et traçage distribué.</p><div class="tags"><span class="tag">Python</span><span class="tag">FastAPI</span></div></div>
+      <div class="card"><div class="icon">🔀</div><h4>Orchestrator</h4><p>Workflow multi-agent sous forme de graphe d'états LangGraph avec circuit breaker et retry automatique.</p><div class="tags"><span class="tag purple">LangGraph</span><span class="tag">StateGraph</span></div></div>
+      <div class="card"><div class="icon">🤖</div><h4>Agents</h4><p>4 agents spécialisés (Dev, Content, Marketing, Commerce) avec exécution parallèle et fallback.</p><div class="tags"><span class="tag green">Strategy Pattern</span></div></div>
+      <div class="card"><div class="icon">🎯</div><h4>Sub-Agents</h4><p>Sous-agents LLM spécialisés : Planner, Verifier, Explorer, CodeReviewer, Debugger.</p><div class="tags"><span class="tag purple">LLM Prompting</span></div></div>
+      <div class="card"><div class="icon">🗄️</div><h4>Memory</h4><p>Persistance des sessions + RAG vectoriel (pgvector) + cache applicatif distribués.</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag orange">pgvector</span></div></div>
+      <div class="card"><div class="icon">⚡</div><h4>LLM Cache</h4><p>Cache distribué SHA256 à 2 niveaux (L1 local + Redis) avec TTL de 7 jours.</p><div class="tags"><span class="tag">Redis</span><span class="tag green">SHA256</span></div></div>
+    </div>
+
+    <h3 id="flux">1.3 Flux de travail typique</h3>
+    <div class="tabs">
+      <div class="tab-bar">
+        <button class="active" onclick="switchTab(this, 'flow-seq')">Séquentiel</button>
+        <button onclick="switchTab(this, 'flow-run')">Run Request</button>
+      </div>
+      <div class="tab-panel active" id="flow-seq">
+        <div class="steps">
+          <div class="step" data-num="1"><div class="step-body"><h4>Analyse</h4><p>Le prompt utilisateur est décomposé par LLM en tâches structurées (agent, action, params).</p></div></div>
+          <div class="step" data-num="2"><div class="step-body"><h4>Routage</h4><p>Les tâches sont ordonnancées : séquentiel, parallèle (≥2 agents différents), ou finalisation.</p></div></div>
+          <div class="step" data-num="3"><div class="step-body"><h4>Exécution</h4><p>Chaque agent exécute sa tâche avec retry (3 tentatives) et circuit breaker (3 échecs).</p></div></div>
+          <div class="step" data-num="4"><div class="step-body"><h4>Vérification</h4><p>Les résultats sont consolidés. Les actions HITL suspendent le workflow en attente d'approbation.</p></div></div>
+          <div class="step" data-num="5"><div class="step-body"><h4>Finalisation</h4><p>Résultat retourné, métriques enregistrées, session persistée.</p></div></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="flow-run">
+        <div class="code-block">
+          <div class="code-header"><span class="lang">HTTP Request</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+          <pre><code><span class="hljs-keyword">POST</span> /api/v1/run
+<span class="hljs-keyword">Content-Type:</span> application/json
+<span class="hljs-keyword">Authorization:</span> Bearer &lt;token&gt;
+
+{
+  <span class="hljs-string">"prompt"</span>: <span class="hljs-string">"Crée un site e-commerce avec landing page et catalogue"</span>,
+  <span class="hljs-string">"project_id"</span>: <span class="hljs-string">"mon-projet"</span>
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h3 id="arborescence">1.4 Arborescence</h3>
+    <div class="collapse">
+      <div class="collapse-header" onclick="toggleCollapse(this)">
+        <h4>📁 Structure du projet</h4>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="collapse-body">
+        <div class="code-block" style="margin:0;">
+          <pre><code>app/
+├── <span class="hljs-built_in">agents/</span>           ← Logique métier des agents
+│   ├── base.py       ← Agent de base (Strategy Pattern)
+│   ├── dev.py        ← Développement
+│   ├── content.py    ← Contenu
+│   ├── marketing.py  ← Marketing
+│   ├── commerce.py   ← Commerce
+│   ├── rules.py      ← Système de règles (AGENTS.md)
+│   └── sub_agents/   ← Sous-agents LLM spécialisés
+├── <span class="hljs-built_in">config/</span>           ← Pydantic Settings
+├── <span class="hljs-built_in">memory/</span>           ← Session, Vector Store, Cache
+├── <span class="hljs-built_in">migrations/</span>       ← Alembic
+├── <span class="hljs-built_in">mcp/</span>              ← Model Context Protocol
+├── <span class="hljs-built_in">utils/</span>            ← Auth, rate_limit, llm_cache, etc.
+├── <span class="hljs-built_in">schemas/</span>          ← Schémas Pydantic
+├── <span class="hljs-built_in">templates/</span>        ← Pages web (guide, deploy)
+├── main.py           ← FastAPI (42 routes)
+├── orchestrator.py   ← LangGraph StateGraph
+├── kanban.py         ← Tableau Kanban
+├── pulse.py          ← Dashboard temps réel
+└── scheduler.py      ← Planificateur cron</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 2. UI CROSS-PLATFORM ═══════════════ -->
+    <h2 id="ui">🖥️ 2. Interface Cross-Platform</h2>
+    <p>AgentOS v5.0 propose une interface unifiée sur <strong>3 plateformes</strong> partageant la même base de code React.</p>
+
+    <div class="cards">
+      <div class="card"><div class="icon">🌐</div><h4>Web App</h4><p>Next.js 16 + Tailwind CSS v4. 10 pages : Dashboard, Chat, Agents, Sessions, Kanban, Pulse, Settings, Deploy, Guide.</p><div class="tags"><span class="tag">Next.js 16</span><span class="tag purple">Tailwind v4</span><span class="tag">TypeScript</span></div></div>
+      <div class="card"><div class="icon">🖥️</div><h4>Desktop (Tauri v2)</h4><p>Application native Rust pour Linux (.deb, .rpm, .AppImage), macOS et Windows. Fenêtre 1280×800 redimensionnable.</p><div class="tags"><span class="tag orange">Tauri v2</span><span class="tag">Rust</span><span class="tag green">Native</span></div></div>
+      <div class="card"><div class="icon">📱</div><h4>Mobile PWA</h4><p>Application web progressive installable. Service worker avec cache offline. Icône personnalisée et écran de démarrage.</p><div class="tags"><span class="tag purple">PWA</span><span class="tag">Service Worker</span><span class="tag">Offline</span></div></div>
+    </div>
+
+    <h3 id="ui-stack">Stack technique</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Couche</th><th>Technologie</th><th>Rôle</th></tr>
+        <tr><td>Framework</td><td>Next.js 16</td><td>App Router, static generation, React Server Components</td></tr>
+        <tr><td>Style</td><td>Tailwind CSS v4</td><td>Design system avec variables CSS, dark theme par défaut</td></tr>
+        <tr><td>Graphiques</td><td>Recharts</td><td>Courbes de latence, activité des agents, métriques temps réel</td></tr>
+        <tr><td>État / Data</td><td>React Query + Context</td><td>Cache API, auth JWT, état global</td></tr>
+        <tr><td>Desktop</td><td>Tauri v2</td><td>Runtime Rust natif, fenêtre OS, menus système</td></tr>
+        <tr><td>Mobile</td><td>PWA</td><td>Manifest + service worker, installation via navigateur</td></tr>
+        <tr><td>CI Desktop</td><td>npm run tauri build</td><td>Génère .deb, .rpm, .AppImage (Linux)</td></tr>
+      </table>
+    </div>
+
+    <h3 id="ui-pages">Pages disponibles</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Page</th><th>Route</th><th>Contenu</th></tr>
+        <tr><td>🏠 Dashboard</td><td><code>/</code></td><td>4 cartes statistiques, graphique d'activité, sessions récentes, statut des agents</td></tr>
+        <tr><td>💬 Chat</td><td><code>/chat</code></td><td>Interface de chat LLM avec bulles, historique, loading spinner</td></tr>
+        <tr><td>🤖 Agents</td><td><code>/dashboard/agents</code></td><td>Cartes des 4 agents avec statut, modèle, tâches et dernière exécution</td></tr>
+        <tr><td>📋 Sessions</td><td><code>/dashboard/sessions</code></td><td>Tableau des sessions avec recherche et badges de statut</td></tr>
+        <tr><td>📊 Kanban</td><td><code>/dashboard/kanban</code></td><td>Board 3 colonnes (To Do, In Progress, Done) avec badges de priorité</td></tr>
+        <tr><td>📈 Pulse</td><td><code>/dashboard/pulse</code></td><td>3 cartes stats + graphique latence (Recharts)</td></tr>
+        <tr><td>⚙️ Settings</td><td><code>/dashboard/settings</code></td><td>Configuration API et modèle</td></tr>
+        <tr><td>🚀 Deploy</td><td><code>/deploy</code></td><td>Assistant déploiement en 3 étapes</td></tr>
+        <tr><td>📖 Guide</td><td><code>/guide</code></td><td>Ce guide interactif</td></tr>
+      </table>
+    </div>
+
+    <h3 id="ui-build">Build et déploiement</h3>
+    <div class="tabs">
+      <div class="tab-bar">
+        <button class="active" onclick="switchTab(this, 'ui-web')">Web</button>
+        <button onclick="switchTab(this, 'ui-desktop')">Desktop</button>
+        <button onclick="switchTab(this, 'ui-pwa')">PWA</button>
+      </div>
+      <div class="tab-panel active" id="ui-web">
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+        <pre><code><span class="hljs-comment"># Dev</span>
+npm run dev         <span class="hljs-comment"># → http://localhost:3000</span>
+<span class="hljs-comment"># Production</span>
+npm run build       <span class="hljs-comment"># → ./out/ (static export)</span>
+npm run start       <span class="hljs-comment"># Serveur Next.js</span></code></pre></div>
+      </div>
+      <div class="tab-panel" id="ui-desktop">
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+        <pre><code><span class="hljs-comment"># Prérequis : Rust 1.70+</span>
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+<span class="hljs-comment"># Lancer en mode dev</span>
+npm run tauri dev
+<span class="hljs-comment"># Builder pour production</span>
+npm run tauri build  <span class="hljs-comment"># → .deb / .rpm / .AppImage</span></code></pre></div>
+      </div>
+      <div class="tab-panel" id="ui-pwa">
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+        <pre><code><span class="hljs-comment"># Le PWA se déploie automatiquement avec le build web</span>
+npm run build       <span class="hljs-comment"># Copie sw.js + manifest.json dans ./out/</span>
+<span class="hljs-comment"># Héberger ./out/ sur n'importe quel serveur HTTPS</span>
+<span class="hljs-comment"># Le navigateur proposera d'installer l'app</span></code></pre></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 3. DÉPLOIEMENT ═══════════════ -->
+    <h2 id="deploiement">🚀 3. Déploiement</h2>
+
+    <h3 id="prerequis">2.1 Prérequis</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Ressource</th><th>Minimum</th><th>Recommandé</th></tr>
+        <tr><td>CPU</td><td>2 cœurs</td><td>4 cœurs</td></tr>
+        <tr><td>RAM</td><td>4 Go</td><td>8 Go</td></tr>
+        <tr><td>Stockage</td><td>20 Go SSD</td><td>50 Go SSD</td></tr>
+        <tr><td>OS</td><td>Ubuntu 22.04</td><td>Ubuntu 24.04</td></tr>
+        <tr><td>Docker</td><td>24+</td><td>27+</td></tr>
+        <tr><td>PostgreSQL</td><td>15+ (pgvector)</td><td>17+</td></tr>
+        <tr><td>Redis</td><td>6+</td><td>7+</td></tr>
+      </table>
+    </div>
+
+    <h3 id="assistant">2.2 Assistant de déploiement</h3>
+    <p>L'<a href="/deploy" target="_blank">assistant de déploiement</a> vous guide en 3 étapes avec des liens vers chaque fournisseur :</p>
+    <div class="cards">
+      <div class="card"><div class="icon">🖥️</div><h4>Étape 1 — Serveur</h4><p>IP, utilisateur SSH, clé privée. Guides vers DigitalOcean, Hetzner, AWS, GCP.</p></div>
+      <div class="card"><div class="icon">🔑</div><h4>Étape 2 — API Keys</h4><p>OpenRouter, JWT, OpenAI. Liens directs vers les pages de création de clés.</p></div>
+      <div class="card"><div class="icon">🗄️</div><h4>Étape 3 — Services</h4><p>PostgreSQL, Redis. Guides ElephantSQL, Supabase, Redis Cloud.</p></div>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Lancer l'assistant</span>
+uv run uvicorn app.main:app --reload
+<span class="hljs-comment"># Ouvrir http://localhost:8000/deploy</span></code></pre>
+    </div>
+
+    <h3 id="manuel">2.3 Déploiement manuel</h3>
+    <div class="steps">
+      <div class="step" data-num="1"><div class="step-body"><h4>Provisionner un serveur</h4><p>VPS chez Hetzner (recommandé) ou DigitalOcean avec Ubuntu 22.04+.</p></div></div>
+      <div class="step" data-num="2"><div class="step-body"><h4>Installer Docker</h4>
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋</button></div>
+        <pre><code>curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker deploy</code></pre></div>
+      </div></div>
+      <div class="step" data-num="3"><div class="step-body"><h4>Cloner et configurer</h4>
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋</button></div>
+        <pre><code>git clone https://github.com/HiTechTN/agentos.git /opt/agentos
+cd /opt/agentos && cp .env.example .env
+<span class="hljs-comment"># Éditer .env avec vos clés API</span>
+docker compose up -d</code></pre></div>
+      </div></div>
+    </div>
+
+    <h3 id="cicd">2.4 Déploiement CI/CD</h3>
+    <p>Le workflow <code>.github/workflows/docker.yml</code> exécute automatiquement :</p>
+    <div class="diagram">
+      <span class="box" style="border-color:var(--success);">📝 git push main</span>
+      <div class="arrow">→</div>
+      <span class="box">🔍 Lint</span>
+      <div class="arrow">→</div>
+      <span class="box">🛡️ Security</span>
+      <div class="arrow">→</div>
+      <span class="box">🧪 Tests</span>
+      <div class="arrow">→</div>
+      <span class="box" style="border-color:var(--orange);">🐳 Docker</span>
+      <div class="arrow">→</div>
+      <span class="box" style="border-color:var(--danger);">🚀 Deploy</span>
+    </div>
+    <p>Secrets GitHub requis : <code>DEPLOY_HOST</code>, <code>DEPLOY_USER</code>, <code>DEPLOY_KEY</code>, <code>OPENROUTER_API_KEY</code>, <code>DATABASE_URL</code>, <code>REDIS_URL</code>.</p>
+
+    <h3 id="securisation">2.5 Sécurisation</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Firewall</span>
+ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw deny 8000 && ufw enable
+
+<span class="hljs-comment"># Reverse proxy (Nginx + Let's Encrypt)</span>
+apt install nginx certbot python3-certbot-nginx
+certbot --nginx -d votre-domaine.com</code></pre>
+    </div>
+
+    <!-- ═══════════════ 3. API ═══════════════ -->
+    <h2 id="api">📡 4. API Reference</h2>
+
+    <h3 id="endpoints">4.1 Endpoints principaux</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Méthode</th><th>Path</th><th>Rate Limit</th><th>Auth</th><th>Description</th></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/run</code></td><td>10/min</td><td>✓</td><td>Exécuter un prompt</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/plan</code></td><td>20/min</td><td>✓</td><td>Planifier un workflow</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/verify</code></td><td>15/min</td><td>✓</td><td>Vérifier un résultat</td></tr>
+        <tr><td><code>GET</code></td><td><code>/health</code></td><td>—</td><td>—</td><td>Santé des services</td></tr>
+        <tr><td><code>GET</code></td><td><code>/metrics</code></td><td>—</td><td>—</td><td>Métriques Prometheus</td></tr>
+        <tr><td><code>GET</code></td><td><code>/docs</code></td><td>—</td><td>—</td><td>Swagger UI</td></tr>
+        <tr><td><code>GET</code></td><td><code>/deploy</code></td><td>—</td><td>—</td><td>Assistant déploiement</td></tr>
+        <tr><td><code>GET</code></td><td><code>/guide</code></td><td>—</td><td>—</td><td>Ce guide interactif</td></tr>
+      </table>
+    </div>
+
+    <h3 id="auth">4.2 Authentification JWT</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Middleware optionnel — populate request.state.user si token valide</span>
+<span class="hljs-keyword">Authorization:</span> Bearer eyJhbGciOiJIUzI1NiIs...</code></pre>
+    </div>
+
+    <h3 id="rate-limit">4.3 Rate Limiting</h3>
+    <p>Protection sur tous les endpoints POST/PUT/DELETE via slowapi + Redis (fallback mémoire en dev).</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Header</th><th>Description</th></tr>
+        <tr><td><code>X-RateLimit-Limit</code></td><td>Limite maximale</td></tr>
+        <tr><td><code>X-RateLimit-Remaining</code></td><td>Requêtes restantes</td></tr>
+        <tr><td><code>X-RateLimit-Reset</code></td><td>Timestamp de reset</td></tr>
+      </table>
+    </div>
+
+    <h3 id="websocket">4.4 WebSocket</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JavaScript</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-keyword">const</span> ws = <span class="hljs-keyword">new</span> WebSocket(<span class="hljs-string">"ws://localhost:8000/ws/logs"</span>);
+ws.onmessage = (event) => {
+  <span class="hljs-keyword">const</span> log = JSON.parse(event.data);
+  console.log(<span class="hljs-string">`[<span class="hljs-subst">${log.level}</span>] <span class="hljs-subst">${log.agent_id}</span>: <span class="hljs-subst">${log.action}</span>`</span>);
+};</code></pre>
+    </div>
+
+    <!-- ═══════════════ 4. FEATURES ═══════════════ -->
+    <h2 id="features">✨ 5. Features</h2>
+
+    <h3 id="agents">5.1 Agents</h3>
+    <div class="cards">
+      <div class="card"><div class="icon">🤖</div><h4>DevAgent</h4><p>Analyse, scaffold, code, deploy</p><div class="tags"><span class="tag">claude-sonnet</span></div></div>
+      <div class="card"><div class="icon">✍️</div><h4>ContentAgent</h4><p>Write, image, publish</p><div class="tags"><span class="tag green">GPT-4o</span></div></div>
+      <div class="card"><div class="icon">📊</div><h4>MarketingAgent</h4><p>Segment, email, ads, report</p><div class="tags"><span class="tag">claude-sonnet</span></div></div>
+      <div class="card"><div class="icon">🛒</div><h4>CommerceAgent</h4><p>Catalog, pricing, checkout, inventory, faq</p><div class="tags"><span class="tag green">GPT-4o</span></div></div>
+    </div>
+
+    <h3 id="sub-agents">5.2 Sub-Agents</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Sub-Agent</th><th>Rôle</th><th>Déclencheurs</th></tr>
+        <tr><td>@Planner</td><td>Architecture et planification</td><td>"plan", "design", "architecture", "approach"</td></tr>
+        <tr><td>@Verifier</td><td>QA et validation</td><td>"verify", "validate", "test", "lint"</td></tr>
+        <tr><td>@Explorer</td><td>Exploration de code</td><td>"explore", "find", "search", "where is"</td></tr>
+        <tr><td>@CodeReviewer</td><td>Revue de code</td><td>"review", "audit", "security"</td></tr>
+        <tr><td>@Debugger</td><td>Analyse d'erreurs</td><td>"error", "exception", "debug", "crash"</td></tr>
+      </table>
+    </div>
+
+    <h3 id="hitl">5.3 Human-In-The-Loop</h3>
+    <p>Les actions critiques suspendent le workflow en attente d'approbation humaine.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Approuver une action</span>
+<span class="hljs-keyword">POST</span> /api/v1/hitl/approve
+{ <span class="hljs-string">"approval_id"</span>: <span class="hljs-string">"uuid-xxx"</span> }
+
+<span class="hljs-comment"># Rejeter</span>
+<span class="hljs-keyword">POST</span> /api/v1/hitl/reject
+{ <span class="hljs-string">"approval_id"</span>: <span class="hljs-string">"uuid-xxx"</span>, <span class="hljs-string">"reason"</span>: <span class="hljs-string">"Pas prêt"</span> }</code></pre>
+    </div>
+
+    <h3 id="debugger">5.4 @Debugger Sub-Agent</h3>
+    <p>Analyse d'erreurs avec suggestions de correction structurées.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-keyword">POST</span> /api/v1/sub-agent/debug
+{
+  <span class="hljs-string">"error"</span>: <span class="hljs-string">"TypeError: expected string"</span>,
+  <span class="hljs-string">"traceback"</span>: <span class="hljs-string">"Traceback (most recent call last)..."</span>,
+  <span class="hljs-string">"context"</span>: { <span class="hljs-string">"file"</span>: <span class="hljs-string">"app/main.py"</span>, <span class="hljs-string">"line"</span>: <span class="hljs-number">42</span> }
+}
+
+<span class="hljs-comment"># → { root_cause, explanation, fix_suggestion, confidence }</span></code></pre>
+    </div>
+
+    <h3 id="orchestrateur">5.5 Orchestrateur LangGraph</h3>
+    <div class="diagram">
+      <span class="box" style="border-color:var(--accent);">🔍 analyze_prompt</span>
+      <div class="arrow">→</div>
+      <span class="box" style="border-color:var(--accent);">🔀 route_tasks</span>
+      <div class="arrow">→</div>
+      <span class="box" style="border-color:var(--success);">⚡ execute_agent</span>
+      <div class="arrow">→</div>
+      <span class="box" style="border-color:var(--accent);">✅ check_results</span>
+      <div class="arrow">→</div>
+      <span class="box" style="border-color:var(--orange);">🎯 finalize</span>
+      <br/>
+      <span class="comment">              ↻ retry (×3)          ⚠️ circuit breaker (×3)</span>
+    </div>
+    <p>Caractéristiques : <strong>Circuit Breaker</strong> (3 échecs → arrêt), <strong>Retry</strong> automatique (3 tentatives), <strong>Exécution parallèle</strong> (tâches indépendantes), <strong>HITL propagation</strong> (suspension sur actions critiques).</p>
+
+    <h3 id="llm-cache">5.6 LLM Cache</h3>
+    <p>Cache à 2 niveaux : L1 local (instantané) + Redis (persistant). Clé = SHA256(model + messages + temperature). TTL par défaut : 7 jours.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">env</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code>ENABLE_LLM_CACHE=<span class="hljs-keyword">true</span>
+LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
+    </div>
+
+    <h3 id="scheduler">5.7 Scheduler</h3>
+    <p>Planification de tâches cron pour exécution automatique de prompts.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-keyword">POST</span> /api/v1/scheduler/tasks
+{
+  <span class="hljs-string">"name"</span>: <span class="hljs-string">"Rapport hebdo"</span>,
+  <span class="hljs-string">"cron"</span>: <span class="hljs-string">"0 9 * * 1"</span>,
+  <span class="hljs-string">"prompt"</span>: <span class="hljs-string">"Génère le rapport d'activité"</span>,
+  <span class="hljs-string">"channel"</span>: <span class="hljs-string">"slack"</span>
+}</code></pre>
+    </div>
+
+    <h3 id="mcp">5.8 MCP (Model Context Protocol)</h3>
+    <p>Intégration avec des outils externes via le protocole MCP standard.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-keyword">POST</span> /api/v1/mcp/register
+{ <span class="hljs-string">"name"</span>: <span class="hljs-string">"github-analyzer"</span>, <span class="hljs-string">"url"</span>: <span class="hljs-string">"https://mcp.myapp.com/tools"</span> }</code></pre>
+    </div>
+
+    <!-- ═══════════════ 5. DÉVELOPPEMENT ═══════════════ -->
+    <h2 id="dev">🛠️ 6. Développement</h2>
+
+    <h3 id="setup">6.1 Setup local</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Installer uv</span>
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+<span class="hljs-comment"># Cloner et installer</span>
+git clone https://github.com/HiTechTN/agentos.git
+cd agentos
+uv sync --frozen
+cp .env.example .env
+
+<span class="hljs-comment"># Lancer</span>
+uv run uvicorn app.main:app --reload --port 8000</code></pre>
+    </div>
+
+    <h3 id="commandes">6.2 Commandes essentielles</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Commande</th><th>Description</th></tr>
+        <tr><td><code>uv run pytest app/tests/ -v</code></td><td>Lancer les tests</td></tr>
+        <tr><td><code>uv run ruff check app/</code></td><td>Linter</td></tr>
+        <tr><td><code>uv run mypy app/ --strict</code></td><td>Type checking</td></tr>
+        <tr><td><code>uv run alembic upgrade head</code></td><td>Appliquer les migrations</td></tr>
+        <tr><td><code>uv run bandit -r app/ -ll</code></td><td>Scan sécurité</td></tr>
+      </table>
+    </div>
+
+    <h3 id="ajouter-agent">6.3 Ajouter un agent</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">python</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># 1. app/agents/mon_agent.py</span>
+<span class="hljs-keyword">from</span> app.agents.base <span class="hljs-keyword">import</span> BaseAgent
+
+<span class="hljs-keyword">class</span> <span class="hljs-function">MonAgent</span>(BaseAgent):
+    <span class="hljs-keyword">async def</span> <span class="hljs-function">execute</span>(self, task, session_id=<span class="hljs-string">""</span>, trace_id=<span class="hljs-string">""</span>):
+        <span class="hljs-keyword">return</span> {<span class="hljs-string">"agent"</span>: <span class="hljs-string">"mon_agent"</span>, <span class="hljs-string">"success"</span>: <span class="hljs-keyword">True</span>, <span class="hljs-string">"result"</span>: {}}
+
+<span class="hljs-comment"># 2. Dans orchestrator.py → __init__()</span>
+self.agents[<span class="hljs-string">"mon_agent"</span>] = MonAgent()
+workflow.add_node(<span class="hljs-string">"execute_mon_agent"</span>, self._execute_mon_agent)</code></pre>
+    </div>
+
+    <h3 id="migrations">6.4 Migrations</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Créer une migration automatique</span>
+uv run alembic revision --autogenerate -m <span class="hljs-string">"description"</span>
+
+<span class="hljs-comment"># Appliquer</span>
+uv run alembic upgrade head
+
+<span class="hljs-comment"># Revenir en arrière</span>
+uv run alembic downgrade -1</code></pre>
+    </div>
+
+    <!-- ═══════════════ 6. DÉPANNAGE ═══════════════ -->
+    <h2 id="troubleshooting">🔧 7. Dépannage</h2>
+
+    <h3 id="problemes">7.1 Problèmes courants</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Problème</th><th>Cause</th><th>Solution</th></tr>
+        <tr><td><code>LLMUnavailableError</code></td><td>OpenRouter + Ollama indisponibles</td><td>Vérifier <code>OPENROUTER_API_KEY</code></td></tr>
+        <tr><td><code>ConnectionError (Redis)</code></td><td>Redis inaccessible</td><td><code>docker compose up -d redis</code></td></tr>
+        <tr><td><code>ConnectionError (PostgreSQL)</code></td><td>PostgreSQL inaccessible</td><td><code>docker compose up -d postgres</code></td></tr>
+        <tr><td><code>RateLimitExceeded</code></td><td>Trop de requêtes</td><td>Attendre ou augmenter les limites</td></tr>
+        <tr><td><code>AuthenticationError (Redis)</code></td><td>Mot de passe Redis invalide</td><td>Vérifier <code>REDIS_URL</code></td></tr>
+      </table>
+    </div>
+
+    <h3 id="logs">7.2 Logs et métriques</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Endpoint santé</span>
+curl http://localhost:8000/health
+<span class="hljs-comment"># → {"api":"ok","database":"ok","redis":"ok","version":"5.0.0"}</span>
+
+<span class="hljs-comment"># Métriques Prometheus</span>
+curl http://localhost:8000/metrics
+
+<span class="hljs-comment"># Logs Docker</span>
+docker compose logs -f app | grep <span class="hljs-string">"error"</span></code></pre>
+    </div>
+
+    <h3 id="debugging">7.3 Debugging</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Mode verbose</span>
+LOG_LEVEL=DEBUG uv run uvicorn app.main:app --reload
+
+<span class="hljs-comment"># Analyser une erreur avec @Debugger</span>
+curl -X POST http://localhost:8000/api/v1/sub-agent/debug \
+  -H <span class="hljs-string">"Content-Type: application/json"</span> \
+  -d <span class="hljs-string">'{"error":"...","traceback":"...","context":{"file":"app/main.py","line":42}}'</span></code></pre>
+    </div>
+
+    <hr style="border-color:var(--border);margin:48px 0;">
+    <p style="text-align:center;color:var(--text-muted);font-size:.85rem;">
+      AgentOS v5.0.0 · Document généré le 22 mai 2026 · 
+      <a href="https://github.com/HiTechTN/agentos">GitHub</a> · 
+      <a href="/deploy">Assistant déploiement</a> · 
+      <a href="/docs">API Docs</a>
+    </p>
+  </main>
+</div>
+
+<!-- ── TOC BUTTON (mobile) ── -->
+<div class="toc-mobile">
+  <button onclick="toggleSidebar()" aria-label="Menu">☰</button>
+</div>
+
+<!-- ── BACK TO TOP ── -->
+<button class="back-to-top" id="back-to-top" onclick="scrollToTop()" aria-label="Back to top">↑</button>
+
+<script>
+// ── Sidebar ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+// ── Sidebar sections ──
+function toggleSection(el) {
+  const items = el.nextElementSibling;
+  items.classList.toggle('collapsed');
+  el.querySelector('.arrow').classList.toggle('open');
+}
+
+// ── Active sidebar item ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.sidebar-item').forEach(a => a.classList.remove('active'));
+      const id = entry.target.id;
+      document.querySelector(`.sidebar-item[href="#${id}"]`)?.classList.add('active');
+    }
+  });
+}, { rootMargin: '-80px 0px -70% 0px' });
+document.querySelectorAll('h2[id], h3[id]').forEach(el => observer.observe(el));
+
+// ── Search ──
+function searchGuide(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.sidebar-item').forEach(a => {
+    const match = a.textContent.toLowerCase().includes(q);
+    a.style.display = q ? (match ? 'block' : 'none') : 'block';
+  });
+}
+
+// ── Tabs ──
+function switchTab(btn, id) {
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.tabs').querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Collapse ──
+function toggleCollapse(el) {
+  const body = el.nextElementSibling;
+  body.classList.toggle('open');
+  el.querySelector('.chevron').classList.toggle('open');
+}
+
+// ── Copy code ──
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('pre code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '✅ Copié';
+    setTimeout(() => btn.textContent = '📋 Copier', 2000);
+  });
+}
+
+// ── Smooth scroll for sidebar links ──
+document.querySelectorAll('.sidebar-item').forEach(a => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(1);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    if (window.innerWidth <= 900) toggleSidebar();
+  });
+});
+
+// ── Fade-in on scroll ──
+const fadeObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: .1 });
+document.querySelectorAll('h2, h3, .card, .step, .code-block, .tabs, .table-wrap, .diagram, .collapse')
+  .forEach(el => { el.classList.add('fade-in'); fadeObserver.observe(el); });
+
+// ── Back to top ──
+const btt = document.getElementById('back-to-top');
+window.addEventListener('scroll', () => {
+  btt.classList.toggle('visible', window.scrollY > 400);
+});
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
