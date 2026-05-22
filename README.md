@@ -588,6 +588,6 @@ make lint
   <br><br>
   <a href="https://github.com/HiTechTN/agentos">📦 GitHub</a> ·
   <a href="https://hitechtn.github.io/agentos/">🌐 Landing Page</a> ·
-  <a href="https://github.com/HiTechTN/agentos/blob/main/GUIDE.md">📖 Guide</a> ·
+  <a href="/guide">📖 Guide</a> ·
   <a href="https://github.com/HiTechTN/agentos/releases">📝 Releases</a>
 </p>
