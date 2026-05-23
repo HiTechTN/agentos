@@ -15,8 +15,8 @@ SAMPLE_SESSION = {
 
 
 SAMPLE_WORKTREES = [
-    {"path": "/tmp/repo-feat-x", "branch": "feat-x"},
-    {"path": "/tmp/repo-feat-y", "branch": "feat-y"},
+    {"path": "/tmp/repo-feat-x", "branch": "feat-x"},  # nosec B108
+    {"path": "/tmp/repo-feat-y", "branch": "feat-y"},  # nosec B108
 ]
 
 
@@ -330,7 +330,7 @@ class TestCreateWorktree:
     @pytest.mark.asyncio
     async def test_creates_worktree(self, async_client: AsyncClient) -> None:
         mock_wm = MagicMock()
-        mock_wm.create_worktree = AsyncMock(return_value="/tmp/repo-feat-x")
+        mock_wm.create_worktree = AsyncMock(return_value="/tmp/repo-feat-x")  # nosec B108
         with patch("app.git_worktree.get_worktree_manager", return_value=mock_wm):
             resp = await async_client.post(
                 "/api/v1/worktree",
@@ -341,7 +341,7 @@ class TestCreateWorktree:
         data = resp.json()
         assert data["status"] == "created"
         assert data["branch"] == "feat-x"
-        assert data["path"] == "/tmp/repo-feat-x"
+        assert data["path"] == "/tmp/repo-feat-x"  # nosec B108
 
     @pytest.mark.asyncio
     async def test_returns_400_on_failure(self, async_client: AsyncClient) -> None:

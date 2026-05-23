@@ -17,8 +17,8 @@ class TestGitWorktreeManager:
         assert mgr.repo_path == Path.cwd().resolve()
 
     def test_init_custom_path(self) -> None:
-        mgr = GitWorktreeManager("/tmp")
-        assert mgr.repo_path == Path("/tmp").resolve()
+        mgr = GitWorktreeManager("/tmp")  # nosec B108
+        assert mgr.repo_path == Path("/tmp").resolve()  # nosec B108
 
     @pytest.mark.asyncio
     async def test_run_git_success(self) -> None:
@@ -42,10 +42,10 @@ class TestGitWorktreeManager:
 
     @pytest.mark.asyncio
     async def test_create_worktree(self) -> None:
-        mgr = GitWorktreeManager("/tmp/repo")
+        mgr = GitWorktreeManager("/tmp/repo")  # nosec B108
         mgr._run_git = AsyncMock()  # type: ignore[method-assign]
         result = await mgr.create_worktree("feature-x", "main")
-        expected_path = Path("/tmp/repo-feature-x")
+        expected_path = Path("/tmp/repo-feature-x")  # nosec B108
         assert result == expected_path
         mgr._run_git.assert_any_call("branch", "-D", "feature-x")
         mgr._run_git.assert_any_call("checkout", "-b", "feature-x", "main")
@@ -55,30 +55,30 @@ class TestGitWorktreeManager:
 
     @pytest.mark.asyncio
     async def test_create_worktree_branch_delete_fails(self) -> None:
-        mgr = GitWorktreeManager("/tmp/repo")
+        mgr = GitWorktreeManager("/tmp/repo")  # nosec B108
         mgr._run_git = AsyncMock(side_effect=[WorktreeError("no branch"), None, None, None, None])  # type: ignore[method-assign]
         result = await mgr.create_worktree("feature-x", "main")
-        assert result == Path("/tmp/repo-feature-x")
+        assert result == Path("/tmp/repo-feature-x")  # nosec B108
         assert mgr._run_git.call_count == 5
 
     @pytest.mark.asyncio
     async def test_remove_worktree(self) -> None:
-        mgr = GitWorktreeManager("/tmp/repo")
+        mgr = GitWorktreeManager("/tmp/repo")  # nosec B108
         mgr._run_git = AsyncMock()  # type: ignore[method-assign]
         await mgr.remove_worktree("feature-x")
-        mgr._run_git.assert_any_call("worktree", "remove", "/tmp/repo-feature-x", "--force")
+        mgr._run_git.assert_any_call("worktree", "remove", "/tmp/repo-feature-x", "--force")  # nosec B108
         mgr._run_git.assert_any_call("branch", "-D", "feature-x")
 
     @pytest.mark.asyncio
     async def test_remove_worktree_removal_fails(self) -> None:
-        mgr = GitWorktreeManager("/tmp/repo")
+        mgr = GitWorktreeManager("/tmp/repo")  # nosec B108
         mgr._run_git = AsyncMock(side_effect=[WorktreeError("no worktree"), None])  # type: ignore[method-assign]
         await mgr.remove_worktree("feature-x")
         assert mgr._run_git.call_count == 2
 
     @pytest.mark.asyncio
     async def test_remove_worktree_both_fail(self) -> None:
-        mgr = GitWorktreeManager("/tmp/repo")
+        mgr = GitWorktreeManager("/tmp/repo")  # nosec B108
         mgr._run_git = AsyncMock(  # type: ignore[method-assign]
             side_effect=[WorktreeError("no worktree"), WorktreeError("no branch")]
         )
@@ -103,7 +103,7 @@ class TestGitWorktreeManager:
         result = await mgr.list_worktrees()
         assert result == [
             {"path": "/home/user/project", "branch": "main"},
-            {"path": "/tmp/repo-feature-x", "branch": "feature-x"},
+            {"path": "/tmp/repo-feature-x", "branch": "feature-x"},  # nosec B108
         ]
 
     @pytest.mark.asyncio
@@ -117,29 +117,29 @@ class TestGitWorktreeManager:
     async def test_get_status_with_changes(self) -> None:
         mgr = GitWorktreeManager()
         mgr._run_git = AsyncMock(side_effect=["M  file.txt\n", "feature-x"])  # type: ignore[method-assign]
-        result = await mgr.get_status("/tmp/repo-feature-x")
+        result = await mgr.get_status("/tmp/repo-feature-x")  # nosec B108
         assert result == {
             "branch": "feature-x",
             "has_changes": True,
-            "path": "/tmp/repo-feature-x",
+            "path": "/tmp/repo-feature-x",  # nosec B108
         }
 
     @pytest.mark.asyncio
     async def test_get_status_without_changes(self) -> None:
         mgr = GitWorktreeManager()
         mgr._run_git = AsyncMock(side_effect=["", "main"])  # type: ignore[method-assign]
-        result = await mgr.get_status("/tmp/repo-feature-x")
+        result = await mgr.get_status("/tmp/repo-feature-x")  # nosec B108
         assert result == {
             "branch": "main",
             "has_changes": False,
-            "path": "/tmp/repo-feature-x",
+            "path": "/tmp/repo-feature-x",  # nosec B108
         }
 
     @pytest.mark.asyncio
     async def test_get_status_error(self) -> None:
         mgr = GitWorktreeManager()
         mgr._run_git = AsyncMock(side_effect=WorktreeError("fatal: not a git repository"))  # type: ignore[method-assign]
-        result = await mgr.get_status("/tmp/repo-feature-x")
+        result = await mgr.get_status("/tmp/repo-feature-x")  # nosec B108
         assert result == {"error": "fatal: not a git repository"}
 
     @pytest.mark.asyncio
@@ -157,7 +157,7 @@ class TestGitWorktreeManager:
         import app.git_worktree as gw_module
 
         with patch.object(gw_module, "_git_worktree_manager", None):
-            s1 = get_worktree_manager("/tmp/custom")
+            s1 = get_worktree_manager("/tmp/custom")  # nosec B108
             s2 = get_worktree_manager()
             assert s1 is s2
-            assert s1.repo_path == Path("/tmp/custom").resolve()
+            assert s1.repo_path == Path("/tmp/custom").resolve()  # nosec B108

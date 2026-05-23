@@ -1007,7 +1007,7 @@ class TestVectorStoreRemainingBranches:
         mock_file.__enter__.return_value.__iter__.return_value = iter([json.dumps(existing)])
         with (
             patch.object(vs._embedding_client, "embed", AsyncMock(return_value=mock_embedding)),
-            patch.object(vs, "_json_fallback_path", return_value="/tmp/test_fallback.json"),
+            patch.object(vs, "_json_fallback_path", return_value="/tmp/test_fallback.json"),  # nosec B108
             patch("os.makedirs"),
             patch("os.path.exists", return_value=True),
             patch("builtins.open", mock_file),
@@ -1022,7 +1022,7 @@ class TestVectorStoreRemainingBranches:
         mock_embedding = [0.1, 0.2]
         with (
             patch.object(vs._embedding_client, "embed", AsyncMock(return_value=mock_embedding)),
-            patch.object(vs, "_json_fallback_path", return_value="/tmp/test_fallback.json"),
+            patch.object(vs, "_json_fallback_path", return_value="/tmp/test_fallback.json"),  # nosec B108
             patch("os.makedirs"),
             patch("os.path.exists", return_value=False),
             patch("builtins.open", MagicMock()),

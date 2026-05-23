@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 from typing import Any
 
 import httpx
@@ -134,8 +135,9 @@ and distribution channels. Return as structured data.""",
                 self.logger.log_warn(self.name, "cms_publish", f"Strapi unavailable: {e}")
 
         content = params.get("content", "")
-        os.makedirs("/tmp/agentos_content", exist_ok=True)
-        path = f"/tmp/agentos_content/{params.get('title', 'content').replace(' ', '_')}.md"
+        tmp_dir = os.path.join(tempfile.gettempdir(), "agentos_content")
+        os.makedirs(tmp_dir, exist_ok=True)
+        path = os.path.join(tmp_dir, f"{params.get('title', 'content').replace(' ', '_')}.md")
         with open(path, "w") as f:
             f.write(content)
         return ToolResult(

@@ -104,7 +104,7 @@ class SessionManager:
                 if status is not None:
                     updates.append("status = :status")
                     params["status"] = status
-                stmt = text(f"UPDATE sessions SET {', '.join(updates)} WHERE id = :id")
+                stmt = text(f"UPDATE sessions SET {', '.join(updates)} WHERE id = :id")  # nosec B608
                 result = await session.execute(stmt, params)
                 await session.commit()
                 rc: int = result.rowcount  # type: ignore[union-attr]

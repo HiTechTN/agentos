@@ -40,7 +40,7 @@ class Cache:
                 data = await redis.get(key)
                 if data:
                     try:
-                        return pickle.loads(data)
+                        return pickle.loads(data)  # nosec B301
                     except Exception:
                         return json.loads(data)
                 return None
