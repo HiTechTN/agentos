@@ -5,7 +5,7 @@ from app.memory.session import SessionManager, get_session_manager
 
 
 @pytest.mark.asyncio
-async def test_cache_set_get():
+async def test_cache_set_get() -> None:
     cache = Cache()
     await cache.set("test_key", {"hello": "world"}, ttl=60)
     value = await cache.get("test_key")
@@ -13,7 +13,7 @@ async def test_cache_set_get():
 
 
 @pytest.mark.asyncio
-async def test_cache_delete():
+async def test_cache_delete() -> None:
     cache = Cache()
     await cache.set("delete_test", "value", ttl=60)
     await cache.delete("delete_test")
@@ -22,7 +22,7 @@ async def test_cache_delete():
 
 
 @pytest.mark.asyncio
-async def test_cache_flush():
+async def test_cache_flush() -> None:
     cache = Cache()
     await cache.set("flush_test1", "v1", ttl=60)
     await cache.set("flush_test2", "v2", ttl=60)
@@ -32,7 +32,7 @@ async def test_cache_flush():
 
 
 @pytest.mark.asyncio
-async def test_cache_default_ttl():
+async def test_cache_default_ttl() -> None:
     cache = Cache()
     await cache.set("ttl_test", "value")
     value = await cache.get("ttl_test")
@@ -40,7 +40,7 @@ async def test_cache_default_ttl():
 
 
 @pytest.mark.asyncio
-async def test_session_create():
+async def test_session_create() -> None:
     sm = SessionManager()
     session_id = await sm.create("test-project", "test-workflow")
     assert session_id is not None
@@ -48,7 +48,7 @@ async def test_session_create():
 
 
 @pytest.mark.asyncio
-async def test_session_get():
+async def test_session_get() -> None:
     sm = SessionManager()
     session_id = await sm.create("test-project", "test-workflow")
     session = await sm.get(session_id)
@@ -58,7 +58,7 @@ async def test_session_get():
 
 
 @pytest.mark.asyncio
-async def test_session_update():
+async def test_session_update() -> None:
     sm = SessionManager()
     session_id = await sm.create("test-project")
     updated = await sm.update(session_id, context={"key": "value"}, status="completed")
@@ -66,30 +66,31 @@ async def test_session_update():
 
 
 @pytest.mark.asyncio
-async def test_session_nonexistent():
+async def test_session_nonexistent() -> None:
     sm = SessionManager()
     session = await sm.get("nonexistent-id")
     assert session is None
 
 
 @pytest.mark.asyncio
-async def test_session_status_update():
+async def test_session_status_update() -> None:
     sm = SessionManager()
     session_id = await sm.create("test-project")
     await sm.update(session_id, status="running")
     session = await sm.get(session_id)
+    assert session is not None
     assert session["status"] == "running"
 
 
 @pytest.mark.asyncio
-async def test_session_singleton():
+async def test_session_singleton() -> None:
     s1 = get_session_manager()
     s2 = get_session_manager()
     assert s1 is s2
 
 
 @pytest.mark.asyncio
-async def test_cache_singleton():
+async def test_cache_singleton() -> None:
     c1 = get_cache()
     c2 = get_cache()
     assert c1 is c2

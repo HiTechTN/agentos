@@ -23,17 +23,17 @@ class RuleSystem:
         }
         self._parsed: dict[str, Any] = {}
 
-    def load_all(self):
+    def load_all(self) -> None:
         self._load_global()
         self._load_project()
         self._load_plan()
 
-    def _load_global(self):
+    def _load_global(self) -> None:
         path = Path(DEFAULT_GLOBAL_RULES_PATH)
         if path.exists():
             self._rules["global"] = self._parse_file(path)
 
-    def _load_project(self):
+    def _load_project(self) -> None:
         candidates = [
             self.project_root / "AGENTS.md",
             self.project_root / "agents.md",
@@ -44,7 +44,7 @@ class RuleSystem:
                 self._rules["project"] = self._parse_file(path)
                 break
 
-    def _load_plan(self):
+    def _load_plan(self) -> None:
         path = Path(DEFAULT_PLAN_RULES_PATH)
         if path.exists():
             self._rules["plan"] = self._parse_file(path)
@@ -78,7 +78,7 @@ class RuleSystem:
             parts.append("## Plan Rules\n" + self.get_plan_rules())
         return "\n\n".join(parts)
 
-    def create_default_agents_md(self, path: str | None = None):
+    def create_default_agents_md(self, path: str | None = None) -> None:
         target = Path(path or self.project_root / "AGENTS.md")
         if not target.exists():
             content = """# AGENTS.md — AgentOS Project Rules

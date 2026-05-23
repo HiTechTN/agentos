@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from app.config.settings import get_settings
 from app.orchestrator import get_orchestrator
@@ -49,7 +50,7 @@ class ScheduledTask:
         except Exception:
             return False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -62,17 +63,17 @@ class ScheduledTask:
 
 
 class Scheduler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
         self._tasks: dict[str, ScheduledTask] = {}
         self._running = False
 
-    async def start(self):
+    async def start(self) -> None:
         self._running = True
         logger.log_action("scheduler", "started", "completed")
         asyncio.create_task(self._run_loop())
 
-    async def stop(self):
+    async def stop(self) -> None:
         self._running = False
         logger.log_action("scheduler", "stopped", "completed")
 
@@ -100,10 +101,10 @@ class Scheduler:
             return True
         return False
 
-    def list_tasks(self) -> list[dict]:
+    def list_tasks(self) -> list[dict[str, Any]]:
         return [t.to_dict() for t in self._tasks.values()]
 
-    async def _run_loop(self):
+    async def _run_loop(self) -> None:
         while self._running:
             try:
                 now = datetime.now(UTC).timestamp()
@@ -119,7 +120,7 @@ class Scheduler:
                 logger.log_error("scheduler", "loop_error", str(e))
                 await asyncio.sleep(30)
 
-    async def _execute_task(self, task: ScheduledTask):
+    async def _execute_task(self, task: ScheduledTask) -> None:
         logger.log_action(
             "scheduler", "task_run", "started", details={"name": task.name, "task_id": task.id}
         )

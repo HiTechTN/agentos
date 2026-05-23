@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -6,12 +7,12 @@ from app.orchestrator import AgentOSOrchestrator, AgentOSState
 
 
 @pytest.fixture
-def orchestrator():
+def orchestrator() -> Any:
     return AgentOSOrchestrator()
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_initializes(orchestrator):
+async def test_orchestrator_initializes(orchestrator: Any) -> None:
     assert orchestrator is not None
     assert "dev" in orchestrator.agents
     assert "content" in orchestrator.agents
@@ -20,22 +21,29 @@ async def test_orchestrator_initializes(orchestrator):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_run_basic_prompt(orchestrator):
+async def test_orchestrator_run_basic_prompt(orchestrator: Any) -> None:
     with (
         patch.object(
             orchestrator,
             "_decompose_prompt",
             AsyncMock(
                 return_value=[
-                    {"agent": "dev", "action": "analyze",  # noqa: E501
-                     "params": {"prompt": "test"}, "priority": 0}
+                    {
+                        "agent": "dev",
+                        "action": "analyze",  # noqa: E501
+                        "params": {"prompt": "test"},
+                        "priority": 0,
+                    }
                 ]
             ),
         ),
         patch.object(
-            orchestrator.agents["dev"], "execute",
-            AsyncMock(return_value=  # noqa: E501
-                       {"agent": "dev", "action": "analyze", "success": True, "result": {}}),
+            orchestrator.agents["dev"],
+            "execute",
+            AsyncMock(
+                # noqa: E501
+                return_value={"agent": "dev", "action": "analyze", "success": True, "result": {}}
+            ),
         ),
     ):
         result = await orchestrator.run("test prompt")
@@ -45,7 +53,7 @@ async def test_orchestrator_run_basic_prompt(orchestrator):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_analyze_prompt(orchestrator):
+async def test_orchestrator_analyze_prompt(orchestrator: Any) -> None:
     from app.utils.api_clients import LLMClient, LLMResponse
 
     resp = LLMResponse(
@@ -53,7 +61,8 @@ async def test_orchestrator_analyze_prompt(orchestrator):
             '[{"agent":"dev","action":"analyze",'
             '"params":{"prompt":"Create a landing page"},"priority":0}]'
         ),
-        model="test", provider="test"
+        model="test",
+        provider="test",
     )
     with patch.object(LLMClient, "chat", AsyncMock(return_value=resp)):
         tasks = await orchestrator._decompose_prompt("Create a landing page")
@@ -66,7 +75,7 @@ async def test_orchestrator_analyze_prompt(orchestrator):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_agent_execution(orchestrator):
+async def test_orchestrator_agent_execution(orchestrator: Any) -> None:
     state: AgentOSState = {
         "project_id": "test",
         "session_id": "test-session",
@@ -81,6 +90,7 @@ async def test_orchestrator_agent_execution(orchestrator):
         "status": "running",
         "circuit_breaker": {"dev": 0, "content": 0, "marketing": 0, "commerce": 0},
         "start_time": 0.0,
+        "parallel_batch": [],
     }
 
     with patch(
@@ -99,7 +109,7 @@ async def test_orchestrator_agent_execution(orchestrator):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_circuit_breaker(orchestrator):
+async def test_orchestrator_circuit_breaker(orchestrator: Any) -> None:
     state: AgentOSState = {
         "project_id": "test",
         "session_id": "test-session",
@@ -114,6 +124,7 @@ async def test_orchestrator_circuit_breaker(orchestrator):
         "status": "running",
         "circuit_breaker": {"dev": 3, "content": 0, "marketing": 0, "commerce": 0},
         "start_time": 0.0,
+        "parallel_batch": [],
     }
 
     result = await orchestrator._execute_dev(state)
@@ -123,7 +134,7 @@ async def test_orchestrator_circuit_breaker(orchestrator):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_retry_on_failure(orchestrator):
+async def test_orchestrator_retry_on_failure(orchestrator: Any) -> Any:
     state: AgentOSState = {
         "project_id": "test",
         "session_id": "test-session",
@@ -138,11 +149,12 @@ async def test_orchestrator_retry_on_failure(orchestrator):
         "status": "running",
         "circuit_breaker": {"dev": 0, "content": 0, "marketing": 0, "commerce": 0},
         "start_time": 0.0,
+        "parallel_batch": [],
     }
 
     call_count = 0
 
-    async def failing_execute(task, session_id="", trace_id=""):
+    async def failing_execute(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         nonlocal call_count
         call_count += 1
         return {
@@ -160,7 +172,7 @@ async def test_orchestrator_retry_on_failure(orchestrator):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_multi_agent_sequence(orchestrator):
+async def test_orchestrator_multi_agent_sequence(orchestrator: Any) -> Any:
     tasks = [
         {"agent": "dev", "action": "analyze", "params": {"prompt": "build app"}},
         {"agent": "content", "action": "write", "params": {"topic": "app"}},
@@ -181,17 +193,18 @@ async def test_orchestrator_multi_agent_sequence(orchestrator):
         "status": "running",
         "circuit_breaker": {"dev": 0, "content": 0, "marketing": 0, "commerce": 0},
         "start_time": 0.0,
+        "parallel_batch": [],
     }
 
     mock_result = {"agent": "", "action": "", "success": True, "result": {"data": {}}}
 
-    async def mock_dev(task, session_id="", trace_id=""):
+    async def mock_dev(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         return {**mock_result, "agent": "dev", "action": task.get("action", "")}
 
-    async def mock_content(task, session_id="", trace_id=""):
+    async def mock_content(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         return {**mock_result, "agent": "content", "action": task.get("action", "")}
 
-    async def mock_commerce(task, session_id="", trace_id=""):
+    async def mock_commerce(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         return {**mock_result, "agent": "commerce", "action": task.get("action", "")}
 
     with (
@@ -212,7 +225,7 @@ async def test_orchestrator_multi_agent_sequence(orchestrator):
 
 
 @pytest.mark.asyncio
-async def test_decide_execution_order(orchestrator):
+async def test_decide_execution_order(orchestrator: Any) -> None:
     state: AgentOSState = {
         "project_id": "test",
         "session_id": "test",
@@ -227,6 +240,7 @@ async def test_decide_execution_order(orchestrator):
         "status": "running",
         "circuit_breaker": {k: 0 for k in ["dev", "content", "marketing", "commerce"]},
         "start_time": 0.0,
+        "parallel_batch": [],
     }
 
     decision = orchestrator._decide_execution_order(state)

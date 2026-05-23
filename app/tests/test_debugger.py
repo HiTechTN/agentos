@@ -1,3 +1,5 @@
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,7 +14,7 @@ from app.agents.sub_agents.debugger import (
 
 
 class TestDebugContext:
-    def test_create_with_all_fields(self):
+    def test_create_with_all_fields(self) -> None:
         ctx = DebugContext(
             error_type="ValueError",
             error_message="invalid value",
@@ -28,7 +30,7 @@ class TestDebugContext:
         assert ctx.line == 42
         assert ctx.code_snippet == "x = int('abc')"
 
-    def test_optional_fields_default_to_none(self):
+    def test_optional_fields_default_to_none(self) -> None:
         ctx = DebugContext(error_type="E", error_message="m", traceback="t")
         assert ctx.file is None
         assert ctx.line is None
@@ -36,7 +38,7 @@ class TestDebugContext:
 
 
 class TestDebugResult:
-    def test_create_with_all_fields(self):
+    def test_create_with_all_fields(self) -> None:
         result = DebugResult(
             root_cause="Null pointer dereference",
             explanation="variable x is None when accessed",
@@ -49,10 +51,8 @@ class TestDebugResult:
         assert result.confidence == 0.95
         assert len(result.related_files) == 2
 
-    def test_optional_fields_default_to_empty(self):
-        result = DebugResult(
-            root_cause="rc", explanation="exp", fix_suggestion="fix"
-        )
+    def test_optional_fields_default_to_empty(self) -> None:
+        result = DebugResult(root_cause="rc", explanation="exp", fix_suggestion="fix")
         assert result.code_patch is None
         assert result.related_files == []
         assert result.confidence == 0.0
@@ -60,18 +60,18 @@ class TestDebugResult:
 
 class TestDebuggerAgent:
     @pytest.fixture
-    def agent(self):
+    def agent(self) -> Generator[Any]:
         original = DebuggerAgent.__abstractmethods__
         DebuggerAgent.__abstractmethods__ = frozenset()
         try:
-            yield DebuggerAgent()
+            yield DebuggerAgent()  # type: ignore[abstract]
         finally:
             DebuggerAgent.__abstractmethods__ = original
 
-    def test_name_constant(self):
+    def test_name_constant(self) -> None:
         assert DebuggerAgent.name == "@Debugger"
 
-    def test_triggers_defined(self):
+    def test_triggers_defined(self) -> None:
         triggers = DebuggerAgent.triggers
         assert "error" in triggers
         assert "exception" in triggers
@@ -81,7 +81,7 @@ class TestDebuggerAgent:
         assert "traceback" in triggers
 
     @pytest.mark.asyncio
-    async def test_run_returns_parsed_debug_result(self, agent):
+    async def test_run_returns_parsed_debug_result(self, agent: Any) -> None:
         context = DebugContext(
             error_type="ValueError",
             error_message="bad value",
@@ -111,25 +111,21 @@ class TestDebuggerAgent:
             assert result.confidence == 0.9
 
     @pytest.mark.asyncio
-    async def test_run_calls_llm_complete_with_context(self, agent):
+    async def test_run_calls_llm_complete_with_context(self, agent: Any) -> None:
         context = DebugContext(
             error_type="KeyError",
             error_message="missing key 'foo'",
             traceback="",
         )
-        mock_json = (
-            '{"root_cause": "x", "explanation": "y", "fix_suggestion": "z"}'
-        )
+        mock_json = '{"root_cause": "x", "explanation": "y", "fix_suggestion": "z"}'
         mock_complete = AsyncMock(return_value=MagicMock(content=mock_json))
         with patch.object(llm_client, "complete", mock_complete, create=True):
             await agent.run(context)
             mock_complete.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_run_invalid_json_raises(self, agent):
-        context = DebugContext(
-            error_type="E", error_message="m", traceback="t"
-        )
+    async def test_run_invalid_json_raises(self, agent: Any) -> None:
+        context = DebugContext(error_type="E", error_message="m", traceback="t")
         with patch.object(
             llm_client,
             "complete",
@@ -140,10 +136,8 @@ class TestDebuggerAgent:
                 await agent.run(context)
 
     @pytest.mark.asyncio
-    async def test_run_missing_root_cause_raises(self, agent):
-        context = DebugContext(
-            error_type="E", error_message="m", traceback="t"
-        )
+    async def test_run_missing_root_cause_raises(self, agent: Any) -> None:
+        context = DebugContext(error_type="E", error_message="m", traceback="t")
         with patch.object(
             llm_client,
             "complete",
@@ -153,7 +147,7 @@ class TestDebuggerAgent:
             with pytest.raises(Exception):
                 await agent.run(context)
 
-    def test_from_exception_with_traceback(self):
+    def test_from_exception_with_traceback(self) -> None:
         try:
             raise ValueError("test error message")
         except ValueError as e:
@@ -164,7 +158,7 @@ class TestDebuggerAgent:
             assert ctx.file is not None
             assert ctx.line is not None
 
-    def test_from_exception_without_traceback(self):
+    def test_from_exception_without_traceback(self) -> None:
         exc = Exception("fresh exception")
         ctx = DebuggerAgent.from_exception(exc)
         assert ctx.error_type == "Exception"
@@ -174,11 +168,11 @@ class TestDebuggerAgent:
 
 
 class TestDebuggerPrompt:
-    def test_prompt_is_french_and_contains_instructions(self):
+    def test_prompt_is_french_and_contains_instructions(self) -> None:
         assert "Tu es @Debugger" in DEBUGGER_PROMPT
         assert "root_cause" in DEBUGGER_PROMPT
         assert "JSON" in DEBUGGER_PROMPT
 
-    def test_prompt_mentions_project_context(self):
+    def test_prompt_mentions_project_context(self) -> None:
         assert "FastAPI" in DEBUGGER_PROMPT
         assert "LangGraph" in DEBUGGER_PROMPT

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -31,7 +31,7 @@ class APIError(BaseModel):
     details: dict[str, Any] | None = None
 
 
-class APIResponse(BaseModel[T]):
+class APIResponse(BaseModel, Generic[T]):
     data: T | None = None
     meta: Meta
     errors: list[APIError] = Field(default_factory=list)
@@ -41,5 +41,5 @@ class APIResponse(BaseModel[T]):
         return cls(data=data, meta=Meta(request_id=request_id, **meta_kwargs))
 
     @classmethod
-    def fail(cls, errors: list[APIError], request_id: str = "") -> APIResponse[None]:
+    def fail(cls, errors: list[APIError], request_id: str = "") -> APIResponse[Any]:
         return cls(data=None, meta=Meta(request_id=request_id), errors=errors)

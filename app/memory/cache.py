@@ -11,7 +11,7 @@ logger = get_logger("cache")
 
 
 class Cache:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
         self._redis: aioredis.Redis | None = None
         self._local_cache: dict[str, tuple[float, Any]] = {}
@@ -21,7 +21,7 @@ class Cache:
         if self._redis is not None:
             return self._redis
         try:
-            self._redis = aioredis.from_url(
+            self._redis = aioredis.from_url(  # type: ignore[no-untyped-call]
                 self.settings.resolved_redis_url,
                 decode_responses=False,
             )
@@ -64,7 +64,7 @@ class Cache:
             redis = await self._get_redis()
             if redis:
                 try:
-                    data = pickle.dumps(value) if not isinstance(value, (str, bytes)) else value
+                    data = pickle.dumps(value) if not isinstance(value, str | bytes) else value
                     await redis.setex(key, ttl, data)
                     return True
                 except Exception as e:

@@ -6,7 +6,7 @@ from app.memory.cache import Cache, get_cache
 
 
 @pytest.mark.asyncio
-async def test_cache_set_get_local():
+async def test_cache_set_get_local() -> None:
     cache = Cache()
     cache._use_redis = False
     await cache.set("key1", {"data": 42}, ttl=60)
@@ -15,7 +15,7 @@ async def test_cache_set_get_local():
 
 
 @pytest.mark.asyncio
-async def test_cache_set_get_string_value():
+async def test_cache_set_get_string_value() -> None:
     cache = Cache()
     cache._use_redis = False
     await cache.set("str_key", "hello", ttl=60)
@@ -24,7 +24,7 @@ async def test_cache_set_get_string_value():
 
 
 @pytest.mark.asyncio
-async def test_cache_get_missing_key():
+async def test_cache_get_missing_key() -> None:
     cache = Cache()
     cache._use_redis = False
     value = await cache.get("nonexistent")
@@ -32,7 +32,7 @@ async def test_cache_get_missing_key():
 
 
 @pytest.mark.asyncio
-async def test_cache_delete():
+async def test_cache_delete() -> None:
     cache = Cache()
     cache._use_redis = False
     await cache.set("del_key", "value", ttl=60)
@@ -41,7 +41,7 @@ async def test_cache_delete():
 
 
 @pytest.mark.asyncio
-async def test_cache_delete_nonexistent():
+async def test_cache_delete_nonexistent() -> None:
     cache = Cache()
     cache._use_redis = False
     result = await cache.delete("no-such-key")
@@ -49,7 +49,7 @@ async def test_cache_delete_nonexistent():
 
 
 @pytest.mark.asyncio
-async def test_cache_flush():
+async def test_cache_flush() -> None:
     cache = Cache()
     cache._use_redis = False
     await cache.set("k1", "v1", ttl=60)
@@ -60,7 +60,7 @@ async def test_cache_flush():
 
 
 @pytest.mark.asyncio
-async def test_cache_default_ttl():
+async def test_cache_default_ttl() -> None:
     cache = Cache()
     cache._use_redis = False
     await cache.set("ttl_key", "value")
@@ -69,7 +69,7 @@ async def test_cache_default_ttl():
 
 
 @pytest.mark.asyncio
-async def test_cache_overwrite_key():
+async def test_cache_overwrite_key() -> None:
     cache = Cache()
     cache._use_redis = False
     await cache.set("overwrite", "old", ttl=60)
@@ -79,7 +79,7 @@ async def test_cache_overwrite_key():
 
 
 @pytest.mark.asyncio
-async def test_cache_redis_unavailable_fallback():
+async def test_cache_redis_unavailable_fallback() -> None:
     cache = Cache()
     with patch.object(cache, "_get_redis", return_value=None):
         await cache.set("fallback_key", "fallback_value", ttl=60)
@@ -88,7 +88,7 @@ async def test_cache_redis_unavailable_fallback():
 
 
 @pytest.mark.asyncio
-async def test_cache_singleton():
+async def test_cache_singleton() -> None:
     c1 = get_cache()
     c2 = get_cache()
     assert c1 is c2

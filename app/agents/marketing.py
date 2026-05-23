@@ -11,7 +11,9 @@ class MarketingAgent(BaseAgent):
 
     HITL_ACTIONS = {"create_campaign", "send_campaign"}
 
-    async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any:
+    async def _run(
+        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> Any:
         if action in self.HITL_ACTIONS:
             from app.utils.hitl_gateway import HITLPendingError
 
@@ -34,7 +36,9 @@ class MarketingAgent(BaseAgent):
 
         return await handler(params, session_id, trace_id)
 
-    async def _segment_audience(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _segment_audience(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {
@@ -49,7 +53,9 @@ and recommended approach for each segment.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"segments": content})
 
-    async def _email_campaign(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _email_campaign(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         smtp_host = os.getenv("SMTP_HOST", "mailhog")
         smtp_port = int(os.getenv("SMTP_PORT", "1025"))
 
@@ -83,7 +89,9 @@ Generate: subject line (A/B variants), body HTML, preview text, CTA, UTM paramet
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"email_campaign": content, "mode": "draft"})
 
-    async def _ads_campaign(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _ads_campaign(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         has_meta_key = bool(os.getenv("META_ADS_ACCESS_TOKEN"))
         has_google_key = bool(os.getenv("GOOGLE_ADS_CLIENT_ID"))
 
@@ -120,7 +128,9 @@ KPIs and tracking setup. (Running in stub mode - no real ads API keys configured
             },
         )
 
-    async def _generate_report(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _generate_report(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {

@@ -1,13 +1,15 @@
 import json
 import logging
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 
 MASKED_FIELDS = {"api_key", "token", "password", "secret", "authorization"}
 
 
-def _mask_sensitive(data: dict) -> dict:
-    masked = {}
+def _mask_sensitive(data: dict[str, Any]) -> dict[str, Any]:
+    masked: dict[str, Any] = {}
     for k, v in data.items():
         if any(f in k.lower() for f in MASKED_FIELDS):
             masked[k] = "***MASKED***"
@@ -21,17 +23,17 @@ def _mask_sensitive(data: dict) -> dict:
 class LogBroadcaster:
     """Simple in-process pub/sub for WebSocket broadcasting."""
 
-    def __init__(self):
-        self._subscribers: list[callable] = []
+    def __init__(self) -> None:
+        self._subscribers: list[Callable[..., Any]] = []
 
-    def subscribe(self, callback: callable):
+    def subscribe(self, callback: Callable[..., Any]) -> None:
         self._subscribers.append(callback)
 
-    def unsubscribe(self, callback: callable):
+    def unsubscribe(self, callback: Callable[..., Any]) -> None:
         if callback in self._subscribers:
             self._subscribers.remove(callback)
 
-    async def broadcast(self, record: dict):
+    async def broadcast(self, record: dict[str, Any]) -> None:
         for cb in self._subscribers:
             try:
                 if hasattr(cb, "__call__"):
@@ -64,9 +66,9 @@ class AgentOSLogger(logging.Logger):
         status: str,
         trace_id: str | None = None,
         project_id: str | None = None,
-        details: dict | None = None,
-    ) -> tuple[str, dict]:
-        record = {
+        details: dict[str, Any] | None = None,
+    ) -> tuple[str, dict[str, Any]]:
+        record: dict[str, Any] = {
             "timestamp": datetime.now(UTC).isoformat(),
             "level": level,
             "logger": self.name,
@@ -87,7 +89,7 @@ class AgentOSLogger(logging.Logger):
         status: str,
         trace_id: str | None = None,
         project_id: str | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> str:
         line, record = self._json_log(
             "INFO", agent_id, action, status, trace_id, project_id, details
@@ -96,8 +98,10 @@ class AgentOSLogger(logging.Logger):
         try:
             import asyncio
 
-            asyncio.ensure_future(_broadcaster.broadcast(record))
-        except Exception:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_broadcaster.broadcast(record))
+        except RuntimeError:
             pass
         return line
 
@@ -108,9 +112,9 @@ class AgentOSLogger(logging.Logger):
         error: str,
         trace_id: str | None = None,
         project_id: str | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> str:
-        err_details = {"error": error, **(details or {})}
+        err_details: dict[str, Any] = {"error": error, **(details or {})}
         line, record = self._json_log(
             "ERROR", agent_id, action, "failed", trace_id, project_id, err_details
         )
@@ -118,8 +122,10 @@ class AgentOSLogger(logging.Logger):
         try:
             import asyncio
 
-            asyncio.ensure_future(_broadcaster.broadcast(record))
-        except Exception:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_broadcaster.broadcast(record))
+        except RuntimeError:
             pass
         return line
 
@@ -138,12 +144,16 @@ class AgentOSLogger(logging.Logger):
         try:
             import asyncio
 
-            asyncio.ensure_future(_broadcaster.broadcast(record))
-        except Exception:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_broadcaster.broadcast(record))
+        except RuntimeError:
             pass
         return line
 
 
 def get_logger(name: str = "agentos") -> AgentOSLogger:
     logging.setLoggerClass(AgentOSLogger)
-    return logging.getLogger(name)
+    logger = logging.getLogger(name)
+    assert isinstance(logger, AgentOSLogger)
+    return logger

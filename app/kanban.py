@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from app.utils.logging import get_broadcaster, get_logger
 
@@ -32,7 +33,7 @@ class KanbanCard:
         self.labels: list[str] = []
         self.assignee: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "title": self.title,
@@ -91,13 +92,13 @@ class KanbanBoard:
             return True
         return False
 
-    def get_column(self, column: str) -> list[dict]:
+    def get_column(self, column: str) -> list[dict[str, Any]]:
         return [c.to_dict() for c in self.cards.values() if c.column == column]
 
-    def get_all(self) -> dict[str, list[dict]]:
+    def get_all(self) -> dict[str, list[dict[str, Any]]]:
         return {col: self.get_column(col) for col in COLUMNS}
 
-    def update_card(self, card_id: str, **kwargs) -> bool:
+    def update_card(self, card_id: str, **kwargs: Any) -> bool:
         if card_id not in self.cards:
             return False
         card = self.cards[card_id]

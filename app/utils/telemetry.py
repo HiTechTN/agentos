@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import uuid
 from contextlib import asynccontextmanager
+from typing import Any
 
 from app.config.settings import get_settings
 
 
 class Span:
-    def __init__(self, name: str, trace_id: str = "", attributes: dict | None = None):
+    def __init__(
+        self, name: str, trace_id: str = "", attributes: dict[str, Any] | None = None
+    ) -> None:
         self.name = name
         self.trace_id = trace_id or str(uuid.uuid4())
         self.span_id = str(uuid.uuid4())[:16]
@@ -13,16 +18,16 @@ class Span:
         self.start = 0.0
         self.end = 0.0
 
-    def __enter__(self):
+    def __enter__(self) -> Span:
         import time
 
         self.start = time.time()
         return self
 
-    def set_attribute(self, key: str, value: str):
+    def set_attribute(self, key: str, value: str) -> None:
         self.attributes[key] = value
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         import time
 
         self.end = time.time()
@@ -31,7 +36,7 @@ class Span:
     def duration_ms(self) -> float:
         return (self.end - self.start) * 1000
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "trace_id": self.trace_id,
             "span_id": self.span_id,
@@ -42,13 +47,15 @@ class Span:
 
 
 class OpenTelemetrySetup:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
         self.enabled = self.settings.otlp_enabled
         self._spans: list[Span] = []
 
     @asynccontextmanager
-    async def trace(self, name: str, trace_id: str = "", attributes: dict | None = None):
+    async def trace(
+        self, name: str, trace_id: str = "", attributes: dict[str, Any] | None = None
+    ) -> Any:
         span = await self.start_span(name, trace_id, attributes)
         try:
             yield span
@@ -56,19 +63,19 @@ class OpenTelemetrySetup:
             await self.end_span(span)
 
     async def start_span(
-        self, name: str, trace_id: str = "", attributes: dict | None = None
+        self, name: str, trace_id: str = "", attributes: dict[str, Any] | None = None
     ) -> Span:
         span = Span(name, trace_id, attributes)
         span.__enter__()
         return span
 
-    async def end_span(self, span: Span):
+    async def end_span(self, span: Span) -> None:
         span.__exit__()
         self._spans.append(span)
         if self.enabled:
             await self._export(span)
 
-    async def _export(self, span: Span):
+    async def _export(self, span: Span) -> None:
         try:
             import httpx
 
@@ -111,7 +118,7 @@ class OpenTelemetrySetup:
         except Exception:
             pass
 
-    def get_spans(self, trace_id: str = "") -> list[dict]:
+    def get_spans(self, trace_id: str = "") -> list[dict[str, Any]]:
         if trace_id:
             return [s.to_dict() for s in self._spans if s.trace_id == trace_id]
         return [s.to_dict() for s in self._spans]

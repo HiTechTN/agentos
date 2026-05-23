@@ -11,12 +11,12 @@ class Workspace:
         self.id = workspace_id
         self.projects: dict[str, Any] = {}
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, "project_count": len(self.projects)}
 
 
 class WorkspaceManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
         self._workspaces: dict[str, Workspace] = {}
 
@@ -40,10 +40,10 @@ class WorkspaceManager:
             return True
         return False
 
-    def list_workspaces(self) -> list[dict]:
+    def list_workspaces(self) -> list[dict[str, Any]]:
         return [w.to_dict() for w in self._workspaces.values()]
 
-    def ensure_default(self):
+    def ensure_default(self) -> None:
         if "default" not in self._workspaces:
             self.create_workspace("default")
 

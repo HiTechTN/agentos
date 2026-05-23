@@ -46,7 +46,7 @@ class GitWorktreeManager:
         )
         return worktree_path
 
-    async def remove_worktree(self, branch_name: str):
+    async def remove_worktree(self, branch_name: str) -> None:
         worktree_path = self.repo_path.parent / f"{self.repo_path.name}-{branch_name}"
         try:
             await self._run_git("worktree", "remove", str(worktree_path), "--force")
@@ -58,7 +58,7 @@ class GitWorktreeManager:
             pass
         self.logger.log_action("worktree", "remove", "completed", details={"branch": branch_name})
 
-    async def rebase_to_main(self, branch_name: str):
+    async def rebase_to_main(self, branch_name: str) -> None:
         await self._run_git("checkout", branch_name)
         await self._run_git("rebase", "main")
         await self._run_git("checkout", "main")

@@ -6,7 +6,7 @@ from app.memory.session import SessionManager, get_session_manager
 
 
 @pytest.mark.asyncio
-async def test_session_create_json_fallback():
+async def test_session_create_json_fallback() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     session_id = await sm.create("test-project", "test-workflow")
@@ -19,7 +19,7 @@ async def test_session_create_json_fallback():
 
 
 @pytest.mark.asyncio
-async def test_session_create_default_workflow():
+async def test_session_create_default_workflow() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     session_id = await sm.create("test-project")
@@ -29,7 +29,7 @@ async def test_session_create_default_workflow():
 
 
 @pytest.mark.asyncio
-async def test_session_get_json_fallback():
+async def test_session_get_json_fallback() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     session_id = await sm.create("test-project", "test-workflow")
@@ -42,7 +42,7 @@ async def test_session_get_json_fallback():
 
 
 @pytest.mark.asyncio
-async def test_session_get_nonexistent():
+async def test_session_get_nonexistent() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     session = await sm.get("nonexistent-id")
@@ -50,41 +50,44 @@ async def test_session_get_nonexistent():
 
 
 @pytest.mark.asyncio
-async def test_session_update_context_and_status():
+async def test_session_update_context_and_status() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     session_id = await sm.create("test-project", "test-workflow")
     updated = await sm.update(session_id, context={"key": "value"}, status="running")
     assert updated is True
     session = await sm.get(session_id)
+    assert session is not None
     assert session["context"] == {"key": "value"}
     assert session["status"] == "running"
 
 
 @pytest.mark.asyncio
-async def test_session_update_status_only():
+async def test_session_update_status_only() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     session_id = await sm.create("test-project")
     await sm.update(session_id, status="completed")
     session = await sm.get(session_id)
+    assert session is not None
     assert session["status"] == "completed"
     assert session["context"] == {}
 
 
 @pytest.mark.asyncio
-async def test_session_update_context_only():
+async def test_session_update_context_only() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     session_id = await sm.create("test-project")
     await sm.update(session_id, context={"answer": 42})
     session = await sm.get(session_id)
+    assert session is not None
     assert session["context"] == {"answer": 42}
     assert session["status"] == "pending"
 
 
 @pytest.mark.asyncio
-async def test_session_update_nonexistent():
+async def test_session_update_nonexistent() -> None:
     sm = SessionManager()
     sm._use_json_fallback = True
     result = await sm.update("nonexistent-id", status="running")
@@ -92,7 +95,7 @@ async def test_session_update_nonexistent():
 
 
 @pytest.mark.asyncio
-async def test_session_init_db_failure_triggers_fallback():
+async def test_session_init_db_failure_triggers_fallback() -> None:
     sm = SessionManager()
     with patch.object(sm, "_init_db", side_effect=Exception("DB unavailable")):
         session_id = await sm.create("test-project", "test-workflow")
@@ -103,7 +106,7 @@ async def test_session_init_db_failure_triggers_fallback():
 
 
 @pytest.mark.asyncio
-async def test_session_singleton():
+async def test_session_singleton() -> None:
     s1 = get_session_manager()
     s2 = get_session_manager()
     assert s1 is s2

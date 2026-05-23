@@ -4,23 +4,23 @@ from app.config.settings import get_settings
 
 
 class MetricsCollector:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
         self._counters: dict[str, int] = {}
         self._timings: dict[str, list[float]] = {}
         self._gauges: dict[str, Any] = {}
 
-    def inc(self, name: str, value: int = 1):
+    def inc(self, name: str, value: int = 1) -> None:
         self._counters[name] = self._counters.get(name, 0) + value
 
-    def timing(self, name: str, duration: float):
+    def timing(self, name: str, duration: float) -> None:
         if name not in self._timings:
             self._timings[name] = []
         self._timings[name].append(duration)
         if len(self._timings[name]) > 1000:
             self._timings[name] = self._timings[name][-1000:]
 
-    def gauge(self, name: str, value: Any):
+    def gauge(self, name: str, value: Any) -> None:
         self._gauges[name] = value
 
     def render_prometheus(self) -> str:

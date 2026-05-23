@@ -11,12 +11,12 @@ from app.utils.sandbox import (
 
 
 class TestSandboxExecutionError:
-    def test_is_exception(self):
+    def test_is_exception(self) -> None:
         assert issubclass(SandboxExecutionError, Exception)
 
 
 class TestSandboxResult:
-    def test_attributes(self):
+    def test_attributes(self) -> None:
         result = SandboxResult(success=True, output="test", execution_id="e1")
         assert result.success is True
         assert result.output == "test"
@@ -25,7 +25,7 @@ class TestSandboxResult:
 
 class TestSandboxManager:
     @pytest.mark.asyncio
-    async def test_execute_sandbox_disabled(self):
+    async def test_execute_sandbox_disabled(self) -> None:
         from app.config.settings import get_settings
 
         test_settings = get_settings()
@@ -38,7 +38,7 @@ class TestSandboxManager:
         assert isinstance(result.execution_id, str)
 
     @pytest.mark.asyncio
-    async def test_execute_import_error(self):
+    async def test_execute_import_error(self) -> None:
         sm = SandboxManager()
         with (
             patch.object(sm.settings, "sandbox_enabled", True),
@@ -49,7 +49,7 @@ class TestSandboxManager:
             assert result.output == "print(1)"
 
     @pytest.mark.asyncio
-    async def test_execute_docker_success(self):
+    async def test_execute_docker_success(self) -> None:
         sm = SandboxManager()
         mock_container = MagicMock()
         mock_container.wait.return_value = {"StatusCode": 0}
@@ -67,7 +67,7 @@ class TestSandboxManager:
             assert isinstance(result.execution_id, str)
 
     @pytest.mark.asyncio
-    async def test_execute_docker_nonzero_exit(self):
+    async def test_execute_docker_nonzero_exit(self) -> None:
         sm = SandboxManager()
         mock_container = MagicMock()
         mock_container.wait.return_value = {"StatusCode": 1}
@@ -84,7 +84,7 @@ class TestSandboxManager:
             assert "runtime error" in result.output
 
     @pytest.mark.asyncio
-    async def test_execute_docker_error_raises_sandbox_error(self):
+    async def test_execute_docker_error_raises_sandbox_error(self) -> None:
         sm = SandboxManager()
         mock_docker = MagicMock()
         mock_docker.from_env.side_effect = Exception("docker daemon unreachable")
@@ -97,7 +97,7 @@ class TestSandboxManager:
             await sm.execute("agent-1", "print(1)")
 
     @pytest.mark.asyncio
-    async def test_get_sandbox_manager_singleton(self):
+    async def test_get_sandbox_manager_singleton(self) -> None:
         import app.utils.sandbox as sandbox_module
 
         with patch.object(sandbox_module, "_sandbox_manager", None):

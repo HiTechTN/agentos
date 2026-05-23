@@ -1,6 +1,7 @@
 """Pulse — real-time visual dashboard data."""
 
 from datetime import UTC, datetime
+from typing import Any
 
 from app.utils.logging import get_logger
 
@@ -8,13 +9,13 @@ logger = get_logger("pulse")
 
 
 class PulseMetric:
-    def __init__(self, name: str, value: float, unit: str = ""):
+    def __init__(self, name: str, value: float, unit: str = "") -> None:
         self.name = name
         self.value = value
         self.unit = unit
         self.timestamp = datetime.now(UTC).isoformat()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "value": self.value,
@@ -24,7 +25,7 @@ class PulseMetric:
 
 
 class PulseSnapshot:
-    def __init__(self):
+    def __init__(self) -> None:
         self.metrics: list[PulseMetric] = []
         self.active_agents: int = 0
         self.tasks_completed: int = 0
@@ -34,10 +35,10 @@ class PulseSnapshot:
         self.agent_activity: dict[str, str] = {}
         self.timestamp = datetime.now(UTC).isoformat()
 
-    def add_metric(self, name: str, value: float, unit: str = ""):
+    def add_metric(self, name: str, value: float, unit: str = "") -> None:
         self.metrics.append(PulseMetric(name, value, unit))
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "metrics": [m.to_dict() for m in self.metrics],
             "active_agents": self.active_agents,
@@ -51,13 +52,13 @@ class PulseSnapshot:
 
 
 class PulseEngine:
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = get_logger("pulse_engine")
         self.history: list[PulseSnapshot] = []
 
     async def snapshot(
         self,
-        kanban_data: dict[str, list] | None = None,
+        kanban_data: dict[str, list[Any]] | None = None,
         agent_statuses: dict[str, str] | None = None,
     ) -> PulseSnapshot:
         snap = PulseSnapshot()
@@ -74,7 +75,7 @@ class PulseEngine:
             self.history = self.history[-1000:]
         return snap
 
-    def get_timeline(self, limit: int = 60) -> list[dict]:
+    def get_timeline(self, limit: int = 60) -> list[dict[str, Any]]:
         return [s.to_dict() for s in self.history[-limit:]]
 
 

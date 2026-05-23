@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -8,7 +10,7 @@ from app.utils.logging import get_logger
 
 
 @pytest.fixture(autouse=True)
-def test_settings():
+def test_settings() -> Generator[Any]:
     settings = Settings(
         log_level="DEBUG",
         project_id="test-project",
@@ -30,11 +32,8 @@ def test_settings():
         yield settings
 
 
-
-
-
 @pytest.fixture
-def mock_llm_client():
+def mock_llm_client() -> Generator[Any]:
     with patch("app.agents.base.LLMClient") as mock:
         instance = mock.return_value
         instance.chat = AsyncMock(
@@ -44,7 +43,7 @@ def mock_llm_client():
 
 
 @pytest.fixture
-def mock_hitl_gateway():
+def mock_hitl_gateway() -> Generator[Any]:
     with patch("app.agents.base.get_hitl_gateway") as mock_gateway:
         mock = AsyncMock()
         mock.request_approval = AsyncMock(side_effect=lambda **kw: kw.get("details", {}))
@@ -53,12 +52,12 @@ def mock_hitl_gateway():
 
 
 @pytest.fixture
-def logger():
+def logger() -> Any:
     return get_logger("test")
 
 
 @pytest_asyncio.fixture
-async def async_client():
+async def async_client() -> AsyncGenerator[Any]:
     from httpx import ASGITransport, AsyncClient
 
     from app.main import app

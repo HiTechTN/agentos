@@ -64,7 +64,7 @@ class TestProjectExport:
     @pytest.mark.asyncio
     async def test_exports_project_sessions(self, async_client: AsyncClient) -> None:
         mock_sm = MagicMock()
-        mock_sm.list_by_project = AsyncMock(return_value=[SAMPLE_SESSION])
+        mock_sm.get = AsyncMock(return_value=SAMPLE_SESSION)
         with patch("app.memory.session.get_session_manager", return_value=mock_sm):
             resp = await async_client.post(
                 "/api/v1/project/export",
@@ -79,11 +79,9 @@ class TestProjectExport:
         assert "exported_at" in data
 
     @pytest.mark.asyncio
-    async def test_exports_with_empty_sessions_on_error(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_exports_with_empty_sessions_on_error(self, async_client: AsyncClient) -> None:
         mock_sm = MagicMock()
-        mock_sm.list_by_project = AsyncMock(side_effect=Exception("db down"))
+        mock_sm.get = AsyncMock(side_effect=Exception("db down"))
         with patch("app.memory.session.get_session_manager", return_value=mock_sm):
             resp = await async_client.post(
                 "/api/v1/project/export",
@@ -119,9 +117,7 @@ class TestProjectImport:
         assert mock_sm.create.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_returns_400_without_project_id(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_returns_400_without_project_id(self, async_client: AsyncClient) -> None:
         resp = await async_client.post(
             "/api/v1/project/import",
             json={"sessions": []},
@@ -175,9 +171,7 @@ class TestSchedulerTasks:
         assert resp.json() == {"tasks": SAMPLE_TASKS}
 
     @pytest.mark.asyncio
-    async def test_returns_empty_list_when_no_tasks(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_returns_empty_list_when_no_tasks(self, async_client: AsyncClient) -> None:
         mock_sched = MagicMock()
         mock_sched.list_tasks.return_value = []
         with patch("app.scheduler.get_scheduler", return_value=mock_sched):
@@ -233,9 +227,7 @@ class TestSubAgentRun:
     async def test_runs_named_agent(self, async_client: AsyncClient) -> None:
         mock_agent = MagicMock()
         mock_agent.run = AsyncMock(return_value={"fixed": True})
-        with patch(
-            "app.agents.sub_agent.get_or_create_sub_agent", return_value=mock_agent
-        ):
+        with patch("app.agents.sub_agent.get_or_create_sub_agent", return_value=mock_agent):
             resp = await async_client.post(
                 "/api/v1/sub-agent/run",
                 json={"name": "debugger", "task": "Fix this bug"},
@@ -251,9 +243,7 @@ class TestSubAgentRun:
         mock_agent = MagicMock()
         mock_agent.run = AsyncMock(return_value={"status": "verified"})
         with (
-            patch(
-                "app.agents.sub_agent.route_to_sub_agent", return_value="verifier"
-            ),
+            patch("app.agents.sub_agent.route_to_sub_agent", return_value="verifier"),
             patch(
                 "app.agents.sub_agent.get_or_create_sub_agent",
                 return_value=mock_agent,
@@ -268,12 +258,8 @@ class TestSubAgentRun:
         assert resp.json()["agent"] == "verifier"
 
     @pytest.mark.asyncio
-    async def test_returns_404_for_unknown_agent(
-        self, async_client: AsyncClient
-    ) -> None:
-        with patch(
-            "app.agents.sub_agent.get_or_create_sub_agent", return_value=None
-        ):
+    async def test_returns_404_for_unknown_agent(self, async_client: AsyncClient) -> None:
+        with patch("app.agents.sub_agent.get_or_create_sub_agent", return_value=None):
             resp = await async_client.post(
                 "/api/v1/sub-agent/run",
                 json={"name": "nonexistent", "task": "do stuff"},
@@ -360,9 +346,7 @@ class TestCreateWorktree:
     @pytest.mark.asyncio
     async def test_returns_400_on_failure(self, async_client: AsyncClient) -> None:
         mock_wm = MagicMock()
-        mock_wm.create_worktree = AsyncMock(
-            side_effect=Exception("Branch already exists")
-        )
+        mock_wm.create_worktree = AsyncMock(side_effect=Exception("Branch already exists"))
         with patch("app.git_worktree.get_worktree_manager", return_value=mock_wm):
             resp = await async_client.post(
                 "/api/v1/worktree",
@@ -387,13 +371,9 @@ class TestListWorktrees:
         assert resp.json()["worktrees"] == SAMPLE_WORKTREES
 
     @pytest.mark.asyncio
-    async def test_returns_error_field_on_failure(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_returns_error_field_on_failure(self, async_client: AsyncClient) -> None:
         mock_wm = MagicMock()
-        mock_wm.list_worktrees = AsyncMock(
-            side_effect=Exception("Not a git repository")
-        )
+        mock_wm.list_worktrees = AsyncMock(side_effect=Exception("Not a git repository"))
         with patch("app.git_worktree.get_worktree_manager", return_value=mock_wm):
             resp = await async_client.get("/api/v1/worktree")
 
@@ -406,9 +386,7 @@ class TestAuthMiddleware:
     """Middleware at line ~99 — optional JWT auth"""
 
     @pytest.mark.asyncio
-    async def test_passes_user_state_with_valid_token(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_passes_user_state_with_valid_token(self, async_client: AsyncClient) -> None:
         mock_user = {"sub": "user-123", "role": "admin"}
         with patch("app.main.get_current_user", return_value=mock_user):
             resp = await async_client.get(
@@ -419,12 +397,8 @@ class TestAuthMiddleware:
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_sets_user_none_on_invalid_token(
-        self, async_client: AsyncClient
-    ) -> None:
-        with patch(
-            "app.main.get_current_user", side_effect=Exception("Invalid token")
-        ):
+    async def test_sets_user_none_on_invalid_token(self, async_client: AsyncClient) -> None:
+        with patch("app.main.get_current_user", side_effect=Exception("Invalid token")):
             resp = await async_client.get(
                 "/api/v1/sub-agents",
                 headers={"Authorization": "Bearer badtoken"},
@@ -433,15 +407,11 @@ class TestAuthMiddleware:
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_middleware_skipped_for_health(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_middleware_skipped_for_health(self, async_client: AsyncClient) -> None:
         resp = await async_client.get("/health")
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_middleware_skipped_for_metrics(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_middleware_skipped_for_metrics(self, async_client: AsyncClient) -> None:
         resp = await async_client.get("/metrics")
         assert resp.status_code == 200

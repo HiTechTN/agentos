@@ -1,5 +1,6 @@
 import hashlib
 import json
+from typing import Any
 
 import httpx
 from openai import AsyncOpenAI
@@ -25,7 +26,7 @@ class LLMUnavailableError(Exception):
 class LLMClient:
     _llm_cache: dict[str, LLMResponse] = {}
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
         self._openai_client: AsyncOpenAI | None = None
 
@@ -37,15 +38,15 @@ class LLMClient:
             )
         return self._openai_client
 
-    def _cache_key(self, model: str, messages: list[dict], temperature: float) -> str:
+    def _cache_key(self, model: str, messages: list[dict[str, Any]], temperature: float) -> str:
         raw = json.dumps([model, messages, temperature], sort_keys=True, default=str)
         return hashlib.sha256(raw.encode()).hexdigest()
 
     async def chat(
         self,
         model: str,
-        messages: list[dict],
-        tools: list[dict] | None = None,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
@@ -58,7 +59,7 @@ class LLMClient:
 
         try:
             client = self._get_openai_client()
-            kwargs = dict(
+            kwargs: dict[str, Any] = dict(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -79,8 +80,8 @@ class LLMClient:
     async def _fallback_ollama(
         self,
         model: str,
-        messages: list[dict],
-        tools: list[dict] | None = None,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
@@ -109,8 +110,8 @@ class LLMClient:
     async def chat_with_model_selection(
         self,
         task_type: str,
-        messages: list[dict],
-        tools: list[dict] | None = None,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
@@ -135,9 +136,9 @@ class LLMClient:
 
     async def complete(
         self,
-        model: object,
+        model: Any,
         system: str,
-        messages: list[dict],
+        messages: list[dict[str, Any]],
         temperature: float = 0.1,
         max_tokens: int = 4096,
     ) -> LLMResponse:
@@ -149,13 +150,13 @@ class LLMClient:
             max_tokens=max_tokens,
         )
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         self._llm_cache.clear()
         logger.log_action("llm_client", "cache_cleared", "completed")
 
 
 class EmbeddingClient:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
         self._openai_client: AsyncOpenAI | None = None
 
@@ -175,7 +176,8 @@ class EmbeddingClient:
                 input=text,
                 dimensions=self.settings.openai_embedding_dimensions,
             )
-            return response.data[0].embedding
+            result = response.data[0].embedding
+            return result
         except Exception as e:
             logger.log_warn("embedding_client", "openai_fallback", f"OpenAI embedding failed: {e}")
             return await self._fallback_ollama_embed(text)
@@ -189,7 +191,8 @@ class EmbeddingClient:
                 )
                 resp.raise_for_status()
                 data = resp.json()
-                return data.get("embedding", [0.0] * 768)
+                emb: list[float] = data.get("embedding", [0.0] * 768)
+                return emb
         except Exception:
             logger.log_error(
                 "embedding_client", "embed_fallback", "All embedding providers unavailable"

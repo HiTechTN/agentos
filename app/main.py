@@ -5,6 +5,7 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +13,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.responses import Response
 
 from app.config.settings import get_settings
 from app.orchestrator import get_orchestrator
@@ -56,7 +58,7 @@ class SchedulerTask(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Any:
     logger.log_action("api", "startup", "started", details={"version": settings.version})
     from app.scheduler import get_scheduler
 
@@ -88,7 +90,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # ty
 
 
 @app.middleware("http")
-async def optional_auth_middleware(request: Request, call_next):
+async def optional_auth_middleware(request: Request, call_next: Any) -> Response:
     """Optional JWT auth — populates request.state.user if valid token provided."""
     if request.url.path.startswith("/api/v1/") and request.url.path not in (
         "/health",
@@ -106,11 +108,11 @@ async def optional_auth_middleware(request: Request, call_next):
         else:
             request.state.user = None
     response = await call_next(request)
-    return response
+    return response  # type: ignore[no-any-return]
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict[str, str]:
     import asyncpg
 
     statuses = {"api": "ok", "version": settings.version}
@@ -124,7 +126,7 @@ async def health():
     try:
         import redis.asyncio as aioredis
 
-        r = aioredis.from_url(settings.resolved_redis_url)
+        r = aioredis.from_url(settings.resolved_redis_url)  # type: ignore[no-untyped-call]
         await r.ping()
         await r.aclose()
         statuses["redis"] = "ok"
@@ -145,16 +147,16 @@ async def health():
 
 
 @app.get("/metrics")
-async def metrics_endpoint():
+async def metrics_endpoint() -> PlainTextResponse:
     return PlainTextResponse(metrics.render_prometheus())
 
 
 @app.websocket("/ws/logs")
-async def websocket_logs(websocket: WebSocket):
+async def websocket_logs(websocket: WebSocket) -> None:
     await websocket.accept()
     logger.log_action("ws", "client_connected", "completed")
 
-    async def send_log(record: dict):
+    async def send_log(record: dict[str, Any]) -> None:
         try:
             await websocket.send_json(record)
         except Exception:
@@ -178,7 +180,7 @@ async def websocket_logs(websocket: WebSocket):
 
 @app.post("/api/v1/run")
 @limiter.limit(settings.rate_limit_run)
-async def run_workflow(req: RunRequest, request: Request):
+async def run_workflow(req: RunRequest, request: Request) -> dict[str, Any]:
     start = time.time()
     orchestrator = get_orchestrator()
     result = await orchestrator.run(prompt=req.prompt, project_id=req.project_id)
@@ -189,7 +191,7 @@ async def run_workflow(req: RunRequest, request: Request):
 
 
 @app.get("/api/v1/status/{session_id}")
-async def get_status(session_id: str):
+async def get_status(session_id: str) -> dict[str, Any]:
     from app.memory.session import get_session_manager
 
     sm = get_session_manager()
@@ -201,7 +203,7 @@ async def get_status(session_id: str):
 
 @app.post("/api/v1/hitl/approve")
 @limiter.limit("30/minute")
-async def approve_action(req: ApproveRequest, request: Request):
+async def approve_action(req: ApproveRequest, request: Request) -> dict[str, Any]:
     hitl = get_hitl_gateway()
     try:
         result = hitl.approve(req.approval_id)
@@ -218,7 +220,7 @@ async def approve_action(req: ApproveRequest, request: Request):
 
 @app.post("/api/v1/hitl/reject")
 @limiter.limit("30/minute")
-async def reject_action(req: RejectRequest, request: Request):
+async def reject_action(req: RejectRequest, request: Request) -> dict[str, Any]:
     hitl = get_hitl_gateway()
     try:
         result = hitl.reject(req.approval_id, req.reason)
@@ -229,13 +231,13 @@ async def reject_action(req: RejectRequest, request: Request):
 
 
 @app.get("/api/v1/hitl/pending")
-async def list_pending():
+async def list_pending() -> dict[str, Any]:
     hitl = get_hitl_gateway()
     return {"pending": hitl.get_pending()}
 
 
 @app.get("/api/v1/logs")
-async def get_logs(limit: int = 100, trace_id: str = ""):
+async def get_logs(limit: int = 100, trace_id: str = "") -> dict[str, Any]:
     telemetry = get_telemetry()
     spans = telemetry.get_spans(trace_id) if trace_id else telemetry.get_spans()
     return {"logs": spans[-limit:]}
@@ -243,7 +245,7 @@ async def get_logs(limit: int = 100, trace_id: str = ""):
 
 @app.post("/api/v1/project/export")
 @limiter.limit("30/minute")
-async def export_project(req: ProjectExport, request: Request):
+async def export_project(req: ProjectExport, request: Request) -> dict[str, Any]:
     from app.memory.session import get_session_manager
 
     sm = get_session_manager()
@@ -255,7 +257,13 @@ async def export_project(req: ProjectExport, request: Request):
         "embeddings": [],
     }
     try:
-        sessions = await sm.list_by_project(req.project_id)
+        sessions = []
+        try:
+            session_data = await sm.get(req.project_id)
+            if session_data:
+                sessions = [session_data]
+        except Exception:
+            pass
         export_data["sessions"] = sessions
     except Exception:
         pass
@@ -264,7 +272,7 @@ async def export_project(req: ProjectExport, request: Request):
 
 @app.post("/api/v1/project/import")
 @limiter.limit("30/minute")
-async def import_project(data: dict, request: Request):
+async def import_project(data: dict[str, Any], request: Request) -> dict[str, Any]:
     from app.memory.session import get_session_manager
 
     sm = get_session_manager()
@@ -277,7 +285,7 @@ async def import_project(data: dict, request: Request):
 
 @app.post("/api/v1/scheduler/create")
 @limiter.limit("20/minute")
-async def create_scheduled_task(task: SchedulerTask, request: Request):
+async def create_scheduled_task(task: SchedulerTask, request: Request) -> dict[str, Any]:
     from app.scheduler import get_scheduler
 
     scheduler = get_scheduler()
@@ -292,7 +300,7 @@ async def create_scheduled_task(task: SchedulerTask, request: Request):
 
 
 @app.get("/api/v1/scheduler/tasks")
-async def list_scheduled_tasks():
+async def list_scheduled_tasks() -> dict[str, Any]:
     from app.scheduler import get_scheduler
 
     tasks = get_scheduler().list_tasks()
@@ -300,7 +308,7 @@ async def list_scheduled_tasks():
 
 
 @app.get("/api/v1/workspaces")
-async def list_workspaces():
+async def list_workspaces() -> dict[str, Any]:
     from app.memory.workspace import get_workspace_manager
 
     wm = get_workspace_manager()
@@ -309,7 +317,7 @@ async def list_workspaces():
 
 @app.post("/api/v1/workspaces")
 @limiter.limit("30/minute")
-async def create_workspace(data: dict, request: Request):
+async def create_workspace(data: dict[str, Any], request: Request) -> dict[str, Any]:
     from app.memory.workspace import get_workspace_manager
 
     wm = get_workspace_manager()
@@ -320,7 +328,7 @@ async def create_workspace(data: dict, request: Request):
 
 @app.post("/api/v1/llm/cache/clear")
 @limiter.limit("10/minute")
-async def clear_llm_cache(request: Request):
+async def clear_llm_cache(request: Request) -> dict[str, str]:
     from app.utils.api_clients import LLMClient
 
     LLMClient().clear_cache()
@@ -333,12 +341,12 @@ async def clear_llm_cache(request: Request):
 class PlanRequest(BaseModel):
     goal: str
     project_id: str = "default"
-    context: dict = {}
+    context: dict[str, Any] = {}
 
 
 @app.post("/api/v1/plan")
 @limiter.limit(settings.rate_limit_plan)
-async def create_plan(req: PlanRequest, request: Request):
+async def create_plan(req: PlanRequest, request: Request) -> dict[str, Any]:
     from app.agents.rules import get_rules
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
 
@@ -355,14 +363,14 @@ async def create_plan(req: PlanRequest, request: Request):
 
 class VerifyRequest(BaseModel):
     task: str
-    code_changes: list[dict] = []
+    code_changes: list[dict[str, Any]] = []
     test_results: str = ""
     lint_output: str = ""
 
 
 @app.post("/api/v1/verify")
 @limiter.limit(settings.rate_limit_verify)
-async def verify_work(req: VerifyRequest, request: Request):
+async def verify_work(req: VerifyRequest, request: Request) -> dict[str, Any]:
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
 
     sub = SubAgent(BUILTIN_SUB_AGENTS["verifier"])
@@ -383,12 +391,12 @@ async def verify_work(req: VerifyRequest, request: Request):
 class SubAgentRequest(BaseModel):
     name: str
     task: str
-    context: dict = {}
+    context: dict[str, Any] = {}
 
 
 @app.post("/api/v1/sub-agent/run")
 @limiter.limit("15/minute")
-async def run_sub_agent(req: SubAgentRequest, request: Request):
+async def run_sub_agent(req: SubAgentRequest, request: Request) -> dict[str, Any]:
     from app.agents.sub_agent import get_or_create_sub_agent, route_to_sub_agent
 
     agent_name = req.name
@@ -402,7 +410,7 @@ async def run_sub_agent(req: SubAgentRequest, request: Request):
 
 
 @app.get("/api/v1/sub-agents")
-async def list_sub_agents():
+async def list_sub_agents() -> dict[str, Any]:
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS
 
     return {"sub_agents": list(BUILTIN_SUB_AGENTS.keys())}
@@ -413,12 +421,12 @@ async def list_sub_agents():
 
 class DebugRequest(BaseModel):
     error: str
-    context: dict = {}
+    context: dict[str, Any] = {}
 
 
 @app.post("/api/v1/sub-agent/debug")
 @limiter.limit("15/minute")
-async def debug_error(req: DebugRequest, request: Request):
+async def debug_error(req: DebugRequest, request: Request) -> dict[str, Any]:
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
 
     sub = SubAgent(BUILTIN_SUB_AGENTS["debugger"])
@@ -444,7 +452,9 @@ class KanbanCardMove(BaseModel):
 
 @app.post("/api/v1/kanban/{project_id}/cards")
 @limiter.limit("30/minute")
-async def create_kanban_card(project_id: str, card: KanbanCardCreate, request: Request):
+async def create_kanban_card(
+    project_id: str, card: KanbanCardCreate, request: Request
+) -> dict[str, Any]:
     from app.kanban import get_kanban_board
 
     board = get_kanban_board(project_id)
@@ -454,7 +464,7 @@ async def create_kanban_card(project_id: str, card: KanbanCardCreate, request: R
 
 
 @app.get("/api/v1/kanban/{project_id}")
-async def get_kanban_board_endpoint(project_id: str):
+async def get_kanban_board_endpoint(project_id: str) -> dict[str, Any]:
     from app.kanban import get_kanban_board
 
     board = get_kanban_board(project_id)
@@ -463,7 +473,9 @@ async def get_kanban_board_endpoint(project_id: str):
 
 @app.put("/api/v1/kanban/{project_id}/move")
 @limiter.limit("30/minute")
-async def move_kanban_card(project_id: str, move: KanbanCardMove, request: Request):
+async def move_kanban_card(
+    project_id: str, move: KanbanCardMove, request: Request
+) -> dict[str, str]:
     from app.kanban import get_kanban_board
 
     board = get_kanban_board(project_id)
@@ -474,7 +486,7 @@ async def move_kanban_card(project_id: str, move: KanbanCardMove, request: Reque
 
 @app.delete("/api/v1/kanban/{project_id}/cards/{card_id}")
 @limiter.limit("30/minute")
-async def delete_kanban_card(project_id: str, card_id: str, request: Request):
+async def delete_kanban_card(project_id: str, card_id: str, request: Request) -> dict[str, str]:
     from app.kanban import get_kanban_board
 
     board = get_kanban_board(project_id)
@@ -487,7 +499,7 @@ async def delete_kanban_card(project_id: str, card_id: str, request: Request):
 
 
 @app.get("/api/v1/pulse/{project_id}")
-async def get_pulse(project_id: str):
+async def get_pulse_endpoint(project_id: str) -> dict[str, Any]:
     from app.kanban import get_kanban_board
     from app.orchestrator import get_orchestrator
     from app.pulse import get_pulse
@@ -501,7 +513,7 @@ async def get_pulse(project_id: str):
 
 
 @app.get("/api/v1/pulse/{project_id}/timeline")
-async def get_pulse_timeline(project_id: str, limit: int = 60):
+async def get_pulse_timeline_endpoint(project_id: str, limit: int = 60) -> dict[str, Any]:
     from app.pulse import get_pulse
 
     return {"timeline": get_pulse().get_timeline(limit)}
@@ -518,7 +530,7 @@ class MCPServerRegister(BaseModel):
 
 @app.post("/api/v1/mcp/register")
 @limiter.limit("20/minute")
-async def register_mcp_server(server: MCPServerRegister, request: Request):
+async def register_mcp_server(server: MCPServerRegister, request: Request) -> dict[str, Any]:
     from app.mcp.server import get_mcp_registry
 
     registry = get_mcp_registry()
@@ -527,7 +539,7 @@ async def register_mcp_server(server: MCPServerRegister, request: Request):
 
 
 @app.get("/api/v1/mcp/servers")
-async def list_mcp_servers():
+async def list_mcp_servers() -> dict[str, Any]:
     from app.mcp.server import get_mcp_registry
 
     return {"servers": get_mcp_registry().list_servers()}
@@ -536,8 +548,8 @@ async def list_mcp_servers():
 @app.post("/api/v1/mcp/{server_name}/call/{tool_name}")
 @limiter.limit("30/minute")
 async def call_mcp_tool(
-    server_name: str, tool_name: str, params: dict = {}, request: Request = None
-):
+    server_name: str, tool_name: str, params: dict[str, Any] = {}, request: Request = None  # type: ignore[assignment]
+) -> dict[str, Any]:
     from app.mcp.server import get_mcp_registry
 
     result = await get_mcp_registry().call_tool(server_name, tool_name, params)
@@ -548,7 +560,7 @@ async def call_mcp_tool(
 
 
 @app.get("/api/v1/rules")
-async def get_rules_endpoint():
+async def get_rules_endpoint() -> dict[str, Any]:
     from app.agents.rules import get_rules
 
     rules = get_rules()
@@ -561,7 +573,7 @@ async def get_rules_endpoint():
 
 @app.post("/api/v1/rules/init")
 @limiter.limit("10/minute")
-async def init_rules(request: Request):
+async def init_rules(request: Request) -> dict[str, Any]:
     from app.agents.rules import get_rules
 
     rules = get_rules()
@@ -579,7 +591,7 @@ class WorktreeCreate(BaseModel):
 
 @app.post("/api/v1/worktree")
 @limiter.limit("10/minute")
-async def create_worktree(req: WorktreeCreate, request: Request):
+async def create_worktree(req: WorktreeCreate, request: Request) -> dict[str, Any]:
     from app.git_worktree import get_worktree_manager
 
     wm = get_worktree_manager()
@@ -591,7 +603,7 @@ async def create_worktree(req: WorktreeCreate, request: Request):
 
 
 @app.get("/api/v1/worktree")
-async def list_worktrees():
+async def list_worktrees() -> dict[str, Any]:
     from app.git_worktree import get_worktree_manager
 
     wm = get_worktree_manager()
@@ -604,7 +616,7 @@ async def list_worktrees():
 
 @app.post("/api/v1/worktree/rebase")
 @limiter.limit("10/minute")
-async def rebase_worktree(branch_name: str, request: Request):
+async def rebase_worktree(branch_name: str, request: Request) -> dict[str, Any]:
     from app.git_worktree import get_worktree_manager
 
     wm = get_worktree_manager()
@@ -617,7 +629,7 @@ async def rebase_worktree(branch_name: str, request: Request):
 
 @app.delete("/api/v1/worktree/{branch_name}")
 @limiter.limit("10/minute")
-async def remove_worktree(branch_name: str, request: Request):
+async def remove_worktree(branch_name: str, request: Request) -> dict[str, Any]:
     from app.git_worktree import get_worktree_manager
 
     wm = get_worktree_manager()
@@ -636,7 +648,7 @@ DEPLOY_HTML_PATH = Path(__file__).resolve().parent / "templates" / "deploy.html"
 
 
 @app.get("/guide", response_class=HTMLResponse)
-async def guide_page():
+async def guide_page() -> HTMLResponse:
     if GUIDE_HTML_PATH.exists():
         return HTMLResponse(GUIDE_HTML_PATH.read_text())
     return HTMLResponse("<h1>Guide not found</h1>", status_code=404)
@@ -654,14 +666,14 @@ class DeployConfig(BaseModel):
 
 
 @app.get("/deploy", response_class=HTMLResponse)
-async def deploy_assistant():
+async def deploy_assistant() -> HTMLResponse:
     if DEPLOY_HTML_PATH.exists():
         return HTMLResponse(DEPLOY_HTML_PATH.read_text())
     return HTMLResponse("<h1>Deploy assistant not found</h1>", status_code=404)
 
 
 @app.post("/api/v1/deploy/configure")
-async def configure_deploy(cfg: DeployConfig, request: Request):
+async def configure_deploy(cfg: DeployConfig, request: Request) -> dict[str, Any]:
     secrets: dict[str, str] = {}
     if cfg.host:
         secrets["DEPLOY_HOST"] = cfg.host

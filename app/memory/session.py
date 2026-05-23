@@ -1,9 +1,10 @@
 import json
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config.settings import get_settings
 from app.utils.logging import get_logger
@@ -12,14 +13,14 @@ logger = get_logger("session")
 
 
 class SessionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
-        self._engine = None
-        self._session_factory = None
+        self._engine: Any = None
+        self._session_factory: async_sessionmaker[AsyncSession] | None = None
         self._use_json_fallback = False
-        self._sessions: dict[str, dict] = {}
+        self._sessions: dict[str, dict[str, Any]] = {}
 
-    async def _init_db(self):
+    async def _init_db(self) -> None:
         if self._engine is not None:
             return
         try:
@@ -50,7 +51,7 @@ class SessionManager:
 
         try:
             await self._init_db()
-            async with self._session_factory() as session:
+            async with self._session_factory() as session:  # type: ignore[misc]
                 stmt = text("""
                     INSERT INTO sessions
                         (id, project_id, workflow_id, status, context, created_at, updated_at)
@@ -78,7 +79,7 @@ class SessionManager:
         return session_id
 
     async def update(
-        self, session_id: str, context: dict | None = None, status: str | None = None
+        self, session_id: str, context: dict[str, Any] | None = None, status: str | None = None
     ) -> bool:
         now = datetime.now(UTC).isoformat()
 
@@ -94,7 +95,7 @@ class SessionManager:
 
         try:
             await self._init_db()
-            async with self._session_factory() as session:
+            async with self._session_factory() as session:  # type: ignore[misc]
                 updates = ["updated_at = :updated_at"]
                 params = {"id": session_id, "updated_at": now}
                 if context is not None:
@@ -106,18 +107,19 @@ class SessionManager:
                 stmt = text(f"UPDATE sessions SET {', '.join(updates)} WHERE id = :id")
                 result = await session.execute(stmt, params)
                 await session.commit()
-                return result.rowcount > 0
+                rc: int = result.rowcount  # type: ignore[union-attr]
+                return rc > 0
         except Exception as e:
             logger.log_warn("session", "update", f"DB update failed: {e}")
             return False
 
-    async def get(self, session_id: str) -> dict | None:
+    async def get(self, session_id: str) -> dict[str, Any] | None:
         if self._use_json_fallback or session_id in self._sessions:
             return self._sessions.get(session_id)
 
         try:
             await self._init_db()
-            async with self._session_factory() as session:
+            async with self._session_factory() as session:  # type: ignore[misc]
                 stmt = text("SELECT * FROM sessions WHERE id = :id")
                 result = await session.execute(stmt, {"id": session_id})
                 row = result.fetchone()

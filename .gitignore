@@ -26,7 +26,8 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Project specific
+# mypy
+.mypy_cache/
 backups/
 *.db
 

@@ -65,9 +65,7 @@ class TestOptionalAuthMiddleware:
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_get_other_route_without_auth(
-        self, async_client: AsyncClient
-    ) -> None:
+    async def test_get_other_route_without_auth(self, async_client: AsyncClient) -> None:
         resp = await async_client.get("/api/v1/workspaces")
         assert resp.status_code == 200
 
@@ -81,7 +79,7 @@ class TestGetCurrentUserDirect:
 
         with pytest.raises(Exception) as exc_info:
             await get_current_user(None)
-        assert exc_info.value.status_code == 401
+        assert exc_info.value.status_code == 401  # type: ignore[attr-defined]
 
     @pytest.mark.asyncio
     async def test_raises_401_with_invalid_token(self) -> None:
@@ -89,9 +87,7 @@ class TestGetCurrentUserDirect:
 
         from app.utils.auth import get_current_user
 
-        creds = HTTPAuthorizationCredentials(
-            scheme="Bearer", credentials="invalidtoken"
-        )
+        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials="invalidtoken")
         with pytest.raises(Exception) as exc_info:
             await get_current_user(creds)
-        assert exc_info.value.status_code == 401
+        assert exc_info.value.status_code == 401  # type: ignore[attr-defined]

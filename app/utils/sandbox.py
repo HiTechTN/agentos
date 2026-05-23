@@ -18,7 +18,7 @@ class SandboxResult:
 
 
 class SandboxManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
 
     async def execute(
@@ -50,7 +50,7 @@ class SandboxManager:
         try:
             import docker
 
-            client = docker.from_env()
+            client = docker.from_env()  # type: ignore[attr-defined]
             container_network = self.settings.sandbox_network if network_access else "none"
 
             container = client.containers.run(

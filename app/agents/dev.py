@@ -11,7 +11,9 @@ class DevAgent(BaseAgent):
 
     HITL_ACTIONS = {"deploy"}
 
-    async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any:
+    async def _run(
+        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> Any:
         if action in self.HITL_ACTIONS:
             try:
                 details = {"action": action, "params": params, "agent": self.name}
@@ -33,7 +35,7 @@ class DevAgent(BaseAgent):
 
         return await handler(params, session_id, trace_id)
 
-    async def _scaffold(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _scaffold(self, params: dict[str, Any], session_id: str, trace_id: str) -> ToolResult:
         prompt = params.get("prompt", "Scaffold a new project structure")
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -50,7 +52,9 @@ Return the file tree and brief descriptions.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"plan": content})
 
-    async def _run_tests(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _run_tests(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         framework = params.get("framework", "pytest")
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -66,7 +70,7 @@ Cover edge cases and error handling.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"tests": content})
 
-    async def _run_lint(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _run_lint(self, params: dict[str, Any], session_id: str, trace_id: str) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {
@@ -80,7 +84,7 @@ Configure ruff and mypy. List all issues found and fixes applied.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"lint_report": content})
 
-    async def _deploy(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _deploy(self, params: dict[str, Any], session_id: str, trace_id: str) -> ToolResult:
         target = params.get("target", "staging")
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -96,7 +100,7 @@ Note: HITL approval was obtained for this deployment.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"deployment": content, "target": target})
 
-    async def _analyze(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _analyze(self, params: dict[str, Any], session_id: str, trace_id: str) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {

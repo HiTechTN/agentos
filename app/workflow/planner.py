@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime
+from typing import Any
 
 from app.agents.rules import get_rules
 from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
@@ -18,7 +19,7 @@ class PlanPhase:
         self.order = order
         self.tasks: list[PlanTask] = []
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
@@ -43,7 +44,7 @@ class PlanTask:
         self.dependencies = dependencies or []
         self.estimated_minutes = estimated_minutes
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "title": self.title,
@@ -63,7 +64,7 @@ class Plan:
         self.architecture_summary: str = ""
         self.created_at = datetime.now(UTC).isoformat()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "goal": self.goal,
             "phases": [p.to_dict() for p in self.phases],
@@ -75,12 +76,12 @@ class Plan:
 
 
 class Planner:
-    def __init__(self):
+    def __init__(self) -> None:
         self.llm = LLMClient()
         self.logger = get_logger("planner")
         self.rules = get_rules()
 
-    async def create_plan(self, goal: str, context: dict | None = None) -> Plan:
+    async def create_plan(self, goal: str, context: dict[str, Any] | None = None) -> Plan:
         self.logger.log_action("planner", "create_plan", "started", details={"goal": goal[:100]})
         plan = Plan(goal)
 

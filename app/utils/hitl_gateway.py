@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from app.utils.logging import get_logger
 
@@ -23,7 +24,7 @@ class HITLRejectedError(Exception):
 
 
 class PendingApproval:
-    def __init__(self, session_id: str, agent_name: str, action: str, details: dict):
+    def __init__(self, session_id: str, agent_name: str, action: str, details: dict[str, Any]):
         self.id = str(uuid.uuid4())
         self.session_id = session_id
         self.agent_name = agent_name
@@ -33,17 +34,17 @@ class PendingApproval:
         self.created_at = datetime.now(UTC)
         self._event = asyncio.Event()
 
-    def approve(self) -> dict:
+    def approve(self) -> dict[str, Any]:
         self.status = "approved"
         self._event.set()
         return self.details
 
-    def reject(self, reason: str = "") -> dict:
+    def reject(self, reason: str = "") -> dict[str, Any]:
         self.status = "rejected"
         self._event.set()
         return {"reason": reason, **self.details}
 
-    async def wait(self, timeout: float = 0) -> dict:
+    async def wait(self, timeout: float = 0) -> dict[str, Any]:
         if timeout > 0:
             await asyncio.wait_for(self._event.wait(), timeout=timeout)
         else:
@@ -54,7 +55,7 @@ class PendingApproval:
 
 
 class HITLGateway:
-    def __init__(self):
+    def __init__(self) -> None:
         self._pending: dict[str, PendingApproval] = {}
 
     async def request_approval(
@@ -62,9 +63,9 @@ class HITLGateway:
         session_id: str,
         agent_name: str,
         action: str,
-        details: dict,
+        details: dict[str, Any],
         timeout: float = 0,
-    ) -> dict:
+    ) -> dict[str, Any]:
         approval = PendingApproval(session_id, agent_name, action, details)
         self._pending[approval.id] = approval
 
@@ -84,7 +85,7 @@ class HITLGateway:
             action=action,
         )
 
-    def approve(self, approval_id: str) -> dict:
+    def approve(self, approval_id: str) -> dict[str, Any]:
         approval = self._pending.get(approval_id)
         if not approval:
             raise ValueError(f"Approval {approval_id} not found")
@@ -100,7 +101,7 @@ class HITLGateway:
         )
         return result
 
-    def reject(self, approval_id: str, reason: str = "") -> dict:
+    def reject(self, approval_id: str, reason: str = "") -> dict[str, Any]:
         approval = self._pending.get(approval_id)
         if not approval:
             raise ValueError(f"Approval {approval_id} not found")
@@ -114,7 +115,7 @@ class HITLGateway:
         )
         return result
 
-    def get_pending(self) -> list[dict]:
+    def get_pending(self) -> list[dict[str, Any]]:
         return [
             {
                 "id": a.id,
@@ -129,7 +130,7 @@ class HITLGateway:
             if a.status == "pending"
         ]
 
-    async def cli_confirm(self, action: str, details: dict) -> bool:
+    async def cli_confirm(self, action: str, details: dict[str, Any]) -> bool:
         from rich.console import Console
         from rich.prompt import Confirm
 
@@ -138,7 +139,7 @@ class HITLGateway:
         console.print(f"[dim]{details}[/dim]")
         return Confirm.ask("Approve this action?", default=False)
 
-    async def _auto_reject(self, approval: PendingApproval, timeout: float):
+    async def _auto_reject(self, approval: PendingApproval, timeout: float) -> None:
         await asyncio.sleep(timeout)
         if approval.status == "pending":
             approval.reject("auto-rejected: timeout")

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import patch
 
 import jwt as pyjwt
@@ -24,7 +25,7 @@ from app.utils.request_id import RequestIDMiddleware
 # ── auth ───────────────────────────────────────────────
 
 
-def test_create_access_token_default_role():
+def test_create_access_token_default_role() -> None:
     mock_token = "eyJ.abc.def"
     with patch("app.utils.auth.jwt.encode", return_value=mock_token) as mock_encode:
         token = create_access_token(sub="alice", workspace="ws1")
@@ -39,7 +40,7 @@ def test_create_access_token_default_role():
     assert "iat" in payload
 
 
-def test_create_access_token_custom_role():
+def test_create_access_token_custom_role() -> None:
     mock_token = "eyJ.xyz.789"
     with patch("app.utils.auth.jwt.encode", return_value=mock_token) as mock_encode:
         token = create_access_token(sub="bob", workspace="ws2", role="admin")
@@ -50,7 +51,7 @@ def test_create_access_token_custom_role():
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_missing_credentials():
+async def test_get_current_user_missing_credentials() -> None:
     with pytest.raises(HTTPException) as exc:
         await get_current_user(None)
     assert exc.value.status_code == 401
@@ -58,7 +59,7 @@ async def test_get_current_user_missing_credentials():
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_valid_token():
+async def test_get_current_user_valid_token() -> None:
     now = datetime.now(UTC)
     creds = HTTPAuthorizationCredentials(credentials="valid.jwt", scheme="Bearer")
     mock_payload = {"sub": "alice", "workspace": "ws1", "role": "user", "exp": now}
@@ -71,7 +72,7 @@ async def test_get_current_user_valid_token():
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_expired_token():
+async def test_get_current_user_expired_token() -> None:
     creds = HTTPAuthorizationCredentials(credentials="expired.jwt", scheme="Bearer")
     with patch("app.utils.auth.jwt.decode", side_effect=pyjwt.ExpiredSignatureError):
         with pytest.raises(HTTPException) as exc:
@@ -81,7 +82,7 @@ async def test_get_current_user_expired_token():
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_invalid_token():
+async def test_get_current_user_invalid_token() -> None:
     creds = HTTPAuthorizationCredentials(credentials="bad.jwt", scheme="Bearer")
     with patch("app.utils.auth.jwt.decode", side_effect=pyjwt.InvalidTokenError):
         with pytest.raises(HTTPException) as exc:
@@ -91,14 +92,14 @@ async def test_get_current_user_invalid_token():
 
 
 @pytest.mark.asyncio
-async def test_require_admin_allowed():
+async def test_require_admin_allowed() -> None:
     user = TokenPayload(sub="admin", workspace="ws1", exp=datetime.now(UTC), role="admin")
     result = await require_admin(user)
     assert result is user
 
 
 @pytest.mark.asyncio
-async def test_require_admin_forbidden():
+async def test_require_admin_forbidden() -> None:
     user = TokenPayload(sub="user", workspace="ws1", exp=datetime.now(UTC), role="user")
     with pytest.raises(HTTPException) as exc:
         await require_admin(user)
@@ -106,13 +107,13 @@ async def test_require_admin_forbidden():
     assert exc.value.detail == "Admin required"
 
 
-def test_current_user_type_alias():
+def test_current_user_type_alias() -> None:
     from typing import Annotated, get_origin
 
     assert get_origin(CurrentUser) is Annotated
 
 
-def test_admin_user_type_alias():
+def test_admin_user_type_alias() -> None:
     from typing import Annotated, get_origin
 
     assert get_origin(AdminUser) is Annotated
@@ -121,7 +122,7 @@ def test_admin_user_type_alias():
 # ── rate_limit ─────────────────────────────────────────
 
 
-def test_limiter_singleton():
+def test_limiter_singleton() -> None:
     from slowapi import Limiter
 
     from app.utils.rate_limit import limiter
@@ -129,7 +130,7 @@ def test_limiter_singleton():
     assert isinstance(limiter, Limiter)
 
 
-def test_limits_populated():
+def test_limits_populated() -> None:
     from app.utils.rate_limit import LIMITS
 
     assert "run" in LIMITS
@@ -137,7 +138,7 @@ def test_limits_populated():
     assert "verify" in LIMITS
 
 
-def test_make_limiter_returns_limiter():
+def test_make_limiter_returns_limiter() -> None:
     from slowapi import Limiter
 
     from app.utils.rate_limit import _make_limiter
@@ -146,7 +147,7 @@ def test_make_limiter_returns_limiter():
     assert isinstance(lim, Limiter)
 
 
-def test_make_limiter_populates_limits():
+def test_make_limiter_populates_limits() -> None:
     from app.utils.rate_limit import LIMITS, _make_limiter
 
     before = dict(LIMITS)
@@ -157,11 +158,11 @@ def test_make_limiter_populates_limits():
 # ── request_id ─────────────────────────────────────────
 
 
-async def _dummy_view(request):
+async def _dummy_view(request: Any) -> Any:
     return PlainTextResponse("ok")
 
 
-def _make_app():
+def _make_app() -> Any:
     app = Starlette(
         routes=[Route("/", _dummy_view)],
         middleware=[Middleware(RequestIDMiddleware)],
@@ -169,13 +170,13 @@ def _make_app():
     return app
 
 
-def test_request_id_with_header():
+def test_request_id_with_header() -> None:
     client = TestClient(_make_app())
     resp = client.get("/", headers={"X-Request-ID": "my-custom-id"})
     assert resp.headers.get("X-Request-ID") == "my-custom-id"
 
 
-def test_request_id_without_header():
+def test_request_id_without_header() -> None:
     client = TestClient(_make_app())
     resp = client.get("/")
     rid = resp.headers.get("X-Request-ID")

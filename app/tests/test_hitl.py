@@ -1,15 +1,17 @@
+from typing import Any
+
 import pytest
 
 from app.utils.hitl_gateway import HITLGateway, HITLPendingError
 
 
 @pytest.fixture
-def hitl():
+def hitl() -> Any:
     return HITLGateway()
 
 
 @pytest.mark.asyncio
-async def test_hitl_request_raises_pending(hitl):
+async def test_hitl_request_raises_pending(hitl: Any) -> None:
     with pytest.raises(HITLPendingError) as exc:
         try:
             await hitl.request_approval(
@@ -24,7 +26,7 @@ async def test_hitl_request_raises_pending(hitl):
 
 
 @pytest.mark.asyncio
-async def test_hitl_approve_flow(hitl):
+async def test_hitl_approve_flow(hitl: Any) -> None:
     with pytest.raises(HITLPendingError) as exc:
         try:
             await hitl.request_approval(
@@ -42,7 +44,7 @@ async def test_hitl_approve_flow(hitl):
 
 
 @pytest.mark.asyncio
-async def test_hitl_reject_flow(hitl):
+async def test_hitl_reject_flow(hitl: Any) -> None:
     with pytest.raises(HITLPendingError) as exc:
         try:
             await hitl.request_approval(
@@ -60,7 +62,7 @@ async def test_hitl_reject_flow(hitl):
 
 
 @pytest.mark.asyncio
-async def test_hitl_list_pending(hitl):
+async def test_hitl_list_pending(hitl: Any) -> None:
     pending = hitl.get_pending()
     assert isinstance(pending, list)
     initial_count = len(pending)
@@ -81,7 +83,7 @@ async def test_hitl_list_pending(hitl):
 
 
 @pytest.mark.asyncio
-async def test_hitl_double_approve_fails(hitl):
+async def test_hitl_double_approve_fails(hitl: Any) -> None:
     with pytest.raises(HITLPendingError) as exc:
         try:
             await hitl.request_approval(
@@ -101,13 +103,13 @@ async def test_hitl_double_approve_fails(hitl):
 
 
 @pytest.mark.asyncio
-async def test_hitl_unknown_approval(hitl):
+async def test_hitl_unknown_approval(hitl: Any) -> None:
     with pytest.raises(ValueError, match="not found"):
         hitl.approve("nonexistent-id")
 
 
 @pytest.mark.asyncio
-async def test_hitl_integration_with_orchestrator():
+async def test_hitl_integration_with_orchestrator() -> Any:
     from unittest.mock import patch
 
     from app.orchestrator import AgentOSOrchestrator, AgentOSState
@@ -128,12 +130,14 @@ async def test_hitl_integration_with_orchestrator():
         "status": "running",
         "circuit_breaker": {k: 0 for k in ["dev", "content", "marketing", "commerce"]},
         "start_time": 0.0,
+        "parallel_batch": [],
     }
 
     from app.utils.hitl_gateway import get_hitl_gateway
+
     hitl = get_hitl_gateway()
 
-    async def hitl_execute(task, session_id="", trace_id=""):
+    async def hitl_execute(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         await hitl.request_approval(session_id, "dev", "deploy", {"target": "staging"})
         return {"agent": "dev", "action": "deploy", "success": True, "result": {}}
 
@@ -146,7 +150,7 @@ async def test_hitl_integration_with_orchestrator():
 
 
 @pytest.mark.asyncio
-async def test_hitl_approve_endpoint():
+async def test_hitl_approve_endpoint() -> None:
     from app.utils.hitl_gateway import get_hitl_gateway
 
     hitl = get_hitl_gateway()

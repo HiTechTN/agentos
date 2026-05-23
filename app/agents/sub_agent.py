@@ -3,7 +3,7 @@
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.utils.api_clients import LLMClient
 from app.utils.logging import get_logger
@@ -15,7 +15,7 @@ class ToolSet(Protocol):
     async def run_command(self, cmd: str, timeout: int = 30) -> str: ...
     async def read_file(self, path: str) -> str: ...
     async def search_files(self, pattern: str) -> list[str]: ...
-    async def grep_content(self, pattern: str, path: str = ".") -> list[dict]: ...
+    async def grep_content(self, pattern: str, path: str = ".") -> list[dict[str, Any]]: ...
 
 
 @dataclass
@@ -75,14 +75,14 @@ class SubAgent:
     def __init__(self, config: SubAgentConfig, tools: ToolSet | None = None):
         self.config = config
         self.tools = tools
-        self.llm = LLMClient()
+        self.llm: LLMClient = LLMClient()
         self.logger = get_logger(f"subagent_{config.name}")
 
-    async def run(self, task: str, context: dict | None = None) -> dict:
+    async def run(self, task: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         self.logger.log_action(
             "sub_agent", "run", "started", details={"name": self.config.name, "task": task[:100]}
         )
-        messages = [{"role": "system", "content": self.config.system_prompt}]
+        messages: list[dict[str, Any]] = [{"role": "system", "content": self.config.system_prompt}]
         if context:
             messages.append(
                 {
@@ -99,7 +99,7 @@ class SubAgent:
             cleaned = response.content.strip()
             if cleaned.startswith("```"):
                 cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-            result = json.loads(cleaned)
+            result: dict[str, Any] = json.loads(cleaned)
         except (json.JSONDecodeError, AttributeError):
             result = {"raw_response": response.content, "parsed": False}
 
@@ -123,7 +123,7 @@ def _load_custom_config(path: str) -> SubAgentConfig | None:
     try:
         with open(path) as f:
             content = f.read()
-        import yaml
+        import yaml  # type: ignore[import-untyped]
 
         parts = content.split("---", 2)
         if len(parts) >= 3:
@@ -152,7 +152,7 @@ def get_or_create_sub_agent(name: str) -> SubAgent | None:
     return agent
 
 
-def route_to_sub_agent(task: str, context: dict | None = None) -> str:
+def route_to_sub_agent(task: str, context: dict[str, Any] | None = None) -> str:
     task_lower = task.lower()
     if any(w in task_lower for w in ["verify", "validate", "test", "check quality", "lint"]):
         return "verifier"

@@ -10,9 +10,11 @@ class CommerceAgent(BaseAgent):
     model = "openai/gpt-4o-2024-11-20"
 
     HITL_ACTIONS = {"charge_stripe"}
-    _inventory: dict[str, dict] = {}
+    _inventory: dict[str, dict[str, Any]] = {}
 
-    async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any:
+    async def _run(
+        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> Any:
         if action in self.HITL_ACTIONS:
             from app.utils.hitl_gateway import HITLPendingError
 
@@ -37,7 +39,9 @@ class CommerceAgent(BaseAgent):
 
         return await handler(params, session_id, trace_id)
 
-    async def _manage_catalog(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _manage_catalog(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {
@@ -52,7 +56,9 @@ Return as structured product catalog data.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"catalog": content})
 
-    async def _optimize_pricing(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _optimize_pricing(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {
@@ -67,7 +73,9 @@ Provide pricing recommendations with rationale.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"pricing": content})
 
-    async def _create_checkout(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _create_checkout(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         price_id = params.get("price_id", self.settings.stripe_price_id)
         success_url = params.get("success_url", "http://localhost:3000/success")
         cancel_url = params.get("cancel_url", "http://localhost:3000/cancel")
@@ -100,12 +108,14 @@ Provide pricing recommendations with rationale.""",
             },
         )
 
-    async def _manage_inventory(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _manage_inventory(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         operation = params.get("operation", "list")
         item_id = params.get("item_id", "")
         quantity = params.get("quantity", 0)
 
-        cache = await get_cache()
+        cache = get_cache()
         cache_key = f"inventory:{session_id}"
 
         if operation == "add":
@@ -133,7 +143,9 @@ Provide pricing recommendations with rationale.""",
 
         raise AgentError("UNKNOWN_OPERATION", f"Unknown inventory operation: {operation}")
 
-    async def _generate_faq(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _generate_faq(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {
@@ -148,7 +160,9 @@ technical support. Include structured data for Schema.org markup.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"faq": content})
 
-    async def _charge_stripe(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _charge_stripe(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         amount = params.get("amount", 0)
         currency = params.get("currency", "usd")
 

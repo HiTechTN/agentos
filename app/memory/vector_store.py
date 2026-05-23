@@ -1,9 +1,10 @@
 import json
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config.settings import get_settings
 from app.utils.api_clients import EmbeddingClient
@@ -13,14 +14,14 @@ logger = get_logger("vector_store")
 
 
 class VectorStore:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
-        self._engine = None
-        self._session_factory = None
+        self._engine: Any = None
+        self._session_factory: async_sessionmaker[AsyncSession] | None = None
         self._embedding_client = EmbeddingClient()
         self._use_json_fallback = False
 
-    async def _init_db(self):
+    async def _init_db(self) -> None:
         if self._engine is not None:
             return
         try:
@@ -36,7 +37,9 @@ class VectorStore:
             )
             self._use_json_fallback = True
 
-    async def store(self, project_id: str, content: str, metadata: dict | None = None) -> str:
+    async def store(
+        self, project_id: str, content: str, metadata: dict[str, Any] | None = None
+    ) -> str:
         entry_id = str(uuid.uuid4())
         embedding = await self._embedding_client.embed(content)
 
@@ -45,7 +48,7 @@ class VectorStore:
 
         try:
             await self._init_db()
-            async with self._session_factory() as session:
+            async with self._session_factory() as session:  # type: ignore[misc]
                 stmt = text("""
                     INSERT INTO embeddings
                         (id, project_id, content, metadata, embedding, created_at)
@@ -69,7 +72,7 @@ class VectorStore:
             logger.log_warn("vector_store", "store", f"DB write failed, JSON fallback: {e}")
             return await self._store_json(entry_id, project_id, content, metadata, embedding)
 
-    async def search(self, project_id: str, query: str, top_k: int = 5) -> list[dict]:
+    async def search(self, project_id: str, query: str, top_k: int = 5) -> list[dict[str, Any]]:
         embedding = await self._embedding_client.embed(query)
 
         if self._use_json_fallback:
@@ -77,7 +80,7 @@ class VectorStore:
 
         try:
             await self._init_db()
-            async with self._session_factory() as session:
+            async with self._session_factory() as session:  # type: ignore[misc]
                 stmt = text("""
                     SELECT id, content, metadata,
                            1 - (embedding <=> :embedding::vector) AS similarity
@@ -108,11 +111,12 @@ class VectorStore:
             return False
         try:
             await self._init_db()
-            async with self._session_factory() as session:
+            async with self._session_factory() as session:  # type: ignore[misc]
                 stmt = text("DELETE FROM embeddings WHERE id = :id")
                 result = await session.execute(stmt, {"id": entry_id})
                 await session.commit()
-                return result.rowcount > 0
+                rc: int = result.rowcount  # type: ignore[union-attr]
+                return rc > 0
         except Exception:
             return False
 
@@ -126,7 +130,7 @@ class VectorStore:
         entry_id: str,
         project_id: str,
         content: str,
-        metadata: dict | None,
+        metadata: dict[str, Any] | None,
         embedding: list[float],
     ) -> str:
         import os
@@ -151,7 +155,7 @@ class VectorStore:
             json.dump(entries, f, default=str)
         return entry_id
 
-    def _search_json(self, project_id: str, query: str, top_k: int) -> list[dict]:
+    def _search_json(self, project_id: str, query: str, top_k: int) -> list[dict[str, Any]]:
         import os
 
         path = self._json_fallback_path()

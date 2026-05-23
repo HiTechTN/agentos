@@ -1,5 +1,7 @@
-"""Tests for v2.0/v3.0 features."""
+from typing import Any
 
+# ruff: noqa: E402
+"""Tests for v2.0/v3.0 features."""
 import time
 from unittest.mock import AsyncMock, patch
 
@@ -9,7 +11,7 @@ from app.orchestrator import AgentOSOrchestrator
 
 
 @pytest.fixture
-def orch():
+def orch() -> Any:
     return AgentOSOrchestrator()
 
 
@@ -17,7 +19,7 @@ def orch():
 
 
 @pytest.mark.asyncio
-async def test_parallel_execution(orch):
+async def test_parallel_execution(orch: Any) -> Any:
     tasks = [
         {"agent": "content", "action": "write", "params": {}},
         {"agent": "marketing", "action": "segment", "params": {}},
@@ -41,13 +43,13 @@ async def test_parallel_execution(orch):
     }
     mock = {"agent": "", "action": "", "success": True, "result": {"data": {}}}
 
-    async def mc(t, session_id="", trace_id=""):
+    async def mc(t: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         return {**mock, "agent": "content", "action": t.get("action", "")}
 
-    async def mm(t, session_id="", trace_id=""):
+    async def mm(t: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         return {**mock, "agent": "marketing", "action": t.get("action", "")}
 
-    async def mcom(t, session_id="", trace_id=""):
+    async def mcom(t: Any, session_id: Any = "", trace_id: Any = "") -> Any:
         return {**mock, "agent": "commerce", "action": t.get("action", "")}
 
     with (
@@ -63,7 +65,7 @@ async def test_parallel_execution(orch):
 
 
 @pytest.mark.asyncio
-async def test_metrics():
+async def test_metrics() -> None:
     from app.utils.metrics import get_metrics
 
     m = get_metrics()
@@ -78,7 +80,7 @@ async def test_metrics():
 
 
 @pytest.mark.asyncio
-async def test_telemetry_span():
+async def test_telemetry_span() -> None:
     from app.utils.telemetry import get_telemetry
 
     t = get_telemetry()
@@ -93,7 +95,7 @@ async def test_telemetry_span():
 
 
 @pytest.mark.asyncio
-async def test_notifications():
+async def test_notifications() -> None:
     from app.utils.notifications import get_notifications
 
     n = get_notifications()
@@ -105,7 +107,7 @@ async def test_notifications():
 
 
 @pytest.mark.asyncio
-async def test_scheduler():
+async def test_scheduler() -> None:
     from app.scheduler import ScheduledTask, get_scheduler
 
     s = get_scheduler()
@@ -124,7 +126,7 @@ async def test_scheduler():
 
 
 @pytest.mark.asyncio
-async def test_workspace():
+async def test_workspace() -> None:
     from app.memory.workspace import get_workspace_manager
 
     wm = get_workspace_manager()
@@ -142,7 +144,7 @@ async def test_workspace():
 
 
 @pytest.mark.asyncio
-async def test_llm_cache():
+async def test_llm_cache() -> None:
     from app.utils.api_clients import LLMClient
 
     client = LLMClient()
@@ -152,7 +154,9 @@ async def test_llm_cache():
     assert k1 == k2 and k1 != k3
 
     msgs = [{"role": "user", "content": "cached"}]
-    mock_resp = type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": "resp"})()})]})()  # noqa: E501
+    mock_resp = type(
+        "R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": "resp"})()})]}
+    )()  # noqa: E501
     mock_openai = AsyncMock()
     mock_openai.chat.completions.create = AsyncMock(return_value=mock_resp)
 
@@ -170,7 +174,7 @@ async def test_llm_cache():
 
 
 @pytest.mark.asyncio
-async def test_model_routing():
+async def test_model_routing() -> None:
     from app.config.settings import get_settings
 
     s = get_settings()
@@ -184,7 +188,7 @@ async def test_model_routing():
 
 
 @pytest.mark.asyncio
-async def test_routing_decides_parallel(orch):
+async def test_routing_decides_parallel(orch: Any) -> None:
     state = {
         k: v
         for k, v in {
@@ -215,14 +219,14 @@ async def test_routing_decides_parallel(orch):
 
 
 @pytest.mark.asyncio
-async def test_logging_broadcaster():
+async def test_logging_broadcaster() -> None:
     from app.utils.logging import get_broadcaster, get_logger
 
     log = get_logger("test")
     b = get_broadcaster()
     received = []
 
-    def cb(msg):
+    def cb(msg: Any) -> None:
         received.append(msg)
 
     b.subscribe(cb)
@@ -234,7 +238,7 @@ async def test_logging_broadcaster():
 
 
 @pytest.mark.asyncio
-async def test_hitl_propagation(orch):
+async def test_hitl_propagation(orch: Any) -> None:
     from app.utils.hitl_gateway import HITLPendingError
 
     state = {
@@ -254,7 +258,7 @@ async def test_hitl_propagation(orch):
         "parallel_batch": [],
     }
 
-    async def hitl_execute(task, session_id="", trace_id=""):
+    async def hitl_execute(task: Any, session_id: Any = "", trace_id: Any = "") -> None:
         raise HITLPendingError(approval_id="test-approval-id", action="deploy")
 
     with patch.object(orch.agents["dev"], "execute", hitl_execute):

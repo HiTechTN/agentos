@@ -14,7 +14,9 @@ class ContentAgent(BaseAgent):
 
     HITL_ACTIONS = {"publish"}
 
-    async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any:
+    async def _run(
+        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> Any:
         if action in self.HITL_ACTIONS:
             try:
                 details = {"action": action, "params": params, "agent": self.name}
@@ -35,7 +37,9 @@ class ContentAgent(BaseAgent):
 
         return await handler(params, session_id, trace_id)
 
-    async def _write_content(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _write_content(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {
@@ -50,7 +54,9 @@ readability score target > 60. Return as structured markdown.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"content": content})
 
-    async def _generate_image(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _generate_image(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         prompt = params.get("prompt", params.get("description", "Generate an image"))
         try:
             import replicate
@@ -87,7 +93,9 @@ Note: Image generation API is in fallback mode, returning prompt only.""",
             data={"image_description": content, "prompt": prompt, "mode": "description_only"},
         )
 
-    async def _create_calendar(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _create_calendar(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         messages = [
             {"role": "system", "content": self.system_prompt},
             {
@@ -102,7 +110,9 @@ and distribution channels. Return as structured data.""",
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"calendar": content})
 
-    async def _publish_cms(self, params: dict, session_id: str, trace_id: str) -> ToolResult:
+    async def _publish_cms(
+        self, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> ToolResult:
         cms_type = params.get("cms", "strapi")
         if cms_type == "strapi":
             try:

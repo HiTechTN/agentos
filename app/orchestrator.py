@@ -4,8 +4,9 @@ import time
 import uuid
 from typing import Any, TypedDict
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from app.agents import CommerceAgent, ContentAgent, DevAgent, MarketingAgent
 from app.memory.session import get_session_manager
@@ -21,11 +22,11 @@ class AgentOSState(TypedDict):
     session_id: str
     trace_id: str
     prompt: str
-    tasks: list[dict]
+    tasks: list[dict[str, Any]]
     current_task_index: int
     agent_sequence: list[str]
     results: dict[str, Any]
-    errors: list[dict]
+    errors: list[dict[str, Any]]
     pending_hitl: list[str]
     status: str
     circuit_breaker: dict[str, int]
@@ -38,26 +39,27 @@ CIRCUIT_BREAKER_THRESHOLD = 3
 TASK_PRIORITY_DEFAULT = 0
 
 
-def load_policies() -> dict:
+def load_policies() -> dict[str, Any]:
     import os
 
     path = os.path.join(os.path.dirname(__file__), "config", "policies.yaml")
     try:
         with open(path) as f:
-            return yaml.safe_load(f)
+            result: dict[str, Any] = yaml.safe_load(f)
+            return result
     except Exception:
         return {}
 
 
 class AgentOSOrchestrator:
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = get_logger("orchestrator")
         self.session_manager = get_session_manager()
         self.vector_store = get_vector_store()
         self.hitl_gateway = get_hitl_gateway()
         self.metrics = get_metrics()
         self.policies = load_policies()
-        self.agents = {
+        self.agents: dict[str, DevAgent | ContentAgent | MarketingAgent | CommerceAgent] = {
             "dev": DevAgent(),
             "content": ContentAgent(),
             "marketing": MarketingAgent(),
@@ -65,8 +67,8 @@ class AgentOSOrchestrator:
         }
         self.graph = self._build_graph()
 
-    def _build_graph(self) -> StateGraph:
-        workflow = StateGraph(AgentOSState)
+    def _build_graph(self) -> CompiledStateGraph:
+        workflow: StateGraph = StateGraph(AgentOSState)
         workflow.add_node("analyze_prompt", self._analyze_prompt)
         workflow.add_node("route_tasks", self._route_tasks)
         workflow.add_node("execute_parallel", self._execute_parallel)
@@ -112,9 +114,10 @@ class AgentOSOrchestrator:
             {"retry": "route_tasks", "circuit_open": "finalize", "fail": "finalize", "end": END},
         )
         workflow.add_edge("finalize", END)
-        return workflow.compile()
+        graph = workflow.compile()
+        return graph
 
-    async def run(self, prompt: str, project_id: str = "") -> dict:
+    async def run(self, prompt: str, project_id: str = "") -> dict[str, Any]:
         trace_id = str(uuid.uuid4())
         session_id = await self.session_manager.create(project_id or "default", trace_id)
         project_id = project_id or "default"
@@ -146,6 +149,8 @@ class AgentOSOrchestrator:
             span.set_attribute("prompt", prompt[:100])
         try:
             result = await self.graph.ainvoke(initial_state)
+            if result is None:
+                return {}
             return result
         except Exception as e:
             self.logger.log_error("orchestrator", "workflow", str(e), trace_id, project_id)
@@ -156,17 +161,17 @@ class AgentOSOrchestrator:
                 "trace_id": trace_id,
             }
 
-    async def _analyze_prompt(self, state: AgentOSState) -> dict:
+    async def _analyze_prompt(self, state: AgentOSState) -> dict[str, Any]:
         try:
             tasks = await self._decompose_prompt(state["prompt"])
             return {"tasks": tasks, "status": "analyzed"}
         except Exception as e:
             return {"errors": [{"code": "ANALYSIS_FAILED", "message": str(e)}], "status": "error"}
 
-    async def _decompose_prompt(self, prompt: str) -> list[dict]:
+    async def _decompose_prompt(self, prompt: str) -> list[dict[str, Any]]:
         from app.utils.api_clients import LLMClient
 
-        llm = LLMClient()
+        llm: LLMClient = LLMClient()
         response = await llm.chat(
             "openai/gpt-4o-2024-11-20",
             [
@@ -191,12 +196,13 @@ class AgentOSOrchestrator:
                 .removesuffix("```")
                 .strip()
             )
-            tasks = json.loads(cleaned)
-            if isinstance(tasks, dict):
-                tasks = [tasks]
-            for t in tasks:
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict):
+                parsed = [parsed]
+            tasks_list: list[dict[str, Any]] = parsed
+            for t in tasks_list:
                 t.setdefault("priority", TASK_PRIORITY_DEFAULT)
-            return tasks
+            return tasks_list
         except (json.JSONDecodeError, AttributeError) as e:
             self.logger.log_warn("orchestrator", "decompose", f"Failed to parse tasks: {e}")
             return [
@@ -214,16 +220,16 @@ class AgentOSOrchestrator:
         agents_remaining = [t["agent"] for t in remaining]
         unique_agents = list(dict.fromkeys(agents_remaining))
         if len(unique_agents) >= 2:
-            state["parallel_batch"] = remaining
+            state["parallel_batch"] = [t["agent"] for t in remaining]
             return "parallel"
         return remaining[0]["agent"] if remaining[0]["agent"] in self.agents else "finalize"
 
-    async def _execute_parallel(self, state: AgentOSState) -> dict:
-        batch = state.get("parallel_batch", [])
-        if not batch:
+    async def _execute_parallel(self, state: AgentOSState) -> dict[str, Any]:
+        tasks_in_batch = state.get("tasks", [])[state["current_task_index"] :]
+        if not tasks_in_batch:
             return {"current_task_index": state["current_task_index"]}
 
-        async def run_task(task: dict) -> tuple[str, dict]:
+        async def run_task(task: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             agent = self.agents.get(task["agent"])
             if not agent:
                 return task["agent"], {
@@ -247,26 +253,28 @@ class AgentOSOrchestrator:
                     "error": {"code": "EXECUTION_ERROR", "message": str(e)},
                 }
 
-        results = await asyncio.gather(*[run_task(t) for t in batch], return_exceptions=False)
+        results = await asyncio.gather(
+            *[run_task(t) for t in tasks_in_batch], return_exceptions=False
+        )
         new_results = dict(state.get("results", {}))
-        new_errors = list(state.get("errors", []))
-        pending_hitl = list(state.get("pending_hitl", []))
+        new_errors: list[dict[str, Any]] = list(state.get("errors", []))
+        pending_hitl: list[str] = list(state.get("pending_hitl", []))
         for agent_name, result in results:
             if "_hitl" in result:
                 pending_hitl.append(result["_hitl"])
             elif not result.get("success"):
-                new_errors.append(result.get("error", {"code": "AGENT_FAILED"}))
+                new_errors.append(result.get("error", {"code": "AGENT_FAILED", "message": ""}))
             else:
-                new_results[f"{agent_name}_{batch[0]['action']}"] = result
+                new_results[f"{agent_name}_{tasks_in_batch[0]['action']}"] = result
         return {
             "results": new_results,
             "errors": new_errors,
             "pending_hitl": pending_hitl,
-            "current_task_index": state["current_task_index"] + len(batch),
+            "current_task_index": state["current_task_index"] + len(tasks_in_batch),
             "parallel_batch": [],
         }
 
-    async def _execute_agent(self, state: AgentOSState, agent_name: str) -> dict:
+    async def _execute_agent(self, state: AgentOSState, agent_name: str) -> dict[str, Any]:
         agent = self.agents.get(agent_name)
         if not agent:
             return {
@@ -327,19 +335,19 @@ class AgentOSOrchestrator:
                     }
         return {"current_task_index": idx + 1}
 
-    async def _execute_dev(self, state: AgentOSState) -> dict:
+    async def _execute_dev(self, state: AgentOSState) -> dict[str, Any]:
         return await self._execute_agent(state, "dev")
 
-    async def _execute_content(self, state: AgentOSState) -> dict:
+    async def _execute_content(self, state: AgentOSState) -> dict[str, Any]:
         return await self._execute_agent(state, "content")
 
-    async def _execute_marketing(self, state: AgentOSState) -> dict:
+    async def _execute_marketing(self, state: AgentOSState) -> dict[str, Any]:
         return await self._execute_agent(state, "marketing")
 
-    async def _execute_commerce(self, state: AgentOSState) -> dict:
+    async def _execute_commerce(self, state: AgentOSState) -> dict[str, Any]:
         return await self._execute_agent(state, "commerce")
 
-    async def _check_results(self, state: AgentOSState) -> dict:
+    async def _check_results(self, state: AgentOSState) -> dict[str, Any]:
         status = "continue"
         if state.get("pending_hitl"):
             return {"status": "waiting_hitl"}
@@ -370,7 +378,7 @@ class AgentOSOrchestrator:
                 return "circuit_open"
         return "fail"
 
-    async def _handle_error(self, state: AgentOSState) -> dict:
+    async def _handle_error(self, state: AgentOSState) -> dict[str, Any]:
         status = "failed"
         for name, count in state["circuit_breaker"].items():
             if count >= CIRCUIT_BREAKER_THRESHOLD:
@@ -378,7 +386,7 @@ class AgentOSOrchestrator:
                 break
         return {"status": status}
 
-    async def _finalize(self, state: AgentOSState) -> dict:
+    async def _finalize(self, state: AgentOSState) -> dict[str, Any]:
         elapsed = time.time() - state["start_time"]
         status = "completed" if not state.get("errors") else "completed_with_errors"
         await self.session_manager.update(
@@ -401,10 +409,10 @@ class AgentOSOrchestrator:
         self.metrics.timing("execution_duration", elapsed)
         return {"status": status, "elapsed_seconds": round(elapsed, 2)}
 
-    async def route_tasks(self, state: AgentOSState) -> dict:
+    async def route_tasks(self, state: AgentOSState) -> dict[str, Any]:
         return await self._route_tasks(state)
 
-    async def _route_tasks(self, state: AgentOSState) -> dict:
+    async def _route_tasks(self, state: AgentOSState) -> dict[str, Any]:
         return {"status": "routed"}
 
 

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
@@ -7,13 +8,13 @@ from app.memory.vector_store import VectorStore, get_vector_store
 
 class TestVectorStoreJsonFallback:
     @pytest.fixture
-    def vs(self):
+    def vs(self) -> Any:
         instance = VectorStore()
         instance._use_json_fallback = True
         return instance
 
     @pytest.mark.asyncio
-    async def test_store_json_fallback(self, vs):
+    async def test_store_json_fallback(self, vs: Any) -> None:
         mock_embedding = [0.1, 0.2, 0.3]
         with (
             patch.object(vs._embedding_client, "embed", AsyncMock(return_value=mock_embedding)),
@@ -27,7 +28,7 @@ class TestVectorStoreJsonFallback:
             assert len(entry_id) > 0
 
     @pytest.mark.asyncio
-    async def test_store_json_fallback_no_metadata(self, vs):
+    async def test_store_json_fallback_no_metadata(self, vs: Any) -> None:
         mock_embedding = [0.1, 0.2, 0.3]
         with (
             patch.object(vs._embedding_client, "embed", AsyncMock(return_value=mock_embedding)),
@@ -40,11 +41,23 @@ class TestVectorStoreJsonFallback:
             assert isinstance(entry_id, str)
 
     @pytest.mark.asyncio
-    async def test_search_json_fallback(self, vs):
+    async def test_search_json_fallback(self, vs: Any) -> None:
         mock_embedding = [0.1, 0.2, 0.3]
         mock_data = [
-            {"id": "1", "project_id": "proj-1", "content": "hello", "metadata": {}, "embedding": [0.1]},  # noqa: E501
-            {"id": "2", "project_id": "other", "content": "other", "metadata": {}, "embedding": [0.2]},  # noqa: E501
+            {
+                "id": "1",
+                "project_id": "proj-1",
+                "content": "hello",
+                "metadata": {},
+                "embedding": [0.1],
+            },  # noqa: E501
+            {
+                "id": "2",
+                "project_id": "other",
+                "content": "other",
+                "metadata": {},
+                "embedding": [0.2],
+            },  # noqa: E501
         ]
         with (
             patch.object(vs._embedding_client, "embed", AsyncMock(return_value=mock_embedding)),
@@ -59,7 +72,7 @@ class TestVectorStoreJsonFallback:
             assert results[0]["similarity"] == 0.0
 
     @pytest.mark.asyncio
-    async def test_search_json_fallback_no_file(self, vs):
+    async def test_search_json_fallback_no_file(self, vs: Any) -> None:
         mock_embedding = [0.1, 0.2, 0.3]
         with (
             patch.object(vs._embedding_client, "embed", AsyncMock(return_value=mock_embedding)),
@@ -69,25 +82,25 @@ class TestVectorStoreJsonFallback:
             assert results == []
 
     @pytest.mark.asyncio
-    async def test_delete_json_fallback(self, vs):
+    async def test_delete_json_fallback(self, vs: Any) -> None:
         result = await vs.delete("id-1")
         assert result is False
 
 
 class TestVectorStorePostgres:
     @pytest.fixture
-    def vs(self):
+    def vs(self) -> Any:
         return VectorStore()
 
     @pytest.fixture
-    def mock_session(self):
+    def mock_session(self) -> Any:
         session = AsyncMock()
         session.execute = AsyncMock()
         session.commit = AsyncMock()
         return session
 
     @pytest.fixture
-    def mock_factory(self, mock_session):
+    def mock_factory(self, mock_session: Any) -> Any:
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=mock_session)
         cm.__aexit__ = AsyncMock()
@@ -95,7 +108,7 @@ class TestVectorStorePostgres:
         return factory
 
     @pytest.mark.asyncio
-    async def test_store_pg(self, vs, mock_factory, mock_session):
+    async def test_store_pg(self, vs: Any, mock_factory: Any, mock_session: Any) -> None:
         mock_embedding = [0.1, 0.2, 0.3]
         with (
             patch.object(vs._embedding_client, "embed", AsyncMock(return_value=mock_embedding)),
@@ -109,7 +122,7 @@ class TestVectorStorePostgres:
             mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_search_pg(self, vs, mock_factory):
+    async def test_search_pg(self, vs: Any, mock_factory: Any) -> None:
         mock_embedding = [0.1, 0.2, 0.3]
         mock_result = MagicMock()
         mock_result.fetchall.return_value = [("id-1", "hello world", '{"source":"test"}', 0.95)]
@@ -133,7 +146,7 @@ class TestVectorStorePostgres:
             assert results[0]["similarity"] == 0.95
 
     @pytest.mark.asyncio
-    async def test_delete_pg(self, vs, mock_factory):
+    async def test_delete_pg(self, vs: Any, mock_factory: Any) -> None:
         mock_result = MagicMock()
         mock_result.rowcount = 1
 
@@ -153,7 +166,7 @@ class TestVectorStorePostgres:
             assert result is True
 
     @pytest.mark.asyncio
-    async def test_delete_pg_not_found(self, vs, mock_factory):
+    async def test_delete_pg_not_found(self, vs: Any, mock_factory: Any) -> None:
         mock_result = MagicMock()
         mock_result.rowcount = 0
 
@@ -173,7 +186,7 @@ class TestVectorStorePostgres:
             assert result is False
 
     @pytest.mark.asyncio
-    async def test_search_pg_empty(self, vs, mock_factory):
+    async def test_search_pg_empty(self, vs: Any, mock_factory: Any) -> None:
         mock_embedding = [0.1, 0.2, 0.3]
         mock_result = MagicMock()
         mock_result.fetchall.return_value = []
@@ -196,7 +209,7 @@ class TestVectorStorePostgres:
 
 class TestVectorStoreSingleton:
     @pytest.mark.asyncio
-    async def test_get_vector_store_singleton(self):
+    async def test_get_vector_store_singleton(self) -> None:
         import app.memory.vector_store as vs_module
 
         with patch.object(vs_module, "_vector_store", None):

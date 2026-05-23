@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 
 from app.config.settings import get_settings
@@ -7,11 +9,11 @@ logger = get_logger("notifications")
 
 
 class NotificationManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
 
     async def send(
-        self, channel: str, title: str, message: str, details: dict | None = None
+        self, channel: str, title: str, message: str, details: dict[str, Any] | None = None
     ) -> bool:
         channel_map = {
             "slack": self._send_slack,
@@ -33,36 +35,43 @@ class NotificationManager:
             logger.log_warn("notifications", f"{channel}_failed", str(e))
             return False
 
-    async def notify_all(self, title: str, message: str, details: dict | None = None):
+    async def notify_all(
+        self, title: str, message: str, details: dict[str, Any] | None = None
+    ) -> None:
         channels = ["console"]
         if self.settings.slack_webhook_url:
             channels.append("slack")
         for ch in channels:
             await self.send(ch, title, message, details)
 
-    async def _send_slack(self, title: str, message: str, details: dict | None = None):
+    async def _send_slack(
+        self, title: str, message: str, details: dict[str, Any] | None = None
+    ) -> None:
         if not self.settings.slack_webhook_url:
             return
-        payload = {
+        payload: dict[str, Any] = {
             "blocks": [
                 {"type": "header", "text": {"type": "plain_text", "text": title}},
                 {"type": "section", "text": {"type": "mrkdwn", "text": message}},
             ]
         }
         if details:
+            fields: list[dict[str, str]] = [
+                {"type": "mrkdwn", "text": f"*{k}*: {v}"} for k, v in details.items()
+            ]
             payload["blocks"].append(
                 {
                     "type": "section",
-                    "fields": [
-                        {"type": "mrkdwn", "text": f"*{k}*: {v}"} for k, v in details.items()
-                    ],
+                    "fields": fields,
                 }
             )
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(self.settings.slack_webhook_url, json=payload)
             resp.raise_for_status()
 
-    async def _send_discord(self, title: str, message: str, details: dict | None = None):
+    async def _send_discord(
+        self, title: str, message: str, details: dict[str, Any] | None = None
+    ) -> None:
         if not self.settings.discord_webhook_url:
             return
         embed = {"title": title, "description": message, "color": 0x4C6EF5}
@@ -75,7 +84,9 @@ class NotificationManager:
             resp = await client.post(self.settings.discord_webhook_url, json=payload)
             resp.raise_for_status()
 
-    async def _send_console(self, title: str, message: str, details: dict | None = None):
+    async def _send_console(
+        self, title: str, message: str, details: dict[str, Any] | None = None
+    ) -> None:
         logger.log_action(
             "notification", title, "info", details={"message": message, **(details or {})}
         )

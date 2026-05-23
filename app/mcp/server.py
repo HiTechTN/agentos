@@ -1,5 +1,7 @@
 """MCP (Model Context Protocol) integration for external tools."""
 
+from typing import Any
+
 import httpx
 
 from app.utils.logging import get_logger
@@ -14,7 +16,9 @@ class MCPServer:
         self.api_key = api_key
         self.logger = get_logger(f"mcp_{name}")
 
-    async def call_tool(self, tool_name: str, params: dict | None = None) -> dict:
+    async def call_tool(
+        self, tool_name: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         self.logger.log_action(
             "mcp", "call_tool", "started", details={"server": self.name, "tool": tool_name}
         )
@@ -29,30 +33,32 @@ class MCPServer:
                     headers=headers,
                 )
                 resp.raise_for_status()
-                return resp.json()
+                result: dict[str, Any] = resp.json()
+                return result
         except Exception as e:
             self.logger.log_error(
                 "mcp", "call_tool", str(e), details={"server": self.name, "tool": tool_name}
             )
             return {"error": str(e)}
 
-    async def list_tools(self) -> list[dict]:
+    async def list_tools(self) -> list[dict[str, Any]]:
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.get(f"{self.endpoint}/tools")
                 resp.raise_for_status()
-                data = resp.json()
-                return data.get("tools", [])
+                data: dict[str, Any] = resp.json()
+                tools_result: list[dict[str, Any]] = data.get("tools", [])
+                return tools_result
         except Exception as e:
             self.logger.log_warn("mcp", "list_tools", str(e))
             return []
 
 
 class MCPRegistry:
-    def __init__(self):
+    def __init__(self) -> None:
         self.servers: dict[str, MCPServer] = {}
 
-    def register(self, name: str, endpoint: str, api_key: str = ""):
+    def register(self, name: str, endpoint: str, api_key: str = "") -> None:
         self.servers[name] = MCPServer(name, endpoint, api_key)
         logger.log_action(
             "mcp", "register", "completed", details={"name": name, "endpoint": endpoint}
@@ -61,18 +67,20 @@ class MCPRegistry:
     def get(self, name: str) -> MCPServer | None:
         return self.servers.get(name)
 
-    def unregister(self, name: str):
+    def unregister(self, name: str) -> None:
         if name in self.servers:
             del self.servers[name]
             logger.log_action("mcp", "unregister", "completed", details={"name": name})
 
-    async def call_tool(self, server_name: str, tool_name: str, params: dict | None = None) -> dict:
+    async def call_tool(
+        self, server_name: str, tool_name: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         server = self.get(server_name)
         if not server:
             return {"error": f"MCP server '{server_name}' not found"}
         return await server.call_tool(tool_name, params)
 
-    def list_servers(self) -> list[dict]:
+    def list_servers(self) -> list[dict[str, Any]]:
         return [{"name": name, "endpoint": s.endpoint} for name, s in self.servers.items()]
 
 

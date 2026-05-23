@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from app.config.settings import get_settings
 from app.utils.api_clients import LLMClient, LLMUnavailableError
@@ -28,14 +28,14 @@ class BaseAgent(ABC):
     model: str = ""
     system_prompt: str = ""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.settings = get_settings()
-        self.llm = LLMClient()
+        self.llm: LLMClient = LLMClient()
         self.logger = get_logger(self.name)
         self._hitl = get_hitl_gateway()
         self._load_prompts()
 
-    def _load_prompts(self):
+    def _load_prompts(self) -> None:
         import os
 
         prompts_path = os.path.join(os.path.dirname(__file__), "..", "config", "prompts.yaml")
@@ -54,7 +54,9 @@ class BaseAgent(ABC):
         env_model = getattr(self.settings, override_key.lower(), "")
         return env_model or self.model
 
-    async def execute(self, task: dict, session_id: str = "", trace_id: str = "") -> dict:
+    async def execute(
+        self, task: dict[str, Any], session_id: str = "", trace_id: str = ""
+    ) -> dict[str, Any]:
         action = task.get("action", "execute")
         task_params = task.get("params", {})
 
@@ -113,7 +115,7 @@ class BaseAgent(ABC):
                 "error": {"code": "UNEXPECTED", "message": str(e)},
             }
 
-    async def _retrieve_context(self, session_id: str, task: dict) -> str:
+    async def _retrieve_context(self, session_id: str, task: dict[str, Any]) -> str:
         try:
             from app.memory.vector_store import get_vector_store
 
@@ -129,9 +131,11 @@ class BaseAgent(ABC):
         return ""
 
     @abstractmethod
-    async def _run(self, action: str, params: dict, session_id: str, trace_id: str) -> Any: ...
+    async def _run(
+        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+    ) -> Any: ...
 
-    async def _llm_call(self, messages: list[dict], temperature: float = 0.7) -> str:
+    async def _llm_call(self, messages: list[dict[str, Any]], temperature: float = 0.7) -> str:
         response = await self.llm.chat(
             model=self.effective_model,
             messages=messages,
@@ -140,7 +144,7 @@ class BaseAgent(ABC):
         return response.content
 
     async def _llm_call_routed(
-        self, task_type: str, messages: list[dict], temperature: float = 0.7
+        self, task_type: str, messages: list[dict[str, Any]], temperature: float = 0.7
     ) -> str:
         response = await self.llm.chat_with_model_selection(
             task_type=task_type,
@@ -149,7 +153,9 @@ class BaseAgent(ABC):
         )
         return response.content
 
-    async def _require_hitl(self, session_id: str, action: str, details: dict) -> dict:
+    async def _require_hitl(
+        self, session_id: str, action: str, details: dict[str, Any]
+    ) -> dict[str, Any]:
         return await self._hitl.request_approval(
             session_id=session_id,
             agent_name=self.name,

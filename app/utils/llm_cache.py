@@ -21,17 +21,17 @@ class PersistentLLMCache:
 
     async def connect(self) -> None:
         settings = get_settings()
-        self._redis = redis_async.from_url(
+        self._redis = redis_async.from_url(  # type: ignore[no-untyped-call]
             settings.resolved_redis_url,
             encoding="utf-8",
             decode_responses=True,
         )
 
-    def _key(self, model: str, messages: list[dict]) -> str:
+    def _key(self, model: str, messages: list[dict[str, Any]]) -> str:
         payload = json.dumps({"model": model, "messages": messages}, sort_keys=True)
         return f"llm_cache:{hashlib.sha256(payload.encode()).hexdigest()}"
 
-    async def get(self, model: str, messages: list[dict]) -> Any | None:
+    async def get(self, model: str, messages: list[dict[str, Any]]) -> Any | None:
         key = self._key(model, messages)
         if key in self._l1:
             return self._l1[key]
@@ -43,7 +43,7 @@ class PersistentLLMCache:
                 return value
         return None
 
-    async def set(self, model: str, messages: list[dict], response: Any) -> None:
+    async def set(self, model: str, messages: list[dict[str, Any]], response: Any) -> None:
         key = self._key(model, messages)
         self._l1[key] = response
         if self._redis:
@@ -54,7 +54,8 @@ class PersistentLLMCache:
             return 0
         keys = await self._redis.keys(pattern)
         if keys:
-            return await self._redis.delete(*keys)
+            result = await self._redis.delete(*keys)
+            return result if result is not None else 0
         return 0
 
 
