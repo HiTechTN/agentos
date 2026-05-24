@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicegui/tauri/refs/heads/main/tauri.conf.schema.json",
+  "productName": "AgentOS",
+  "version": "5.0.0",
+  "identifier": "com.hitechtn.agentos",
+  "build": {
+    "frontendDist": "../ui/out",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm --prefix ../ui run dev"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "AgentOS",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

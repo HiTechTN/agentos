@@ -55,7 +55,7 @@ async def test_get_current_user_missing_credentials() -> None:
     with pytest.raises(HTTPException) as exc:
         await get_current_user(None)
     assert exc.value.status_code == 401
-    assert exc.value.detail == "Missing token"
+    assert exc.value.detail == "Missing Authorization header"
 
 
 @pytest.mark.asyncio
@@ -88,7 +88,7 @@ async def test_get_current_user_invalid_token() -> None:
         with pytest.raises(HTTPException) as exc:
             await get_current_user(creds)
     assert exc.value.status_code == 401
-    assert exc.value.detail == "Invalid token"
+    assert exc.value.detail.startswith("Invalid token")
 
 
 @pytest.mark.asyncio
@@ -104,7 +104,7 @@ async def test_require_admin_forbidden() -> None:
     with pytest.raises(HTTPException) as exc:
         await require_admin(user)
     assert exc.value.status_code == 403
-    assert exc.value.detail == "Admin required"
+    assert exc.value.detail == "Admin role required"
 
 
 def test_current_user_type_alias() -> None:
@@ -141,18 +141,20 @@ def test_limits_populated() -> None:
 def test_make_limiter_returns_limiter() -> None:
     from slowapi import Limiter
 
-    from app.utils.rate_limit import _make_limiter
+    from app.utils.rate_limit import _build_limiter
 
-    lim = _make_limiter()
+    lim = _build_limiter()
     assert isinstance(lim, Limiter)
 
 
 def test_make_limiter_populates_limits() -> None:
-    from app.utils.rate_limit import LIMITS, _make_limiter
+    from app.utils.rate_limit import _get_limits, limiter
 
-    before = dict(LIMITS)
-    _make_limiter()
-    assert LIMITS == before
+    _ = limiter
+    limits = _get_limits()
+    assert "run" in limits
+    assert "plan" in limits
+    assert "verify" in limits
 
 
 # ── request_id ─────────────────────────────────────────

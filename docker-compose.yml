@@ -85,6 +85,11 @@ services:
       - "1025:1025"
     networks:
       - agentos_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   strapi:
     image: strapi/strapi:latest
@@ -93,14 +98,20 @@ services:
     environment:
       DATABASE_CLIENT: sqlite
       DATABASE_FILENAME: /data/strapi.db
-      JWT_SECRET: strapi-demo-jwt-secret
-      ADMIN_JWT_SECRET: strapi-admin-jwt-secret
+      JWT_SECRET: ${STRAPI_JWT_SECRET:-strapi-demo-jwt-secret}
+      ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT_SECRET:-strapi-admin-jwt-secret}
     ports:
       - "1337:1337"
     volumes:
       - strapi_data:/data
     networks:
       - agentos_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1337/"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -115,6 +126,11 @@ services:
       - jaeger_data:/tmp
     networks:
       - agentos_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio:latest
@@ -150,8 +166,15 @@ services:
     networks:
       - agentos_net
     depends_on:
-      - app
-      - web
+      app:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   app:
     build:
@@ -175,10 +198,15 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - agentos_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
 
   web:
     build:
@@ -187,11 +215,18 @@ services:
     container_name: agentos-web
     restart: unless-stopped
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     env_file:
       - .env
     ports:
       - "3000:3000"
     networks:
       - agentos_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
 

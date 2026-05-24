@@ -38,6 +38,7 @@ out/
 
 # Docker
 .docker/
+docker-compose.override.yml
 
 # PRD document (internal)
 AgentOS-PRD-v1.0.md

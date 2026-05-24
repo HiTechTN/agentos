@@ -17,8 +17,9 @@ from starlette.responses import Response
 
 from app.config.settings import get_settings
 from app.orchestrator import get_orchestrator
-from app.utils.auth import get_current_user
+from app.utils.auth import create_access_token, get_current_user
 from app.utils.hitl_gateway import get_hitl_gateway
+from app.utils.llm_cache import llm_cache
 from app.utils.logging import get_logger
 from app.utils.metrics import get_metrics
 from app.utils.rate_limit import limiter
@@ -60,12 +61,15 @@ class SchedulerTask(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Any:
     logger.log_action("api", "startup", "started", details={"version": settings.version})
+    app.state.limiter = limiter
+    await llm_cache.connect()
     from app.scheduler import get_scheduler
 
     if settings.scheduler_enabled:
         scheduler = get_scheduler()
         await scheduler.start()
     yield
+    await llm_cache.close()
     logger.log_action("api", "shutdown", "stopped")
 
 
@@ -85,7 +89,6 @@ app.add_middleware(
 )
 
 app.add_middleware(RequestIDMiddleware)
-app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
 
 
@@ -109,6 +112,12 @@ async def optional_auth_middleware(request: Request, call_next: Any) -> Response
             request.state.user = None
     response = await call_next(request)
     return response  # type: ignore[no-any-return]
+
+
+@app.post("/api/v1/auth/token")
+async def get_token(sub: str = "demo", workspace: str = "default") -> dict[str, str]:
+    token = create_access_token(sub=sub, workspace=workspace)
+    return {"access_token": token, "token_type": "bearer"}
 
 
 @app.get("/health")
@@ -545,7 +554,10 @@ async def list_mcp_servers() -> dict[str, Any]:
 @app.post("/api/v1/mcp/{server_name}/call/{tool_name}")
 @limiter.limit("30/minute")
 async def call_mcp_tool(
-    server_name: str, tool_name: str, params: dict[str, Any] = {}, request: Request = None  # type: ignore[assignment]
+    server_name: str,
+    tool_name: str,
+    params: dict[str, Any] = {},
+    request: Request = None,  # type: ignore[assignment]
 ) -> dict[str, Any]:
     from app.mcp.server import get_mcp_registry
 

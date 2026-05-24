@@ -32,9 +32,8 @@ def _make_state(
         "errors": errors or [],
         "pending_hitl": pending_hitl or [],
         "status": status,
-        "circuit_breaker": circuit_breaker or {
-            "dev": 0, "content": 0, "marketing": 0, "commerce": 0
-        },
+        "circuit_breaker": circuit_breaker
+        or {"dev": 0, "content": 0, "marketing": 0, "commerce": 0},
         "start_time": 0.0,
         "parallel_batch": [],
     }
@@ -489,10 +488,12 @@ class TestExecuteParallel:
             ],
             current_task_index=0,
         )
+
         async def side_effect(task: Any, **kwargs: Any) -> dict[str, Any]:
             if task["agent"] == "dev":
                 return {"agent": "dev", "action": "a", "success": True}
             return {"agent": "content", "action": "b", "success": False, "error": {"code": "FAIL"}}
+
         with (
             patch.object(orch.agents["dev"], "execute", side_effect=side_effect),
             patch.object(orch.agents["content"], "execute", side_effect=side_effect),
@@ -526,10 +527,12 @@ class TestExecuteAgentEdgeCases:
             circuit_breaker={"dev": 0, "content": 0, "marketing": 0, "commerce": 0},
         )
         calls = 0
+
         async def failer(task: Any, **kwargs: Any) -> dict[str, Any]:
             nonlocal calls
             calls += 1
             return {"agent": "dev", "action": "x", "success": False, "error": {"code": "FAIL"}}
+
         with patch.object(orch.agents["dev"], "execute", failer):
             result = await orch._execute_agent(state, "dev")
         assert calls == MAX_RETRIES

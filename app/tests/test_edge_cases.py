@@ -56,8 +56,10 @@ class TestSchedulerTaskExecution:
         mock_notif = AsyncMock()
         mock_notif.send = AsyncMock()
 
-        with patch("app.scheduler.get_orchestrator", return_value=mock_orch), \
-             patch("app.scheduler.get_notifications", return_value=mock_notif):
+        with (
+            patch("app.scheduler.get_orchestrator", return_value=mock_orch),
+            patch("app.scheduler.get_notifications", return_value=mock_notif),
+        ):
             await scheduler._execute_task(task)
 
         mock_orch.run.assert_awaited_once_with(prompt="do something", project_id="default")
@@ -67,8 +69,12 @@ class TestSchedulerTaskExecution:
     async def test_execute_task_sends_notification_on_success(self) -> None:
         scheduler = Scheduler()
         task = ScheduledTask(
-            name="test-task", cron="* * * * *", prompt="do something",
-            project_id="proj-1", channel="slack", task_id="t2",
+            name="test-task",
+            cron="* * * * *",
+            prompt="do something",
+            project_id="proj-1",
+            channel="slack",
+            task_id="t2",
         )
 
         mock_orch = AsyncMock()
@@ -76,8 +82,10 @@ class TestSchedulerTaskExecution:
         mock_notif = AsyncMock()
         mock_notif.send = AsyncMock()
 
-        with patch("app.scheduler.get_orchestrator", return_value=mock_orch), \
-             patch("app.scheduler.get_notifications", return_value=mock_notif):
+        with (
+            patch("app.scheduler.get_orchestrator", return_value=mock_orch),
+            patch("app.scheduler.get_notifications", return_value=mock_notif),
+        ):
             await scheduler._execute_task(task)
 
         mock_orch.run.assert_awaited_once_with(prompt="do something", project_id="proj-1")

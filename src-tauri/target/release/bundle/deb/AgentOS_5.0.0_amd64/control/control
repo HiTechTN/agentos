@@ -1,0 +1,9 @@
+Package: agent-os
+Version: 5.0.0
+Architecture: amd64
+Installed-Size: 13203
+Maintainer: HiTechTN
+Priority: optional
+Depends: libwebkit2gtk-4.1-0, libgtk-3-0
+Description: AgentOS - Multi-Agent Workflow Orchestrator
+ (none)

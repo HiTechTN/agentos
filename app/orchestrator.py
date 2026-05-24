@@ -333,6 +333,7 @@ class AgentOSOrchestrator:
                     return {
                         "errors": state["errors"] + [{"code": "EXECUTION_ERROR", "message": str(e)}]
                     }
+        return {"errors": [{"code": "NO_RESULT", "message": f"No result for agent {agent_name}"}]}
 
     async def _execute_dev(self, state: AgentOSState) -> dict[str, Any]:
         return await self._execute_agent(state, "dev")

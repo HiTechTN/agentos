@@ -29,8 +29,10 @@ class TestHITLEndpoints:
     async def test_approve_success(self, async_client: AsyncClient) -> None:
         gw, notif = MagicMock(), AsyncMock()
         gw.approve.return_value = {"ok": True}
-        with patch("app.main.get_hitl_gateway", return_value=gw), \
-             patch("app.utils.notifications.get_notifications", return_value=notif):
+        with (
+            patch("app.main.get_hitl_gateway", return_value=gw),
+            patch("app.utils.notifications.get_notifications", return_value=notif),
+        ):
             resp = await async_client.post("/api/v1/hitl/approve", json={"approval_id": "a1"})
         assert resp.status_code == 200
         assert resp.json() == {"status": "approved", "details": {"ok": True}}
@@ -197,9 +199,11 @@ class TestPulseEndpoints:
         pulse.snapshot = AsyncMock(return_value=snapshot)
         orch = MagicMock()
         orch.agents = ["a1", "a2"]
-        with patch("app.kanban.get_kanban_board", return_value=board), \
-             patch("app.pulse.get_pulse", return_value=pulse), \
-             patch("app.orchestrator.get_orchestrator", return_value=orch):
+        with (
+            patch("app.kanban.get_kanban_board", return_value=board),
+            patch("app.pulse.get_pulse", return_value=pulse),
+            patch("app.orchestrator.get_orchestrator", return_value=orch),
+        ):
             resp = await async_client.get("/api/v1/pulse/p1")
         assert resp.status_code == 200
         assert resp.json() == {"agents": {}, "columns": {"col": []}}
@@ -219,7 +223,9 @@ class TestMCPEndpoints:
     async def test_register(self, async_client: AsyncClient) -> None:
         registry = MagicMock()
         with patch("app.mcp.server.get_mcp_registry", return_value=registry):
-            resp = await async_client.post("/api/v1/mcp/register", json={"name": "svc", "endpoint": "http://s"})
+            resp = await async_client.post(
+                "/api/v1/mcp/register", json={"name": "svc", "endpoint": "http://s"}
+            )
         assert resp.status_code == 200
         assert resp.json() == {"status": "registered", "name": "svc"}
 
@@ -343,8 +349,10 @@ class TestLifespanScheduler:
         from app.main import app, lifespan
 
         mock_sched = AsyncMock()
-        with patch("app.main.settings.scheduler_enabled", True), \
-             patch("app.scheduler.get_scheduler", return_value=mock_sched):
+        with (
+            patch("app.main.settings.scheduler_enabled", True),
+            patch("app.scheduler.get_scheduler", return_value=mock_sched),
+        ):
             async with lifespan(app):
                 pass
         mock_sched.start.assert_awaited_once()
@@ -400,8 +408,10 @@ class TestDeployConfigure:
     async def test_no_repo_uses_commands(self, async_client: AsyncClient) -> None:
         mock_run = MagicMock()
         mock_run.returncode = 0
-        with patch.dict("os.environ", {"GITHUB_REPOSITORY": ""}), \
-             patch("app.main.subprocess.run", return_value=mock_run):
+        with (
+            patch.dict("os.environ", {"GITHUB_REPOSITORY": ""}),
+            patch("app.main.subprocess.run", return_value=mock_run),
+        ):
             resp = await async_client.post("/api/v1/deploy/configure", json={"host": "example.com"})
         assert resp.status_code == 200
         assert resp.json()["errors"] is None
@@ -410,8 +420,10 @@ class TestDeployConfigure:
     async def test_with_repo_success(self, async_client: AsyncClient) -> None:
         mock_run = MagicMock()
         mock_run.returncode = 0
-        with patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}), \
-             patch("app.main.subprocess.run", return_value=mock_run):
+        with (
+            patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}),
+            patch("app.main.subprocess.run", return_value=mock_run),
+        ):
             resp = await async_client.post("/api/v1/deploy/configure", json={"host": "example.com"})
         assert resp.status_code == 200 and resp.json()["status"] == "ok"
 
@@ -420,8 +432,10 @@ class TestDeployConfigure:
         mock_run = MagicMock()
         mock_run.returncode = 1
         mock_run.stderr = "auth failed"
-        with patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}), \
-             patch("app.main.subprocess.run", return_value=mock_run):
+        with (
+            patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}),
+            patch("app.main.subprocess.run", return_value=mock_run),
+        ):
             resp = await async_client.post("/api/v1/deploy/configure", json={"host": "example.com"})
         assert resp.status_code == 200 and resp.json()["status"] == "partial"
 
@@ -430,20 +444,28 @@ class TestDeployConfigure:
         mock_run = MagicMock()
         mock_run.returncode = 0
         body = {
-            "host": "example.com", "user": "root", "key": "ssh-key",
-            "openrouter_api_key": "sk-or1", "openai_api_key": "sk-oa1",
-            "database_url": "postgres://db", "redis_url": "redis://r",
+            "host": "example.com",
+            "user": "root",
+            "key": "ssh-key",
+            "openrouter_api_key": "sk-or1",
+            "openai_api_key": "sk-oa1",
+            "database_url": "postgres://db",
+            "redis_url": "redis://r",
             "jwt_secret": "my-jwt",
         }
-        with patch.dict("os.environ", {"GITHUB_REPOSITORY": ""}), \
-             patch("app.main.subprocess.run", return_value=mock_run):
+        with (
+            patch.dict("os.environ", {"GITHUB_REPOSITORY": ""}),
+            patch("app.main.subprocess.run", return_value=mock_run),
+        ):
             resp = await async_client.post("/api/v1/deploy/configure", json=body)
         assert resp.status_code == 200 and resp.json()["status"] == "ok"
 
     @pytest.mark.asyncio
     async def test_subprocess_raises_in_loop(self, async_client: AsyncClient) -> None:
-        with patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}), \
-             patch("app.main.subprocess.run", side_effect=Exception("gh not found")):
+        with (
+            patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}),
+            patch("app.main.subprocess.run", side_effect=Exception("gh not found")),
+        ):
             resp = await async_client.post("/api/v1/deploy/configure", json={"host": "example.com"})
         assert resp.status_code == 200 and resp.json()["status"] == "partial"
 
@@ -457,8 +479,10 @@ class TestDeployConfigure:
                 return result
             raise Exception("workflow failed")
 
-        with patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}), \
-             patch("app.main.subprocess.run", side_effect=_side_effect):
+        with (
+            patch.dict("os.environ", {"GITHUB_REPOSITORY": "owner/repo"}),
+            patch("app.main.subprocess.run", side_effect=_side_effect),
+        ):
             resp = await async_client.post("/api/v1/deploy/configure", json={"host": "example.com"})
         assert resp.status_code == 200 and resp.json()["status"] == "partial"
 

@@ -43,7 +43,6 @@ class Cache:
                         return pickle.loads(data)  # nosec B301
                     except Exception:
                         return json.loads(data)
-                return None
 
         import time
 
@@ -64,7 +63,7 @@ class Cache:
             redis = await self._get_redis()
             if redis:
                 try:
-                    data = pickle.dumps(value) if not isinstance(value, str | bytes) else value
+                    data = pickle.dumps(value)
                     await redis.setex(key, ttl, data)
                     return True
                 except Exception as e:

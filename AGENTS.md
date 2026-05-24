@@ -10,12 +10,14 @@
 - Longueur max de fonction : 50 lignes. Refactoriser si dépassé.
 - Longueur max de fichier : 300 lignes. Splitter en modules si dépassé.
 - TOUJOURS utiliser `async`/`await` pour les opérations I/O
+- JAMAIS de `# pragma: no cover` sauf `if __name__ == "__main__":`
 
 ### Dependency Management
 - Utiliser `uv` pour toutes les opérations de packages
 - `uv add <pkg>` pour ajouter, `uv remove <pkg>` pour retirer
 - JAMAIS modifier `requirements.txt` directement — généré par `uv export`
 - Versions TOUJOURS épinglées dans `pyproject.toml` sous `[tool.uv.constraints]`
+- TOUJOURS utiliser `--all-extras` avec `uv sync` pour inclure les dev dependencies
 
 ### Database
 - TOUJOURS créer une migration Alembic pour tout changement de schéma
@@ -32,10 +34,22 @@
 
 ### Testing
 - TOUJOURS écrire le test AVANT le code (TDD)
-- Coverage minimum : 90% par module
+- Coverage minimum : 99% par module (cible 100%)
 - Nommer les tests : `test_<unit>_<scenario>_<expected_outcome>`
 - Utiliser des fixtures pytest, jamais de setup dans les test functions
 - Mocker les LLM calls avec `pytest-httpx`
+- Mocker Redis avec `unittest.mock.patch("redis.asyncio.from_url")` dans conftest
+- Early patching obligatoire dans `conftest.py` : patcher `get_settings` au niveau module AVANT toute import
+- Commande de test : `uv run pytest app/tests/ --cov=app --cov-fail-under=90 -v`
+
+### Test Conventions (conftest.py)
+- Module-level `_patcher = patch("app.config.settings.get_settings", return_value=_test_settings)` avant tout import
+- Module-level `_redis_patcher = patch("redis.asyncio.from_url")` avec mock in-memory dict
+- `test_settings` fixture autouse pour exposer les settings
+- `auth_headers` et `admin_headers` fixtures pour les endpoints protégés
+- `async_client` fixture avec `ASGITransport` pour les tests async
+- `mock_llm_client` fixture patchant `app.agents.base.LLMClient`
+- `mock_hitl_gateway` fixture patchant `app.agents.base.get_hitl_gateway`
 
 ### Git
 - Commits conventionnels : `type(scope): description`
@@ -89,12 +103,13 @@ Chaque plan doit contenir :
 ## @VERIFIER RULES
 
 ### Validation Pipeline (dans l'ordre)
-1. `ruff check app/ --fix` — lint auto-fix
-2. `ruff format app/` — formatting
-3. `mypy app/ --strict` — type checking (0 erreurs requis)
-4. `pytest app/tests/ --cov=app --cov-fail-under=90` — tests
-5. `bandit -r app/ -ll` — security scan
-6. `docker compose config` — validate compose file
+1. `uv sync --all-extras` — ensure all deps installed
+2. `ruff check app/ --fix` — lint auto-fix
+3. `ruff format app/` — formatting
+4. `mypy app/ --strict` — type checking (0 erreurs requis)
+5. `pytest app/tests/ --cov=app --cov-fail-under=90` — tests
+6. `bandit -r app/ -ll` — security scan (0 HIGH/MEDIUM)
+7. `docker compose config` — validate compose file
 
 ### Issue Format (JSON obligatoire)
 ```json
@@ -146,6 +161,7 @@ module: app.agents.dev
 - [ ] Logs structurés (pas de print())
 - [ ] Resource cleanup (context managers, finally blocks)
 - [ ] Async correctness (pas de blocking I/O dans coroutines)
+- [ ] Coverage ≥ 99% (toute ligne non couverte = justification obligatoire)
 
 ### Security Severity
 - CRITICAL: secrets exposés, injection, RCE possible
@@ -164,15 +180,28 @@ module: app.agents.dev
 - `app/utils/` → utilitaires transverses sans logique métier
 - `app/config/` → configuration et settings uniquement
 - `app/mcp/` → intégration MCP protocol uniquement
+- `app/schemas/` → modèles Pydantic et responses API uniquement
 
 ### API Conventions
-- Tous les endpoints retournent `{"data": ..., "meta": {...}, "errors": []}`
+- Tous les endpoints retournent `APIResponse[T]` envelope : `{"data": ..., "meta": {...}, "errors": []}`
 - Status codes : 200 OK, 201 Created, 202 Accepted (async), 400 Bad Request, 401 Unauthorized, 422 Validation Error, 429 Rate Limit, 500 Internal
 - Versioning : `/api/v1/` pour stable, `/api/v2/` pour beta
 - Pagination : `?page=1&per_page=20` avec `meta.total`, `meta.pages`
+- Auth : Bearer JWT avec `create_access_token()`, `CurrentUser` / `AdminUser` type aliases
 
 ### Performance Targets
 - Endpoint `/api/v1/run` : p95 < 500ms (hors LLM)
 - Endpoint `/api/v1/plan` : p95 < 200ms
 - WebSocket `/ws/logs` : latence < 50ms
 - DB queries : p99 < 100ms (index obligatoire sur FK et colonnes filtrées)
+
+### Cache Architecture
+- L1: dict en mémoire locale (fallback)
+- L2: Redis via `Cache._get_redis()` avec fallback automatique
+- `llm_cache.py` : cache LLM responses avec connect/close lifecycle
+- TOUJOURS catcher les exceptions Redis et logger + fallback dict
+
+### Redis URL Resolution
+- `settings.redis_url` : peut être None (auto-detect), "memory://" (rate limit only), ou "redis://..."
+- `settings.resolved_redis_url` : construit l'URL Redis complète
+- Test: patcher `redis.asyncio.from_url` avec mock dict in-memory
