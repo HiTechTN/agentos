@@ -1,9 +1,0 @@
-[Desktop Entry]
-Categories=
-Comment=AgentOS - Multi-Agent Workflow Orchestrator
-Exec=agentos
-StartupWMClass=agentos
-Icon=agentos
-Name=AgentOS
-Terminal=false
-Type=Application
