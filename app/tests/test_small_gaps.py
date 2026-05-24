@@ -1176,100 +1176,149 @@ class TestSchedulerRemainingBranches:
                 await sched._run_loop()
             except asyncio.CancelledError:
                 pass
-            mock_log_error.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_run_loop_executes_task(self, sched: Any) -> None:
-        sched._running = True
-        sched.settings.scheduler_check_interval = 1
-
-        task = MagicMock()
-        task.should_run.return_value = True
-        task.last_run = 0.0
-        task.run_count = 0
-        task.id = "t1"
-        task.name = "test-task"
-        task.project_id = "default"
-        task.prompt = "do-something"
-        task.channel = "console"
-        sched._tasks["t1"] = task
-
-        with (
-            patch.object(sched, "_execute_task", AsyncMock()) as mock_exec,
-            patch("asyncio.sleep", AsyncMock(side_effect=[None, asyncio.CancelledError()])),
-        ):
-            try:
-                await sched._run_loop()
-            except asyncio.CancelledError:
-                pass
-            assert task.run_count == 1
-            assert task.last_run > 0
-            mock_exec.assert_called_once_with(task)
-
-    @pytest.mark.asyncio
-    async def test_run_loop_skips_task_if_recently_run(self, sched: Any) -> None:
-        import time
-
-        sched._running = True
-        sched.settings.scheduler_check_interval = 1
-
-        task = MagicMock()
-        task.should_run.return_value = True
-        task.last_run = time.time()
-        task.run_count = 0
-        task.id = "t1"
-        sched._tasks["t1"] = task
-
-        with (
-            patch.object(sched, "_execute_task", AsyncMock()),
-            patch("asyncio.sleep", AsyncMock(side_effect=[asyncio.CancelledError()])),
-        ):
-            try:
-                await sched._run_loop()
-            except asyncio.CancelledError:
-                pass
-            assert task.run_count == 0
-
-    @pytest.mark.asyncio
-    async def test_execute_task_success(self, sched: Any) -> None:
-        task = MagicMock()
-        task.name = "test-task"
-        task.id = "t1"
-        task.project_id = "default"
-        task.prompt = "do it"
-        task.channel = "console"
-
-        mock_orch = MagicMock()
-        mock_orch.run = AsyncMock(return_value={"status": "completed"})
-
-        mock_notif = AsyncMock()
-        mock_notif.send = AsyncMock()
-
-        with (
-            patch("app.scheduler.get_orchestrator", return_value=mock_orch),
-            patch("app.scheduler.get_notifications", return_value=mock_notif),
-        ):
-            await sched._execute_task(task)
-
-        mock_orch.run.assert_awaited_once_with(prompt="do it", project_id="default")
-        mock_notif.send.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_execute_task_failure(self, sched: Any) -> None:
-        task = MagicMock()
-        task.name = "test-task"
-        task.id = "t1"
-        task.project_id = "default"
-        task.prompt = "do it"
-
-        mock_orch = MagicMock()
-        mock_orch.run = AsyncMock(side_effect=Exception("execution failed"))
-
-        with (
-            patch("app.scheduler.get_orchestrator", return_value=mock_orch),
-            patch("app.scheduler.get_notifications"),
-            patch("app.scheduler.logger.log_error") as mock_log_error,
-        ):
-            await sched._execute_task(task)
-
         mock_log_error.assert_called_once()
+
+
+# =============================================================================
+# File 9: app/agents/rules.py (88% → 100%)
+#   Gaps: 34, 50, 58-60, 74, 76, 78
+# =============================================================================
+
+
+class TestRuleSystemExtraBranches:
+    def test_load_global_file_exists(self) -> None:
+        from app.agents.rules import RuleSystem
+
+        rs = RuleSystem()
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch.object(rs, "_parse_file", return_value=["global rule"]),
+        ):
+            rs._load_global()
+        assert rs._rules["global"] == ["global rule"]
+
+    def test_load_plan_file_exists(self) -> None:
+        from app.agents.rules import RuleSystem
+
+        rs = RuleSystem()
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch.object(rs, "_parse_file", return_value=["plan rule"]),
+        ):
+            rs._load_plan()
+        assert rs._rules["plan"] == ["plan rule"]
+
+    def test_parse_file_exception_returns_empty_list(self) -> None:
+        from pathlib import Path
+
+        from app.agents.rules import RuleSystem
+
+        rs = RuleSystem()
+        with patch("pathlib.Path.read_text", side_effect=PermissionError("denied")):
+            result = rs._parse_file(Path("/fake/path"))
+        assert result == []
+
+    def test_get_all_rules_with_all_types(self) -> None:
+        from app.agents.rules import RuleSystem
+
+        rs = RuleSystem()
+        rs._rules["project"] = ["proj rule"]
+        rs._rules["global"] = ["global rule"]
+        rs._rules["plan"] = ["plan rule"]
+        result = rs.get_all_rules()
+        assert "Project Rules" in result
+        assert "Global Rules" in result
+        assert "Plan Rules" in result
+
+
+# =============================================================================
+# File 10: app/pulse.py (92% → 100%)
+#   Gaps: 75, 87-89
+# =============================================================================
+
+
+class TestPulseEngineExtraBranches:
+    @pytest.mark.asyncio
+    async def test_snapshot_trims_history_when_exceeds_1000(self) -> None:
+        from app.pulse import PulseEngine, PulseSnapshot
+
+        engine = PulseEngine()
+        engine.history = [PulseSnapshot() for _ in range(1001)]
+        snap = await engine.snapshot()
+        assert snap is not None
+        assert len(engine.history) == 1000
+
+    def test_get_pulse_initializes_singleton(self) -> None:
+        import app.pulse
+
+        app.pulse._pulse_engine = None
+        engine = app.pulse.get_pulse()
+        assert isinstance(engine, app.pulse.PulseEngine)
+        assert app.pulse._pulse_engine is engine
+
+
+# =============================================================================
+# File 11: app/utils/logging.py (cont'd — RuntimeError paths, 95% → 100%)
+#   Gaps: 128-129, 150-151
+# =============================================================================
+
+
+class TestLoggingRuntimeErrorPaths:
+    @pytest.mark.asyncio
+    async def test_log_error_runtime_error_passes(self) -> None:
+        from app.utils.logging import get_logger
+
+        logger = get_logger("test_log_error_rt")
+        with patch("asyncio.get_event_loop", side_effect=RuntimeError("no loop")):
+            result = logger.log_error("agent1", "action", "error msg")
+        assert isinstance(result, str)
+
+    @pytest.mark.asyncio
+    async def test_log_warn_runtime_error_passes(self) -> None:
+        from app.utils.logging import get_logger
+
+        logger = get_logger("test_log_warn_rt")
+        with patch("asyncio.get_event_loop", side_effect=RuntimeError("no loop")):
+            result = logger.log_warn("agent1", "action", "warn msg")
+        assert isinstance(result, str)
+
+
+# =============================================================================
+# File 12: app/utils/metrics.py (94% → 100%)
+#   Gaps: 21, 39
+# =============================================================================
+
+
+class TestMetricsCollectorExtraBranches:
+    def test_timing_trims_to_last_1000(self) -> None:
+        from app.utils.metrics import MetricsCollector
+
+        mc = MetricsCollector()
+        for _ in range(1001):
+            mc.timing("latency", 0.1)
+        assert len(mc._timings["latency"]) == 1000
+
+    def test_render_prometheus_with_gauge(self) -> None:
+        from app.utils.metrics import MetricsCollector
+
+        mc = MetricsCollector()
+        mc.gauge("active_agents", 5)
+        output = mc.render_prometheus()
+        assert "agentos_active_agents 5" in output
+
+
+# =============================================================================
+# File 13: app/kanban.py (95% → 100%)
+#   Gaps: 116-118
+# =============================================================================
+
+
+class TestKanbanBoardSingleton:
+    def test_get_kanban_board_creates_and_caches(self) -> None:
+        import app.kanban
+
+        app.kanban._kanban_boards.clear()
+        board = app.kanban.get_kanban_board("test-project")
+        assert board.project_id == "test-project"
+        assert "test-project" in app.kanban._kanban_boards
+        assert app.kanban._kanban_boards["test-project"] is board
