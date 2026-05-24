@@ -1,11 +1,12 @@
 <p align="center">
   <img src="https://img.shields.io/badge/AgentOS-v5.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
-  <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/docker.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
+  <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Desktop-Tauri_v2-FFC131?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/PWA-Installable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA">
-  <img src="https://img.shields.io/badge/592%20tests-99.42%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/663%20tests-100%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/Smart%20Router-28_models-4c6ef5?style=for-the-badge&logo=openai&logoColor=white" alt="Smart Router">
   <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
   <img src="https://img.shields.io/badge/Storage-S3_Friendly-569A31?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO">
   <img src="https://img.shields.io/badge/Sub--Agents-4-brightgreen?style=for-the-badge" alt="Sub-Agents">
@@ -441,7 +442,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 │  📋 Kanban Board │  🚀 Deploy Assistant                  │
 │  ToDo│InProg│Done│  1. Server   2. Keys   3. Deploy      │
 ├──────────────────┴───────────────────────────────────────┤
-│  ⚡ 592 tests · 99.42% coverage · ruff ✓ · mypy ✓ · bandit ✓   │
+│  ⚡ 663 tests · 100% coverage · ruff ✓ · mypy ✓ · bandit ✓   │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -521,13 +522,17 @@ agentos/
     │   ├── test_request_id.py   # Request ID middleware
     │   ├── test_responses.py    # APIResponse envelope tests
     │   ├── test_debugger_agent.py # @Debugger sub-agent tests
-    │   ├── test_orchestrator.py    # 6 tests
-    │   ├── test_hitl.py            # 7 tests
-    │   ├── test_memory.py          # 9 tests
-    │   ├── test_memory_cache.py    # Cache read/write/fallback tests
-    │   ├── test_advanced.py        # 15+ tests (v2/v3 features)
-    │   ├── test_v3_features.py     # 15+ tests (v3 features)
-    │   └── test_v4_features.py     # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
+    │   ├── test_orchestrator.py       # 10+ tests
+    │   ├── test_hitl.py               # 7 tests
+    │   ├── test_memory.py             # 9 tests
+    │   ├── test_memory_cache.py       # Cache read/write/fallback tests
+    │   ├── test_advanced.py           # 15+ tests (v2/v3 features)
+    │   ├── test_v3_features.py        # 15+ tests (v3 features)
+    │   ├── test_v4_features.py        # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
+    │   ├── test_llm_router.py         # 49 tests (SmartLLMRouter)
+    │   ├── test_main_routes.py        # Auth/route coverage tests
+    │   ├── test_main_routes2.py       # Redis/WebSocket coverage
+    │   └── test_small_gaps.py         # Edge-case coverage tests
     └── web/                # Legacy dashboard (deprecated, see ui/)
         ├── app/            # Pages, layouts, components
         └── Dockerfile.web  # Standalone container
@@ -539,8 +544,8 @@ agentos/
 ## 🧪 Testing
 
 ```bash
-# Full test suite with coverage
-uv run pytest app/tests/ --cov=app --cov-fail-under=90 -v
+# Full test suite with 100% coverage gate
+uv run pytest app/tests/ --cov=app --cov-fail-under=100 -v
 
 # Lint + type check + security
 uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll

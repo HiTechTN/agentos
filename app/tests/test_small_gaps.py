@@ -1338,11 +1338,11 @@ class TestSettingsLazyInit:
         assert s.log_level is not None
 
     def test_get_settings_covers_lazy_init(self) -> None:
-        import app.config.settings as settings_mod
-
         # conftest patches get_settings; stop patcher to call real function
         # Use the conftest module directly (already in sys.modules)
         import sys
+
+        import app.config.settings as settings_mod
 
         conftest_mod = sys.modules.get("app.tests.conftest")
         if conftest_mod is not None:

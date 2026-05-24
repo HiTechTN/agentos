@@ -3,12 +3,13 @@
 Routes LLM calls to the best available free OpenRouter model
 based on work type, with automatic failover and rate-limit tracking.
 """
+
 from __future__ import annotations
 
 import asyncio
 import time
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import httpx
@@ -19,7 +20,7 @@ from app.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
-class WorkType(str, Enum):
+class WorkType(StrEnum):
     """Categories of LLM work — determines which free model is selected."""
 
     CODE_GEN = "code_gen"
@@ -214,34 +215,77 @@ FREE_MODELS: dict[WorkType, list[FreeModel]] = {
 
 _WORK_TYPE_KEYWORDS: dict[WorkType, list[str]] = {
     WorkType.CODE_GEN: [
-        "scaffold", "implement", "refactor", "generate code",
-        "write function", "create class", "write tests",
-        "fix bug", "code generation",
+        "scaffold",
+        "implement",
+        "refactor",
+        "generate code",
+        "write function",
+        "create class",
+        "write tests",
+        "fix bug",
+        "code generation",
     ],
     WorkType.CODE_AGENT: [
-        "agent", "agentic", "multi-step", "tool call",
-        "workflow", "pipeline", "automate",
+        "agent",
+        "agentic",
+        "multi-step",
+        "tool call",
+        "workflow",
+        "pipeline",
+        "automate",
     ],
     WorkType.REASONING: [
-        "plan", "architecture", "design", "analyze", "reason",
-        "compare", "evaluate", "strategy", "structured plan",
-        "phases", "dependencies",
+        "plan",
+        "architecture",
+        "design",
+        "analyze",
+        "reason",
+        "compare",
+        "evaluate",
+        "strategy",
+        "structured plan",
+        "phases",
+        "dependencies",
     ],
     WorkType.CONTENT: [
-        "seo", "copy", "blog", "article", "social media",
-        "marketing", "email campaign", "content", "write",
+        "seo",
+        "copy",
+        "blog",
+        "article",
+        "social media",
+        "marketing",
+        "email campaign",
+        "content",
+        "write",
     ],
     WorkType.FAST: [
-        "classify", "extract", "summarize", "translate",
-        "quick", "fast", "short",
+        "classify",
+        "extract",
+        "summarize",
+        "translate",
+        "quick",
+        "fast",
+        "short",
     ],
     WorkType.MULTIMODAL: [
-        "image", "vision", "screenshot", "photo", "visual",
-        "describe image", "analyze image",
+        "image",
+        "vision",
+        "screenshot",
+        "photo",
+        "visual",
+        "describe image",
+        "analyze image",
     ],
     WorkType.DEBUG: [
-        "debug", "error", "exception", "traceback", "crash",
-        "fix error", "stack trace", "why is", "not working",
+        "debug",
+        "error",
+        "exception",
+        "traceback",
+        "crash",
+        "fix error",
+        "stack trace",
+        "why is",
+        "not working",
     ],
 }
 
@@ -338,7 +382,8 @@ async def _record_request(model_id: str, success: bool) -> None:
         if usage.consecutive_errors >= 3:
             usage.is_banned_until = time.time() + 300
             logger.log_warn(
-                "llm_router", "model_banned",
+                "llm_router",
+                "model_banned",
                 f"Model {model_id} banned until {usage.is_banned_until}",
             )
 
@@ -385,7 +430,9 @@ class SmartLLMRouter:
                 continue
             if await _is_available(model):
                 logger.log_action(
-                    "llm_router", "model_selected", "completed",
+                    "llm_router",
+                    "model_selected",
+                    "completed",
                     details={
                         "work_type": work_type.value,
                         "model": model.id,
@@ -460,7 +507,9 @@ class SmartLLMRouter:
                     "source": "openrouter_free",
                 }
                 logger.log_action(
-                    "llm_router", "llm_routed", "completed",
+                    "llm_router",
+                    "llm_routed",
+                    "completed",
                     details={
                         "work_type": detected_type.value,
                         "model": model.id,
@@ -476,7 +525,8 @@ class SmartLLMRouter:
                     logger.log_warn("llm_router", "model_rate_limited", str(model.id))
                     continue
                 logger.log_error(
-                    "llm_router", "model_error",
+                    "llm_router",
+                    "model_error",
                     f"OpenRouter {model.id} HTTP {exc.response.status_code}",
                 )
                 continue
@@ -486,7 +536,8 @@ class SmartLLMRouter:
                 continue
 
         logger.log_warn(
-            "llm_router", "ollama_fallback",
+            "llm_router",
+            "ollama_fallback",
             f"Work type: {detected_type.value} → {self.OLLAMA_FALLBACK_MODEL}",
         )
         return await self._call_ollama(
@@ -568,8 +619,7 @@ class SmartLLMRouter:
                         "message": {
                             "role": "assistant",
                             "content": (
-                                "I'm temporarily unavailable. "
-                                "All LLM providers are unreachable."
+                                "I'm temporarily unavailable. All LLM providers are unreachable."
                             ),
                         }
                     }

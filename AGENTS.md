@@ -205,3 +205,14 @@ module: app.agents.dev
 - `settings.redis_url` : peut être None (auto-detect), "memory://" (rate limit only), ou "redis://..."
 - `settings.resolved_redis_url` : construit l'URL Redis complète
 - Test: patcher `redis.asyncio.from_url` avec mock dict in-memory
+
+### Smart LLM Router (app/utils/llm_router.py)
+- Toujours utiliser `llm_complete()` de `app.utils.api_clients` pour les appels LLM
+- Disponible via `api_clients.py` qui expose `smart_router.complete()` sous `llm_complete()`
+- `WorkType` enum avec 8 catégories : CODE_GEN, CODE_AGENT, REASONING, CONTENT, FAST, MULTIMODAL, DEBUG, GENERAL
+- Détection automatique via `detect_work_type(prompt, agent_name)` avec scoring de mots-clés
+- Fallback à 4 niveaux : modèle préféré → modèle suivant dans la liste → Ollama local → réponse dégradée
+- Rate limiting auto par modèle (1 req/min fenêtre glissante, 100 req/jour, bannissement après 3 erreurs consécutives)
+- 28+ modèles OpenRouter gratuits catalogués dans `FREE_MODELS` triés par priorité par catégorie
+- Endpoints API : `GET /api/v1/llm/router/status` et `GET /api/v1/llm/router/models`
+- Lifetime : `smart_router.close()` appelé dans le shutdown du lifespan de main.py

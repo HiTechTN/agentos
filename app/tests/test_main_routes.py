@@ -420,9 +420,7 @@ class TestAuthMiddleware:
 class TestAuthTokenEndpoint:
     @pytest.mark.asyncio
     async def test_get_token_returns_credentials(self, async_client: AsyncClient) -> None:
-        resp = await async_client.post(
-            "/api/v1/auth/token?sub=testuser&workspace=testws"
-        )
+        resp = await async_client.post("/api/v1/auth/token?sub=testuser&workspace=testws")
         assert resp.status_code == 200
         data = resp.json()
         assert "access_token" in data

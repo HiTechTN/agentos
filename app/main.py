@@ -355,8 +355,7 @@ async def list_router_models() -> dict[str, Any]:
     from app.utils.llm_router import FREE_MODELS
 
     return {
-        wt.value: [{"id": m.id, "name": m.name, "ctx": m.context_window}
-                   for m in models]
+        wt.value: [{"id": m.id, "name": m.name, "ctx": m.context_window} for m in models]
         for wt, models in FREE_MODELS.items()
     }
 

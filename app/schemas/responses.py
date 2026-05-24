@@ -32,7 +32,7 @@ class APIError(BaseModel):
     details: dict[str, Any] | None = None
 
 
-class APIResponse(BaseModel, Generic[T]):
+class APIResponse(BaseModel, Generic[T]):  # noqa: UP046
     data: T | None = None
     meta: ResponseMeta = Field(default_factory=ResponseMeta)
     errors: list[APIError] = Field(default_factory=list)

@@ -541,6 +541,4 @@ class TestWebSocketLogs:
                     except RuntimeError:
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
-                    loop.run_until_complete(
-                        broadcaster.broadcast({"test": "record"})
-                    )
+                    loop.run_until_complete(broadcaster.broadcast({"test": "record"}))

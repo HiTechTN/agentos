@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -101,7 +101,8 @@ class TestLLMCacheRedis:
 
     @pytest.mark.asyncio
     async def test_invalidate_empty_keys_returns_zero(
-        self, cache: PersistentLLMCache,
+        self,
+        cache: PersistentLLMCache,
     ) -> None:
         mock_redis = AsyncMock()
         mock_redis.keys = AsyncMock(return_value=[])
@@ -112,7 +113,8 @@ class TestLLMCacheRedis:
 
     @pytest.mark.asyncio
     async def test_invalidate_no_redis_returns_zero(
-        self, cache: PersistentLLMCache,
+        self,
+        cache: PersistentLLMCache,
     ) -> None:
         cache._redis = None
         count = await cache.invalidate()

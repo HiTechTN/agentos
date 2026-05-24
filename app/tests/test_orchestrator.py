@@ -720,12 +720,16 @@ class TestExecuteAgentNoResult:
             project_id="default",
             prompt="test",
             tasks=[{"action": "analyze", "params": {}}],
-            results={},
             current_task_index=0,
+            agent_sequence=[],
+            results={},
             errors=[],
+            pending_hitl=[],
+            status="running",
             circuit_breaker={},
+            start_time=0.0,
+            parallel_batch=[],
         )
         with patch("app.orchestrator.MAX_RETRIES", 0):
             result = await orch._execute_agent(state, "dev")
-        assert any("NO_RESULT" in str(e)
-                   for e in result.get("errors", []) if isinstance(e, dict))
+        assert any("NO_RESULT" in str(e) for e in result.get("errors", []) if isinstance(e, dict))

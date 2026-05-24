@@ -1,7 +1,9 @@
 """Tests for SmartLLMRouter and WorkType detection."""
+
 from __future__ import annotations
 
 import time
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -117,8 +119,11 @@ class TestRateLimitTracking:
     @pytest.mark.asyncio
     async def test_model_unavailable_when_rate_limited(self) -> None:
         model = FreeModel(
-            id="test/model:free", name="Test", context_window=128_000,
-            req_per_min=5, req_per_day=200,
+            id="test/model:free",
+            name="Test",
+            context_window=128_000,
+            req_per_min=5,
+            req_per_day=200,
         )
         from app.utils.llm_router import _ModelUsage, _usage_lock
 
@@ -181,9 +186,7 @@ class TestSmartLLMRouter:
         assert ":free" in model.id or model.id == "openrouter/free"
 
     @pytest.mark.asyncio
-    async def test_select_model_respects_tool_requirement(
-        self, router: SmartLLMRouter
-    ) -> None:
+    async def test_select_model_respects_tool_requirement(self, router: SmartLLMRouter) -> None:
         model = await router.select_model(WorkType.FAST, requires_tools=True)
         assert model is None or model.supports_tools
 
@@ -214,7 +217,8 @@ class TestSmartLLMRouter:
                 "usage": {},
             }
             result = await router.complete(
-                prompt="hi", system="You are helpful",
+                prompt="hi",
+                system="You are helpful",
             )
         assert result["_router"]["source"] == "openrouter_free"
 
@@ -253,13 +257,15 @@ class TestSmartLLMRouter:
                     },
                 }
                 result = await router.complete(
-                    prompt="test", work_type=WorkType.FAST,
+                    prompt="test",
+                    work_type=WorkType.FAST,
                 )
                 assert result["_router"]["source"] == "ollama_fallback"
 
     @pytest.mark.asyncio
     async def test_complete_falls_back_after_multiple_429(
-        self, router: SmartLLMRouter,
+        self,
+        router: SmartLLMRouter,
     ) -> None:
         import httpx
 
@@ -283,7 +289,8 @@ class TestSmartLLMRouter:
 
     @pytest.mark.asyncio
     async def test_complete_timeout_triggers_fallback(
-        self, router: SmartLLMRouter,
+        self,
+        router: SmartLLMRouter,
     ) -> None:
         import httpx
 
@@ -338,19 +345,20 @@ class TestSmartLLMRouter:
 
     @pytest.mark.asyncio
     async def test_select_model_no_available_returns_none(
-        self, router: SmartLLMRouter,
+        self,
+        router: SmartLLMRouter,
     ) -> None:
         from app.utils.llm_router import _ModelUsage, _usage_lock
 
         # Ban all FAST models
-        for model in FREE_MODELS[WorkType.FAST]:
+        for banned in FREE_MODELS[WorkType.FAST]:
             async with _usage_lock:
-                _usage[model.id] = _ModelUsage(
+                _usage[banned.id] = _ModelUsage(
                     consecutive_errors=3,
                     is_banned_until=time.time() + 9999,
                 )
-        model = await router.select_model(WorkType.FAST)
-        assert model is None
+        selected: FreeModel | None = await router.select_model(WorkType.FAST)
+        assert selected is None
 
 
 class TestRouterEndpoints:
@@ -440,9 +448,7 @@ class TestCallOllamaSuccess:
         router = SmartLLMRouter()
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
-        mock_response.json = MagicMock(
-            return_value={"message": {"content": "ollama response"}}
-        )
+        mock_response.json = MagicMock(return_value={"message": {"content": "ollama response"}})
         with patch("httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -487,7 +493,8 @@ class TestSelectModelFilters:
     async def test_min_context_filters(self) -> None:
         router = SmartLLMRouter()
         model = await router.select_model(
-            WorkType.FAST, min_context=1_000_000,
+            WorkType.FAST,
+            min_context=1_000_000,
         )
         if model is not None:
             assert model.context_window >= 1_000_000
@@ -552,7 +559,8 @@ class TestCompleteFilters:
                 "_router": {"source": "ollama_fallback"},
             }
             result = await router.complete(
-                prompt="test", work_type=WorkType.GENERAL,
+                prompt="test",
+                work_type=WorkType.GENERAL,
             )
             assert result["_router"]["source"] == "ollama_fallback"
 
@@ -569,7 +577,9 @@ class TestCompleteNon429Error:
             router,
             "_call_openrouter",
             side_effect=httpx.HTTPStatusError(
-                "500", request=MagicMock(), response=error_resp,
+                "500",
+                request=MagicMock(),
+                response=error_resp,
             ),
         ):
             with patch.object(router, "_call_ollama", new_callable=AsyncMock) as mock_ollama:

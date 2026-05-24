@@ -6,7 +6,7 @@ import httpx
 from openai import AsyncOpenAI
 
 from app.config.settings import get_settings
-from app.utils.llm_router import WorkType, detect_work_type, smart_router
+from app.utils.llm_router import WorkType, smart_router
 from app.utils.logging import get_logger
 
 logger = get_logger("api_clients")
