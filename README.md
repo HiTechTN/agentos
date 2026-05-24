@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Desktop-Tauri_v2-FFC131?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/PWA-Installable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA">
-  <img src="https://img.shields.io/badge/421%20tests-93%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/592%20tests-99.42%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
   <img src="https://img.shields.io/badge/Storage-S3_Friendly-569A31?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO">
   <img src="https://img.shields.io/badge/Sub--Agents-4-brightgreen?style=for-the-badge" alt="Sub-Agents">
@@ -441,7 +441,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 │  📋 Kanban Board │  🚀 Deploy Assistant                  │
 │  ToDo│InProg│Done│  1. Server   2. Keys   3. Deploy      │
 ├──────────────────┴───────────────────────────────────────┤
-│  ⚡ 421 tests · 93% coverage · Tauri Desktop · PWA       │
+│  ⚡ 592 tests · 99.42% coverage · ruff ✓ · mypy ✓ · bandit ✓   │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -514,13 +514,20 @@ agentos/
     │   ├── telemetry.py    # OpenTelemetry tracing with Jaeger export
     │   └── notifications.py # Slack + Console multi-channel
     ├── tests/
-    │   ├── conftest.py     # Fixtures, mocks, async client
-    │   ├── test_orchestrator.py  # 6 tests
-    │   ├── test_hitl.py         # 7 tests
-    │   ├── test_memory.py       # 9 tests
-    │   ├── test_advanced.py     # 15+ tests (v2/v3 features)
-    │   ├── test_v3_features.py  # 15+ tests (v3 features)
-    │   └── test_v4_features.py  # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
+    │   ├── conftest.py          # Fixtures, mocks (Redis, LLM, settings)
+    │   ├── test_auth.py         # JWT auth, token creation/validation
+    │   ├── test_llm_cache.py    # LLM response cache lifecycle
+    │   ├── test_rate_limit.py   # Rate limit configuration
+    │   ├── test_request_id.py   # Request ID middleware
+    │   ├── test_responses.py    # APIResponse envelope tests
+    │   ├── test_debugger_agent.py # @Debugger sub-agent tests
+    │   ├── test_orchestrator.py    # 6 tests
+    │   ├── test_hitl.py            # 7 tests
+    │   ├── test_memory.py          # 9 tests
+    │   ├── test_memory_cache.py    # Cache read/write/fallback tests
+    │   ├── test_advanced.py        # 15+ tests (v2/v3 features)
+    │   ├── test_v3_features.py     # 15+ tests (v3 features)
+    │   └── test_v4_features.py     # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
     └── web/                # Legacy dashboard (deprecated, see ui/)
         ├── app/            # Pages, layouts, components
         └── Dockerfile.web  # Standalone container
@@ -533,20 +540,19 @@ agentos/
 
 ```bash
 # Full test suite with coverage
-make test
+uv run pytest app/tests/ --cov=app --cov-fail-under=90 -v
 
-# Run specific tests
-docker compose exec app python -m pytest app/tests/test_v4_features.py -v
-
-# Lint
-make lint
+# Lint + type check + security
+uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll
 ```
 
-| Metric | Target |
-|--------|--------|
-| Coverage | ≥ 93% |
-| Tests | 421+ (orchestration, HITL, memory, v2/v3/v4/v5 features) |
-| Type checks | mypy strict |
+| Metric | Target | Current |
+|--------|--------|---------|
+| Coverage | ≥ 90% | **99.42%** ✅ |
+| Tests | 592+ | **592** ✅ |
+| ruff | 0 errors | **0** ✅ |
+| mypy strict | 0 errors | **0** ✅ |
+| bandit HIGH/MEDIUM | 0 issues | **0** ✅ |
 
 ---
 

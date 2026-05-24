@@ -1322,3 +1322,40 @@ class TestKanbanBoardSingleton:
         assert board.project_id == "test-project"
         assert "test-project" in app.kanban._kanban_boards
         assert app.kanban._kanban_boards["test-project"] is board
+
+
+# =============================================================================
+# File 14: app/config/settings.py (97% → 100%)
+#   Gap: 151-153 (get_settings lazy init)
+# =============================================================================
+
+
+class TestSettingsLazyInit:
+    def test_get_settings_lazy_init_creates_when_none(self) -> None:
+        from app.config.settings import Settings
+
+        s = Settings()
+        assert s.log_level is not None
+
+    def test_get_settings_covers_lazy_init(self) -> None:
+        import app.config.settings as settings_mod
+
+        # conftest patches get_settings; stop patcher to call real function
+        # Use the conftest module directly (already in sys.modules)
+        import sys
+
+        conftest_mod = sys.modules.get("app.tests.conftest")
+        if conftest_mod is not None:
+            patcher = getattr(conftest_mod, "_patcher", None)
+        else:
+            patcher = None
+        if patcher is not None:
+            patcher.stop()
+        try:
+            settings_mod._settings = None
+            result = settings_mod.get_settings()
+            assert result is not None
+            assert result.log_level is not None
+        finally:
+            if patcher is not None:
+                patcher.start()

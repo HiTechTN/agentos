@@ -6,6 +6,7 @@ import httpx
 from openai import AsyncOpenAI
 
 from app.config.settings import get_settings
+from app.utils.llm_router import WorkType, detect_work_type, smart_router
 from app.utils.logging import get_logger
 
 logger = get_logger("api_clients")
@@ -198,3 +199,20 @@ class EmbeddingClient:
                 "embedding_client", "embed_fallback", "All embedding providers unavailable"
             )
             return [0.0] * 768
+
+
+async def llm_complete(
+    prompt: str,
+    system: str = "",
+    agent_name: str = "",
+    work_type: WorkType | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Unified LLM completion with smart free model routing."""
+    return await smart_router.complete(
+        prompt=prompt,
+        system=system,
+        agent_name=agent_name,
+        work_type=work_type,
+        **kwargs,
+    )

@@ -707,3 +707,25 @@ class TestGetOrchestratorSingleton:
         o2 = get_orchestrator()
         assert o1 is o2
         assert isinstance(o1, AgentOSOrchestrator)
+
+
+class TestExecuteAgentNoResult:
+    @pytest.mark.asyncio
+    async def test_no_result_fallback(self) -> None:
+        """Reach the NO_RESULT return by making MAX_RETRIES=0 so inner loop never runs."""
+        orch = AgentOSOrchestrator()
+        state = AgentOSState(
+            session_id="test-session",
+            trace_id="test-trace",
+            project_id="default",
+            prompt="test",
+            tasks=[{"action": "analyze", "params": {}}],
+            results={},
+            current_task_index=0,
+            errors=[],
+            circuit_breaker={},
+        )
+        with patch("app.orchestrator.MAX_RETRIES", 0):
+            result = await orch._execute_agent(state, "dev")
+        assert any("NO_RESULT" in str(e)
+                   for e in result.get("errors", []) if isinstance(e, dict))

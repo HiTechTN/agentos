@@ -402,6 +402,17 @@ class TestHealthEndpoint:
         assert resp.status_code == 200
         assert resp.json()["database"] == "error"
 
+    @pytest.mark.asyncio
+    async def test_redis_error_path(self, async_client: AsyncClient) -> None:
+        mock_conn = AsyncMock()
+        with (
+            patch("asyncpg.connect", AsyncMock(return_value=mock_conn)),
+            patch("redis.asyncio.from_url", side_effect=Exception("redis down")),
+        ):
+            resp = await async_client.get("/health")
+        assert resp.status_code == 200
+        assert resp.json()["redis"] == "error"
+
 
 class TestDeployConfigure:
     @pytest.mark.asyncio
@@ -498,3 +509,38 @@ class TestWebSocketLogs:
                 ws.send_text("ping")
                 data = ws.receive_json()
                 assert data == {"type": "pong"}
+
+    def test_send_log_failure_does_not_crash(self) -> None:
+        """send_log catches send_json failure (covers lines 173-174)."""
+        from unittest.mock import patch as mock_patch
+
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        with TestClient(app) as client:
+            with client.websocket_connect("/ws/logs") as ws:
+                ws.send_text("ping")
+                data = ws.receive_json()
+                assert data == {"type": "pong"}
+                # Patch send_json to fail after pong succeeds
+                # The broadcast will trigger send_log -> send_json which raises
+                with mock_patch(
+                    "starlette.websockets.WebSocket.send_json",
+                    side_effect=Exception("send failed"),
+                ):
+                    from app.utils.logging import get_broadcaster
+
+                    broadcaster = get_broadcaster()
+                    import asyncio
+
+                    # Create a task on the app's loop via log_action
+                    # Fire broadcaster directly; the mock will raise
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    loop.run_until_complete(
+                        broadcaster.broadcast({"test": "record"})
+                    )

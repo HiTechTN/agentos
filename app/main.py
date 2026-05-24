@@ -20,6 +20,7 @@ from app.orchestrator import get_orchestrator
 from app.utils.auth import create_access_token, get_current_user
 from app.utils.hitl_gateway import get_hitl_gateway
 from app.utils.llm_cache import llm_cache
+from app.utils.llm_router import smart_router
 from app.utils.logging import get_logger
 from app.utils.metrics import get_metrics
 from app.utils.rate_limit import limiter
@@ -70,6 +71,7 @@ async def lifespan(app: FastAPI) -> Any:
         await scheduler.start()
     yield
     await llm_cache.close()
+    await smart_router.close()
     logger.log_action("api", "shutdown", "stopped")
 
 
@@ -339,6 +341,24 @@ async def clear_llm_cache(request: Request) -> dict[str, str]:
 
     LLMClient().clear_cache()
     return {"status": "cache_cleared"}
+
+
+@app.get("/api/v1/llm/router/status")
+async def get_router_status() -> dict[str, Any]:
+    """Return current free model usage stats."""
+    return await smart_router.get_usage_report()
+
+
+@app.get("/api/v1/llm/router/models")
+async def list_router_models() -> dict[str, Any]:
+    """List all free models organized by work type."""
+    from app.utils.llm_router import FREE_MODELS
+
+    return {
+        wt.value: [{"id": m.id, "name": m.name, "ctx": m.context_window}
+                   for m in models]
+        for wt, models in FREE_MODELS.items()
+    }
 
 
 # ── Plan Mode ──────────────────────────────────────────────────────────────────

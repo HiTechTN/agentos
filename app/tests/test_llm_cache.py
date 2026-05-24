@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -98,3 +98,38 @@ class TestLLMCacheRedis:
         cache._redis = mock_redis
         count = await cache.invalidate()
         assert count == 1
+
+    @pytest.mark.asyncio
+    async def test_invalidate_empty_keys_returns_zero(
+        self, cache: PersistentLLMCache,
+    ) -> None:
+        mock_redis = AsyncMock()
+        mock_redis.keys = AsyncMock(return_value=[])
+        mock_redis.delete = AsyncMock()
+        cache._redis = mock_redis
+        count = await cache.invalidate()
+        assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_invalidate_no_redis_returns_zero(
+        self, cache: PersistentLLMCache,
+    ) -> None:
+        cache._redis = None
+        count = await cache.invalidate()
+        assert count == 0
+
+
+class TestLLMCacheConnect:
+    @pytest.mark.asyncio
+    async def test_connect_sets_redis(self) -> None:
+        cache = PersistentLLMCache()
+        await cache.connect()
+        assert cache._redis is not None
+
+    @pytest.mark.asyncio
+    async def test_connect_exception_sets_none(self) -> None:
+        cache = PersistentLLMCache()
+        with patch("app.utils.llm_cache.aioredis.from_url") as mock_from_url:
+            mock_from_url.side_effect = Exception("connection failed")
+            await cache.connect()
+        assert cache._redis is None

@@ -415,3 +415,22 @@ class TestAuthMiddleware:
     async def test_middleware_skipped_for_metrics(self, async_client: AsyncClient) -> None:
         resp = await async_client.get("/metrics")
         assert resp.status_code == 200
+
+
+class TestAuthTokenEndpoint:
+    @pytest.mark.asyncio
+    async def test_get_token_returns_credentials(self, async_client: AsyncClient) -> None:
+        resp = await async_client.post(
+            "/api/v1/auth/token?sub=testuser&workspace=testws"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+    @pytest.mark.asyncio
+    async def test_get_token_default_params(self, async_client: AsyncClient) -> None:
+        resp = await async_client.post("/api/v1/auth/token")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "access_token" in data

@@ -80,3 +80,29 @@ class TestDebuggerAgentRun:
         assert isinstance(result, DebugResult)
         assert result.confidence == 0.95
         assert result.root_cause == "Type conversion failed"
+
+
+class TestDebuggerAgentRunMethod:
+    @pytest.mark.asyncio
+    async def test__run_creates_context_and_calls_run(self) -> None:
+        agent = DebuggerAgent()
+        params = {
+            "error_type": "TypeError",
+            "error_message": "test error",
+            "traceback_str": "traceback",
+        }
+        with patch.object(agent, "run", new_callable=AsyncMock) as mock_run:
+            mock_run.return_value = DebugResult(
+                root_cause="test",
+                explanation="test",
+                fix_suggestion="fix it",
+                confidence=0.8,
+            )
+            result = await agent._run(
+                action="debug",
+                params=params,
+                session_id="sess-1",
+                trace_id="trace-1",
+            )
+        assert result.confidence == 0.8
+        mock_run.assert_called_once()
