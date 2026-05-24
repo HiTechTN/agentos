@@ -333,7 +333,6 @@ class AgentOSOrchestrator:
                     return {
                         "errors": state["errors"] + [{"code": "EXECUTION_ERROR", "message": str(e)}]
                     }
-        return {"current_task_index": idx + 1}
 
     async def _execute_dev(self, state: AgentOSState) -> dict[str, Any]:
         return await self._execute_agent(state, "dev")

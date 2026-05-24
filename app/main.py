@@ -256,17 +256,14 @@ async def export_project(req: ProjectExport, request: Request) -> dict[str, Any]
         "sessions": [],
         "embeddings": [],
     }
+    sessions: list[dict[str, Any]] = []
     try:
-        sessions = []
-        try:
-            session_data = await sm.get(req.project_id)
-            if session_data:
-                sessions = [session_data]
-        except Exception:
-            pass
-        export_data["sessions"] = sessions
+        session_data = await sm.get(req.project_id)
+        if session_data:
+            sessions = [session_data]
     except Exception:
         pass
+    export_data["sessions"] = sessions
     return export_data
 
 
