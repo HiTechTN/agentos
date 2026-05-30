@@ -31,6 +31,15 @@
     "plugins": [
       "expo-router",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "b6900fa8-496a-414c-a929-c9be1b319f57"
+      }
+    },
+    "owner": "hitechtn-org"
   }
 }
