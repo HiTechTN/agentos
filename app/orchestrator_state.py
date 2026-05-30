@@ -8,6 +8,7 @@ class AgentOSState(TypedDict):
     session_id: str
     trace_id: str
     prompt: str
+    attachments: list[dict[str, str]]
     tasks: list[dict[str, Any]]
     current_task_index: int
     agent_sequence: list[str]

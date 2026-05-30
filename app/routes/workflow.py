@@ -16,10 +16,17 @@ settings = get_settings()
 metrics = get_metrics()
 
 
+class Attachment(BaseModel):
+    filename: str
+    mime_type: str
+    data_base64: str
+
+
 class RunRequest(BaseModel):
     prompt: str
     project_id: str = "default"
     workflow_id: str = ""
+    attachments: list[Attachment] = []
 
 
 class ApproveRequest(BaseModel):
@@ -36,7 +43,15 @@ class RejectRequest(BaseModel):
 async def run_workflow(req: RunRequest, request: Request) -> dict[str, Any]:
     start = time.time()
     orchestrator = get_orchestrator()
-    result = await orchestrator.run(prompt=req.prompt, project_id=req.project_id)
+    attachments_data = [
+        {"filename": a.filename, "mime_type": a.mime_type, "data_base64": a.data_base64}
+        for a in req.attachments
+    ] if req.attachments else []
+    result = await orchestrator.run(
+        prompt=req.prompt,
+        project_id=req.project_id,
+        attachments=attachments_data,
+    )
     duration = time.time() - start
     metrics.timing("workflow_duration", duration)
     metrics.inc("workflow_runs")

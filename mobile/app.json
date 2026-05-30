@@ -33,7 +33,21 @@
       "expo-secure-store",
       "expo-notifications",
       "expo-asset",
-      "expo-build-properties"
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AgentOS to access your photos for attachment uploads.",
+          "cameraPermission": "Allow AgentOS to take photos for attachment uploads."
+        }
+      ]
     ],
     "extra": {
       "router": {

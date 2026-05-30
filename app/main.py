@@ -13,6 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from starlette.responses import Response
 
 from app.config.settings import get_settings
+from app.routes.auth import router as auth_router
 from app.routes.content import router as content_router
 from app.routes.kanban import router as kanban_router
 from app.routes.llm import router as llm_router
@@ -270,6 +271,7 @@ async def configure_deploy(cfg: DeployConfig, request: Request) -> dict[str, Any
 
 # ── Route Modules ──────────────────────────────────────────────────────────
 
+app.include_router(auth_router)
 app.include_router(workflow_router)
 app.include_router(llm_router)
 app.include_router(content_router)

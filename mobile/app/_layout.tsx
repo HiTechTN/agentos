@@ -16,6 +16,14 @@ export default function RootLayout() {
               name="login"
               options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
             />
+            <Stack.Screen
+              name="register"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="oauth"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
             <Stack.Screen name="(tabs)" />
           </Stack>
         </NotificationsProvider>

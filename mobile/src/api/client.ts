@@ -37,7 +37,11 @@ export function getBaseUrl(): string {
 }
 
 export async function setBaseUrl(url: string): Promise<void> {
-  _baseUrl = url.replace(/\/+$/, '');
+  let normalized = url.trim();
+  if (!/^https?:\/\//i.test(normalized)) {
+    normalized = 'http://' + normalized;
+  }
+  _baseUrl = normalized.replace(/\/+$/, '');
   await SecureStore.setItemAsync(SERVER_URL_KEY, _baseUrl);
 }
 
@@ -130,6 +134,12 @@ export interface HealthStatus {
   ollama?: string;
 }
 
+export interface AttachmentData {
+  filename: string;
+  mime_type: string;
+  data_base64: string;
+}
+
 export interface AuthTokenResponse {
   access_token: string;
   token_type: string;
@@ -182,13 +192,42 @@ export async function login(sub = 'mobile', workspace = 'default'): Promise<stri
   return resp.access_token;
 }
 
+export async function register(
+  email: string,
+  password: string,
+  name?: string,
+): Promise<{ id: number; email: string; name?: string }> {
+  return api.post<{ id: number; email: string; name?: string }>('/api/v1/auth/register', {
+    email,
+    password,
+    ...(name ? { name } : {}),
+  });
+}
+
+export async function loginWithCredentials(
+  email: string,
+  password: string,
+): Promise<{ access_token: string; token_type: string; user: { id: number; email: string; name?: string } }> {
+  return api.post<{
+    access_token: string;
+    token_type: string;
+    user: { id: number; email: string; name?: string };
+  }>('/api/v1/auth/login', { email, password });
+}
+
+export async function getMe(): Promise<{ id: number; email: string; name?: string; avatar_url?: string }> {
+  return api.get<{ id: number; email: string; name?: string; avatar_url?: string }>('/api/v1/auth/me');
+}
+
 export async function runWorkflow(
   prompt: string,
   projectId = 'default',
+  attachments?: AttachmentData[],
 ): Promise<WorkflowResult> {
   return api.post<WorkflowResult>('/api/v1/run', {
     prompt,
     project_id: projectId,
+    ...(attachments && attachments.length > 0 ? { attachments } : {}),
   });
 }
 
