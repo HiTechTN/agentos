@@ -499,7 +499,7 @@ class TestDeployConfigure:
         assert resp.status_code == 200 and resp.json()["status"] == "partial"
 
 
-def _drain_until_pong(ws: Any) -> dict[str, Any]:
+def _drain_until_pong(ws: Any) -> Any:
     data = ws.receive_json()
     while isinstance(data, dict) and data.get("type") != "pong":
         data = ws.receive_json()
