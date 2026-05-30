@@ -32,7 +32,8 @@
       "expo-router",
       "expo-secure-store",
       "expo-notifications",
-      "expo-asset"
+      "expo-asset",
+      "expo-build-properties"
     ],
     "extra": {
       "router": {
