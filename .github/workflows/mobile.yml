@@ -64,8 +64,12 @@ jobs:
           eas build --platform $PLATFORM --profile $PROFILE --non-interactive
 
       - name: Build iOS IPA
-        if: (inputs.platform == 'ios' || inputs.platform == 'all' || github.event_name == 'release') && secrets.EXPO_IOS_TEAM_ID != ''
+        if: inputs.platform == 'ios' || inputs.platform == 'all' || github.event_name == 'release'
         run: |
+          if [ -z "$EXPO_IOS_TEAM_ID" ]; then
+            echo "EXPO_IOS_TEAM_ID not set — skipping iOS build"
+            exit 0
+          fi
           PLATFORM="ios"
           if [ "${{ github.event_name }}" = "release" ]; then
             PROFILE="production"
