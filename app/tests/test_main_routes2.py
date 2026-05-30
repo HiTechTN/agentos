@@ -1,5 +1,6 @@
 """Cover remaining uncovered routes in app/main.py for 100% coverage."""
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -498,6 +499,13 @@ class TestDeployConfigure:
         assert resp.status_code == 200 and resp.json()["status"] == "partial"
 
 
+def _drain_until_pong(ws: Any) -> dict[str, Any]:
+    data = ws.receive_json()
+    while isinstance(data, dict) and data.get("type") != "pong":
+        data = ws.receive_json()
+    return data
+
+
 class TestWebSocketLogs:
     def test_ping_pong(self) -> None:
         from fastapi.testclient import TestClient
@@ -507,7 +515,7 @@ class TestWebSocketLogs:
         with TestClient(app) as client:
             with client.websocket_connect("/ws/logs") as ws:
                 ws.send_text("ping")
-                data = ws.receive_json()
+                data = _drain_until_pong(ws)
                 assert data == {"type": "pong"}
 
     def test_send_log_failure_does_not_crash(self) -> None:
@@ -521,7 +529,7 @@ class TestWebSocketLogs:
         with TestClient(app) as client:
             with client.websocket_connect("/ws/logs") as ws:
                 ws.send_text("ping")
-                data = ws.receive_json()
+                data = _drain_until_pong(ws)
                 assert data == {"type": "pong"}
                 # Patch send_json to fail after pong succeeds
                 # The broadcast will trigger send_log -> send_json which raises
