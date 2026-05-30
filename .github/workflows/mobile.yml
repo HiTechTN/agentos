@@ -31,6 +31,9 @@ jobs:
       run:
         working-directory: mobile
 
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
     steps:
       - uses: actions/checkout@v4
 
