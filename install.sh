@@ -49,13 +49,16 @@ else
 fi
 
 # --- Docker Compose ---
-echo -e "${YELLOW}[4/5] Pulling Docker images...${NC}"
+echo -e "${YELLOW}[4/5] Pulling & building Docker images...${NC}"
 docker compose pull --quiet 2>/dev/null || true
-echo "  ✓ Images pulled"
+echo "  ✓ Images ready"
 
 # --- Start ---
 echo -e "${YELLOW}[5/5] Starting AgentOS...${NC}"
-docker compose up -d 2>&1 | tail -5
+docker compose up -d 2>&1 | tail -10 || {
+  echo -e "  ${YELLOW}⚠  Partial startup. Some services may have failed.${NC}"
+  echo -e "  ${YELLOW}   Check: docker compose logs --tail=20 <service>${NC}"
+}
 
 echo ""
 echo -e "${GREEN}  ╔══════════════════════════════════════╗${NC}"

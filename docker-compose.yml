@@ -92,7 +92,7 @@ services:
       retries: 3
 
   strapi:
-    image: strapi/strapi:latest
+    image: naskio/strapi:latest
     container_name: agentos-strapi
     restart: unless-stopped
     environment:
