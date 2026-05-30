@@ -24,7 +24,7 @@ class KanbanCardMove(BaseModel):
 
 
 @router.post("/api/v1/kanban/{project_id}/cards")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def create_kanban_card(
     project_id: str, card: KanbanCardCreate, request: Request
 ) -> dict[str, Any]:
@@ -45,7 +45,7 @@ async def get_kanban_board(project_id: str) -> dict[str, Any]:
 
 
 @router.put("/api/v1/kanban/{project_id}/move")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def move_kanban_card(
     project_id: str, move: KanbanCardMove, request: Request
 ) -> dict[str, str]:
@@ -58,7 +58,7 @@ async def move_kanban_card(
 
 
 @router.delete("/api/v1/kanban/{project_id}/cards/{card_id}")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def delete_kanban_card(project_id: str, card_id: str, request: Request) -> dict[str, str]:
     from app.kanban import get_kanban_board
 

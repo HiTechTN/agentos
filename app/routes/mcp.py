@@ -15,7 +15,7 @@ class MCPServerRegister(BaseModel):
 
 
 @router.post("/api/v1/mcp/register")
-@limiter.limit("20/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("20/minute")
 async def register_mcp_server(server: MCPServerRegister, request: Request) -> dict[str, Any]:
     from app.mcp.server import get_mcp_registry
 
@@ -32,7 +32,7 @@ async def list_mcp_servers() -> dict[str, Any]:
 
 
 @router.post("/api/v1/mcp/{server_name}/call/{tool_name}")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def call_mcp_tool(
     server_name: str,
     tool_name: str,

@@ -24,8 +24,8 @@ class Cache:
             self._redis = aioredis.from_url(
                 self.settings.resolved_redis_url,
                 decode_responses=False,
-            )
-            await self._redis.ping()  # type: ignore[misc]
+            )  # type: ignore[no-untyped-call]
+            await self._redis.ping()
             logger.log_action("cache", "redis_init", "connected")
             return self._redis
         except Exception as e:

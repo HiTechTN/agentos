@@ -8,7 +8,6 @@ from typing import Any
 
 import yaml
 from langgraph.graph import END, StateGraph
-from langgraph.graph.state import CompiledStateGraph
 
 from app.agents import CommerceAgent, ContentAgent, DevAgent, MarketingAgent
 from app.memory.session import get_session_manager
@@ -64,8 +63,8 @@ class AgentOSOrchestrator:
         }
         self.graph = self._build_graph()
 
-    def _build_graph(self) -> CompiledStateGraph:  # type: ignore[type-arg]
-        workflow: StateGraph[AgentOSState] = StateGraph(AgentOSState)
+    def _build_graph(self) -> Any:
+        workflow: Any = StateGraph(AgentOSState)
         workflow.add_node("analyze_prompt", self._analyze_prompt)
         workflow.add_node("route_tasks", self._route_tasks)
         workflow.add_node("execute_parallel", self._execute_parallel)
@@ -145,10 +144,10 @@ class AgentOSOrchestrator:
         async with get_telemetry().trace("workflow", trace_id) as span:
             span.set_attribute("prompt", prompt[:100])
         try:
-            result = await self.graph.ainvoke(initial_state)
+            result: Any = await self.graph.ainvoke(initial_state)
             if result is None:
                 return {}
-            return result
+            return result  # type: ignore[no-any-return]
         except Exception as e:
             self.logger.log_error("orchestrator", "workflow", str(e), trace_id, project_id)
             return {

@@ -12,7 +12,7 @@ metrics = get_metrics()
 
 
 @router.post("/api/v1/llm/cache/clear")
-@limiter.limit("10/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("10/minute")
 async def clear_llm_cache(request: Request) -> dict[str, str]:
     LLMClient().clear_cache()
     return {"status": "cache_cleared"}

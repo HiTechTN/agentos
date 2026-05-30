@@ -32,7 +32,7 @@ class RejectRequest(BaseModel):
 
 
 @router.post("/api/v1/run")
-@limiter.limit(settings.rate_limit_run)  # type: ignore[untyped-decorator]
+@limiter.limit(settings.rate_limit_run)
 async def run_workflow(req: RunRequest, request: Request) -> dict[str, Any]:
     start = time.time()
     orchestrator = get_orchestrator()
@@ -55,7 +55,7 @@ async def get_status(session_id: str) -> dict[str, Any]:
 
 
 @router.post("/api/v1/hitl/approve")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def approve_action(req: ApproveRequest, request: Request) -> dict[str, Any]:
     hitl = get_hitl_gateway()
     try:
@@ -72,7 +72,7 @@ async def approve_action(req: ApproveRequest, request: Request) -> dict[str, Any
 
 
 @router.post("/api/v1/hitl/reject")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def reject_action(req: RejectRequest, request: Request) -> dict[str, Any]:
     hitl = get_hitl_gateway()
     try:

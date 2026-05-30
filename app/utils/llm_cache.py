@@ -27,7 +27,7 @@ class PersistentLLMCache:
                 settings.resolved_redis_url,
                 encoding="utf-8",
                 decode_responses=True,
-            )
+            )  # type: ignore[no-untyped-call]
         except Exception:
             self._redis = None
 

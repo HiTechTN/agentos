@@ -65,7 +65,7 @@ app.add_middleware(
 )
 
 app.add_middleware(RequestIDMiddleware)
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 
 @app.middleware("http")
@@ -111,8 +111,8 @@ async def health() -> dict[str, str]:
     try:
         import redis.asyncio as aioredis
 
-        r = aioredis.from_url(settings.resolved_redis_url)
-        await r.ping()  # type: ignore[misc]
+        r = aioredis.from_url(settings.resolved_redis_url)  # type: ignore[no-untyped-call]
+        await r.ping()
         await r.aclose()
         statuses["redis"] = "ok"
     except Exception:

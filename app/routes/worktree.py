@@ -14,7 +14,7 @@ class WorktreeCreate(BaseModel):
 
 
 @router.post("/api/v1/rules/init")
-@limiter.limit("10/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("10/minute")
 async def init_rules(request: Request) -> dict[str, Any]:
     from app.agents.rules import get_rules
 
@@ -24,7 +24,7 @@ async def init_rules(request: Request) -> dict[str, Any]:
 
 
 @router.post("/api/v1/worktree")
-@limiter.limit("10/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("10/minute")
 async def create_worktree(req: WorktreeCreate, request: Request) -> dict[str, Any]:
     from app.git_worktree import get_worktree_manager
 
@@ -49,7 +49,7 @@ async def list_worktrees() -> dict[str, Any]:
 
 
 @router.post("/api/v1/worktree/rebase")
-@limiter.limit("10/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("10/minute")
 async def rebase_worktree(branch_name: str, request: Request) -> dict[str, Any]:
     from app.git_worktree import get_worktree_manager
 
@@ -62,7 +62,7 @@ async def rebase_worktree(branch_name: str, request: Request) -> dict[str, Any]:
 
 
 @router.delete("/api/v1/worktree/{branch_name}")
-@limiter.limit("10/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("10/minute")
 async def remove_worktree(branch_name: str, request: Request) -> dict[str, Any]:
     from app.git_worktree import get_worktree_manager
 

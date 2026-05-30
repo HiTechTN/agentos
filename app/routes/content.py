@@ -16,7 +16,7 @@ class ProjectExport(BaseModel):
 
 
 @router.post("/api/v1/project/export")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def export_project(req: ProjectExport, request: Request) -> dict[str, Any]:
     from app.memory.session import get_session_manager
 
@@ -40,7 +40,7 @@ async def export_project(req: ProjectExport, request: Request) -> dict[str, Any]
 
 
 @router.post("/api/v1/project/import")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def import_project(data: dict[str, Any], request: Request) -> dict[str, Any]:
     from app.memory.session import get_session_manager
 

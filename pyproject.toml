@@ -54,6 +54,7 @@ dev = [
     "mypy==1.14.1",
     "bandit==1.8.0",
     "psycopg2-binary==2.9.10",
+    "types-PyYAML==6.0.12.20241230",
 ]
 
 [tool.ruff]

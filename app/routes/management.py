@@ -46,7 +46,7 @@ class DebugRequest(BaseModel):
 
 
 @router.post("/api/v1/scheduler/create")
-@limiter.limit("20/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("20/minute")
 async def create_scheduled_task(task: SchedulerTask, request: Request) -> dict[str, Any]:
     from app.scheduler import get_scheduler
 
@@ -78,7 +78,7 @@ async def list_workspaces() -> dict[str, Any]:
 
 
 @router.post("/api/v1/workspaces")
-@limiter.limit("30/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("30/minute")
 async def create_workspace(data: dict[str, Any], request: Request) -> dict[str, Any]:
     from app.memory.workspace import get_workspace_manager
 
@@ -91,7 +91,7 @@ async def create_workspace(data: dict[str, Any], request: Request) -> dict[str, 
 
 
 @router.post("/api/v1/plan")
-@limiter.limit(settings.rate_limit_plan)  # type: ignore[untyped-decorator]
+@limiter.limit(settings.rate_limit_plan)
 async def create_plan(req: PlanRequest, request: Request) -> dict[str, Any]:
     from app.agents.rules import get_rules
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
@@ -105,7 +105,7 @@ async def create_plan(req: PlanRequest, request: Request) -> dict[str, Any]:
 
 
 @router.post("/api/v1/verify")
-@limiter.limit(settings.rate_limit_verify)  # type: ignore[untyped-decorator]
+@limiter.limit(settings.rate_limit_verify)
 async def verify_work(req: VerifyRequest, request: Request) -> dict[str, Any]:
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
 
@@ -122,7 +122,7 @@ async def verify_work(req: VerifyRequest, request: Request) -> dict[str, Any]:
 
 
 @router.post("/api/v1/sub-agent/run")
-@limiter.limit("15/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("15/minute")
 async def run_sub_agent(req: SubAgentRequest, request: Request) -> dict[str, Any]:
     from app.agents.sub_agent import get_or_create_sub_agent, route_to_sub_agent
 
@@ -144,7 +144,7 @@ async def list_sub_agents() -> dict[str, Any]:
 
 
 @router.post("/api/v1/sub-agent/debug")
-@limiter.limit("15/minute")  # type: ignore[untyped-decorator]
+@limiter.limit("15/minute")
 async def debug_error(req: DebugRequest, request: Request) -> dict[str, Any]:
     from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
 
