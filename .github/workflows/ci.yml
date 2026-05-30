@@ -82,7 +82,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
         with: { version: "latest", python-version: "3.13" }
-      - run: uv sync --frozen
+      - run: uv sync --frozen --all-extras
       - name: Run migrations
         env:
           DATABASE_URL: postgresql+asyncpg://agentos:agentos@localhost/agentos_test
