@@ -40,7 +40,7 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check app/
       - run: uv run ruff format app/ --check
-      - run: uv run mypy app/ --strict --no-error-summary || echo "mypy warnings (pre-existing)"
+      - run: uv run python3 -m mypy app/ --strict
 
   security:
     name: Security Scan
@@ -91,7 +91,7 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           ENVIRONMENT: test
         run: |
-          uv run pytest app/tests/ \
+          uv run python3 -m pytest app/tests/ \
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \

@@ -1,13 +1,10 @@
-import json
 import os
 import subprocess
-import time
-import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
@@ -16,47 +13,24 @@ from slowapi.errors import RateLimitExceeded
 from starlette.responses import Response
 
 from app.config.settings import get_settings
-from app.orchestrator import get_orchestrator
+from app.routes.content import router as content_router
+from app.routes.kanban import router as kanban_router
+from app.routes.llm import router as llm_router
+from app.routes.management import router as management_router
+from app.routes.mcp import router as mcp_router
+from app.routes.workflow import router as workflow_router
+from app.routes.worktree import router as worktree_router
 from app.utils.auth import create_access_token, get_current_user
-from app.utils.hitl_gateway import get_hitl_gateway
 from app.utils.llm_cache import llm_cache
 from app.utils.llm_router import smart_router
 from app.utils.logging import get_logger
 from app.utils.metrics import get_metrics
 from app.utils.rate_limit import limiter
 from app.utils.request_id import RequestIDMiddleware
-from app.utils.telemetry import get_telemetry
 
 settings = get_settings()
 logger = get_logger("api")
 metrics = get_metrics()
-
-
-class RunRequest(BaseModel):
-    prompt: str
-    project_id: str = "default"
-    workflow_id: str = ""
-
-
-class ApproveRequest(BaseModel):
-    approval_id: str
-
-
-class RejectRequest(BaseModel):
-    approval_id: str
-    reason: str = ""
-
-
-class ProjectExport(BaseModel):
-    project_id: str
-
-
-class SchedulerTask(BaseModel):
-    name: str
-    cron: str
-    prompt: str
-    project_id: str = "default"
-    channel: str = "console"
 
 
 @asynccontextmanager
@@ -91,7 +65,7 @@ app.add_middleware(
 )
 
 app.add_middleware(RequestIDMiddleware)
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.middleware("http")
@@ -112,8 +86,8 @@ async def optional_auth_middleware(request: Request, call_next: Any) -> Response
                 request.state.user = None
         else:
             request.state.user = None
-    response = await call_next(request)
-    return response  # type: ignore[no-any-return]
+    response: Response = await call_next(request)
+    return response
 
 
 @app.post("/api/v1/auth/token")
@@ -137,8 +111,8 @@ async def health() -> dict[str, str]:
     try:
         import redis.asyncio as aioredis
 
-        r = aioredis.from_url(settings.resolved_redis_url)  # type: ignore[no-untyped-call]
-        await r.ping()
+        r = aioredis.from_url(settings.resolved_redis_url)
+        await r.ping()  # type: ignore[misc]
         await r.aclose()
         statuses["redis"] = "ok"
     except Exception:
@@ -187,485 +161,6 @@ async def websocket_logs(websocket: WebSocket) -> None:
         pass
     finally:
         broadcaster.unsubscribe(send_log)
-
-
-@app.post("/api/v1/run")
-@limiter.limit(settings.rate_limit_run)
-async def run_workflow(req: RunRequest, request: Request) -> dict[str, Any]:
-    start = time.time()
-    orchestrator = get_orchestrator()
-    result = await orchestrator.run(prompt=req.prompt, project_id=req.project_id)
-    duration = time.time() - start
-    metrics.timing("workflow_duration", duration)
-    metrics.inc("workflow_runs")
-    return result
-
-
-@app.get("/api/v1/status/{session_id}")
-async def get_status(session_id: str) -> dict[str, Any]:
-    from app.memory.session import get_session_manager
-
-    sm = get_session_manager()
-    session = await sm.get(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return session
-
-
-@app.post("/api/v1/hitl/approve")
-@limiter.limit("30/minute")
-async def approve_action(req: ApproveRequest, request: Request) -> dict[str, Any]:
-    hitl = get_hitl_gateway()
-    try:
-        result = hitl.approve(req.approval_id)
-        metrics.inc("hitl_approved")
-        from app.utils.notifications import get_notifications
-
-        await get_notifications().notify_all(
-            "HITL Approved", f"Approval {req.approval_id[:8]} was approved"
-        )
-        return {"status": "approved", "details": result}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@app.post("/api/v1/hitl/reject")
-@limiter.limit("30/minute")
-async def reject_action(req: RejectRequest, request: Request) -> dict[str, Any]:
-    hitl = get_hitl_gateway()
-    try:
-        result = hitl.reject(req.approval_id, req.reason)
-        metrics.inc("hitl_rejected")
-        return {"status": "rejected", "details": result}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@app.get("/api/v1/hitl/pending")
-async def list_pending() -> dict[str, Any]:
-    hitl = get_hitl_gateway()
-    return {"pending": hitl.get_pending()}
-
-
-@app.get("/api/v1/logs")
-async def get_logs(limit: int = 100, trace_id: str = "") -> dict[str, Any]:
-    telemetry = get_telemetry()
-    spans = telemetry.get_spans(trace_id) if trace_id else telemetry.get_spans()
-    return {"logs": spans[-limit:]}
-
-
-@app.post("/api/v1/project/export")
-@limiter.limit("30/minute")
-async def export_project(req: ProjectExport, request: Request) -> dict[str, Any]:
-    from app.memory.session import get_session_manager
-
-    sm = get_session_manager()
-    export_data = {
-        "project_id": req.project_id,
-        "version": settings.version,
-        "exported_at": time.time(),
-        "sessions": [],
-        "embeddings": [],
-    }
-    sessions: list[dict[str, Any]] = []
-    try:
-        session_data = await sm.get(req.project_id)
-        if session_data:
-            sessions = [session_data]
-    except Exception:
-        pass
-    export_data["sessions"] = sessions
-    return export_data
-
-
-@app.post("/api/v1/project/import")
-@limiter.limit("30/minute")
-async def import_project(data: dict[str, Any], request: Request) -> dict[str, Any]:
-    from app.memory.session import get_session_manager
-
-    sm = get_session_manager()
-    if not data.get("project_id"):
-        raise HTTPException(status_code=400, detail="project_id required")
-    for session in data.get("sessions", []):
-        await sm.create(data["project_id"], session.get("workflow_id", ""))
-    return {"status": "imported", "project_id": data["project_id"]}
-
-
-@app.post("/api/v1/scheduler/create")
-@limiter.limit("20/minute")
-async def create_scheduled_task(task: SchedulerTask, request: Request) -> dict[str, Any]:
-    from app.scheduler import get_scheduler
-
-    scheduler = get_scheduler()
-    task_id = await scheduler.add_task(
-        name=task.name,
-        cron=task.cron,
-        prompt=task.prompt,
-        project_id=task.project_id,
-        channel=task.channel,
-    )
-    return {"status": "created", "task_id": task_id}
-
-
-@app.get("/api/v1/scheduler/tasks")
-async def list_scheduled_tasks() -> dict[str, Any]:
-    from app.scheduler import get_scheduler
-
-    tasks = get_scheduler().list_tasks()
-    return {"tasks": tasks}
-
-
-@app.get("/api/v1/workspaces")
-async def list_workspaces() -> dict[str, Any]:
-    from app.memory.workspace import get_workspace_manager
-
-    wm = get_workspace_manager()
-    return {"workspaces": wm.list_workspaces()}
-
-
-@app.post("/api/v1/workspaces")
-@limiter.limit("30/minute")
-async def create_workspace(data: dict[str, Any], request: Request) -> dict[str, Any]:
-    from app.memory.workspace import get_workspace_manager
-
-    wm = get_workspace_manager()
-    wid = data.get("workspace_id", str(uuid.uuid4())[:8])
-    wm.create_workspace(wid)
-    return {"status": "created", "workspace_id": wid}
-
-
-@app.post("/api/v1/llm/cache/clear")
-@limiter.limit("10/minute")
-async def clear_llm_cache(request: Request) -> dict[str, str]:
-    from app.utils.api_clients import LLMClient
-
-    LLMClient().clear_cache()
-    return {"status": "cache_cleared"}
-
-
-@app.get("/api/v1/llm/router/status")
-async def get_router_status() -> dict[str, Any]:
-    """Return current free model usage stats."""
-    return await smart_router.get_usage_report()
-
-
-@app.get("/api/v1/llm/router/models")
-async def list_router_models() -> dict[str, Any]:
-    """List all free models organized by work type."""
-    from app.utils.llm_router import FREE_MODELS
-
-    return {
-        wt.value: [{"id": m.id, "name": m.name, "ctx": m.context_window} for m in models]
-        for wt, models in FREE_MODELS.items()
-    }
-
-
-# ── Plan Mode ──────────────────────────────────────────────────────────────────
-
-
-class PlanRequest(BaseModel):
-    goal: str
-    project_id: str = "default"
-    context: dict[str, Any] = {}
-
-
-@app.post("/api/v1/plan")
-@limiter.limit(settings.rate_limit_plan)
-async def create_plan(req: PlanRequest, request: Request) -> dict[str, Any]:
-    from app.agents.rules import get_rules
-    from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
-
-    rules = get_rules()
-    sub = SubAgent(BUILTIN_SUB_AGENTS["planner"])
-    ctx = {"goal": req.goal, "rules": rules.get_all_rules(), "project_context": req.context}
-    result = await sub.run(json.dumps(ctx))
-    metrics.inc("plan_created")
-    return {"plan": result, "project_id": req.project_id}
-
-
-# ── Verify Mode ────────────────────────────────────────────────────────────────
-
-
-class VerifyRequest(BaseModel):
-    task: str
-    code_changes: list[dict[str, Any]] = []
-    test_results: str = ""
-    lint_output: str = ""
-
-
-@app.post("/api/v1/verify")
-@limiter.limit(settings.rate_limit_verify)
-async def verify_work(req: VerifyRequest, request: Request) -> dict[str, Any]:
-    from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
-
-    sub = SubAgent(BUILTIN_SUB_AGENTS["verifier"])
-    context = {
-        "task": req.task,
-        "code_changes": req.code_changes,
-        "test_results": req.test_results,
-        "lint_output": req.lint_output,
-    }
-    result = await sub.run(str(context))
-    metrics.inc("verify_run")
-    return {"verification": result}
-
-
-# ── Sub-Agent Execution ────────────────────────────────────────────────────────
-
-
-class SubAgentRequest(BaseModel):
-    name: str
-    task: str
-    context: dict[str, Any] = {}
-
-
-@app.post("/api/v1/sub-agent/run")
-@limiter.limit("15/minute")
-async def run_sub_agent(req: SubAgentRequest, request: Request) -> dict[str, Any]:
-    from app.agents.sub_agent import get_or_create_sub_agent, route_to_sub_agent
-
-    agent_name = req.name
-    if agent_name == "auto":
-        agent_name = route_to_sub_agent(req.task)
-    agent = get_or_create_sub_agent(agent_name)
-    if not agent:
-        raise HTTPException(status_code=404, detail=f"Sub-agent '{agent_name}' not found")
-    result = await agent.run(req.task, req.context)
-    return {"agent": agent_name, "result": result}
-
-
-@app.get("/api/v1/sub-agents")
-async def list_sub_agents() -> dict[str, Any]:
-    from app.agents.sub_agent import BUILTIN_SUB_AGENTS
-
-    return {"sub_agents": list(BUILTIN_SUB_AGENTS.keys())}
-
-
-# ── Debug Sub-Agent ────────────────────────────────────────────────────────────
-
-
-class DebugRequest(BaseModel):
-    error: str
-    context: dict[str, Any] = {}
-
-
-@app.post("/api/v1/sub-agent/debug")
-@limiter.limit("15/minute")
-async def debug_error(req: DebugRequest, request: Request) -> dict[str, Any]:
-    from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
-
-    sub = SubAgent(BUILTIN_SUB_AGENTS["debugger"])
-    result = await sub.run(req.error, req.context)
-    return {"debugger": result}
-
-
-# ── Kanban Board ───────────────────────────────────────────────────────────────
-
-
-class KanbanCardCreate(BaseModel):
-    title: str
-    description: str = ""
-    column: str = "backlog"
-    task_id: str = ""
-    agent: str = ""
-
-
-class KanbanCardMove(BaseModel):
-    card_id: str
-    column: str
-
-
-@app.post("/api/v1/kanban/{project_id}/cards")
-@limiter.limit("30/minute")
-async def create_kanban_card(
-    project_id: str, card: KanbanCardCreate, request: Request
-) -> dict[str, Any]:
-    from app.kanban import get_kanban_board
-
-    board = get_kanban_board(project_id)
-    created = board.add_card(card.title, card.description, card.column, card.task_id, card.agent)
-    metrics.inc("kanban_card_created")
-    return {"card": created.to_dict()}
-
-
-@app.get("/api/v1/kanban/{project_id}")
-async def get_kanban_board_endpoint(project_id: str) -> dict[str, Any]:
-    from app.kanban import get_kanban_board
-
-    board = get_kanban_board(project_id)
-    return {"columns": board.get_all()}
-
-
-@app.put("/api/v1/kanban/{project_id}/move")
-@limiter.limit("30/minute")
-async def move_kanban_card(
-    project_id: str, move: KanbanCardMove, request: Request
-) -> dict[str, str]:
-    from app.kanban import get_kanban_board
-
-    board = get_kanban_board(project_id)
-    if not board.move_card(move.card_id, move.column):
-        raise HTTPException(status_code=404, detail="Card not found")
-    return {"status": "moved"}
-
-
-@app.delete("/api/v1/kanban/{project_id}/cards/{card_id}")
-@limiter.limit("30/minute")
-async def delete_kanban_card(project_id: str, card_id: str, request: Request) -> dict[str, str]:
-    from app.kanban import get_kanban_board
-
-    board = get_kanban_board(project_id)
-    if not board.delete_card(card_id):
-        raise HTTPException(status_code=404, detail="Card not found")
-    return {"status": "deleted"}
-
-
-# ── Pulse Dashboard ────────────────────────────────────────────────────────────
-
-
-@app.get("/api/v1/pulse/{project_id}")
-async def get_pulse_endpoint(project_id: str) -> dict[str, Any]:
-    from app.kanban import get_kanban_board
-    from app.orchestrator import get_orchestrator
-    from app.pulse import get_pulse
-
-    board = get_kanban_board(project_id)
-    pulse = get_pulse()
-    orch = get_orchestrator()
-    agent_statuses = {name: "idle" for name in orch.agents}
-    snapshot = await pulse.snapshot(board.get_all(), agent_statuses)
-    return snapshot.to_dict()
-
-
-@app.get("/api/v1/pulse/{project_id}/timeline")
-async def get_pulse_timeline_endpoint(project_id: str, limit: int = 60) -> dict[str, Any]:
-    from app.pulse import get_pulse
-
-    return {"timeline": get_pulse().get_timeline(limit)}
-
-
-# ── MCP Integration ────────────────────────────────────────────────────────────
-
-
-class MCPServerRegister(BaseModel):
-    name: str
-    endpoint: str
-    api_key: str = ""
-
-
-@app.post("/api/v1/mcp/register")
-@limiter.limit("20/minute")
-async def register_mcp_server(server: MCPServerRegister, request: Request) -> dict[str, Any]:
-    from app.mcp.server import get_mcp_registry
-
-    registry = get_mcp_registry()
-    registry.register(server.name, server.endpoint, server.api_key)
-    return {"status": "registered", "name": server.name}
-
-
-@app.get("/api/v1/mcp/servers")
-async def list_mcp_servers() -> dict[str, Any]:
-    from app.mcp.server import get_mcp_registry
-
-    return {"servers": get_mcp_registry().list_servers()}
-
-
-@app.post("/api/v1/mcp/{server_name}/call/{tool_name}")
-@limiter.limit("30/minute")
-async def call_mcp_tool(
-    server_name: str,
-    tool_name: str,
-    params: dict[str, Any] = {},
-    request: Request = None,  # type: ignore[assignment]
-) -> dict[str, Any]:
-    from app.mcp.server import get_mcp_registry
-
-    result = await get_mcp_registry().call_tool(server_name, tool_name, params)
-    return result
-
-
-# ── Rules Management ───────────────────────────────────────────────────────────
-
-
-@app.get("/api/v1/rules")
-async def get_rules_endpoint() -> dict[str, Any]:
-    from app.agents.rules import get_rules
-
-    rules = get_rules()
-    return {
-        "project_rules": rules.get_project_rules(),
-        "global_rules": rules.get_global_rules(),
-        "plan_rules": rules.get_plan_rules(),
-    }
-
-
-@app.post("/api/v1/rules/init")
-@limiter.limit("10/minute")
-async def init_rules(request: Request) -> dict[str, Any]:
-    from app.agents.rules import get_rules
-
-    rules = get_rules()
-    rules.create_default_agents_md()
-    return {"status": "created", "path": "AGENTS.md"}
-
-
-# ── Git Worktree ───────────────────────────────────────────────────────────────
-
-
-class WorktreeCreate(BaseModel):
-    branch_name: str
-    base_branch: str = "main"
-
-
-@app.post("/api/v1/worktree")
-@limiter.limit("10/minute")
-async def create_worktree(req: WorktreeCreate, request: Request) -> dict[str, Any]:
-    from app.git_worktree import get_worktree_manager
-
-    wm = get_worktree_manager()
-    try:
-        path = await wm.create_worktree(req.branch_name, req.base_branch)
-        return {"status": "created", "branch": req.branch_name, "path": str(path)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.get("/api/v1/worktree")
-async def list_worktrees() -> dict[str, Any]:
-    from app.git_worktree import get_worktree_manager
-
-    wm = get_worktree_manager()
-    try:
-        trees = await wm.list_worktrees()
-        return {"worktrees": trees}
-    except Exception as e:
-        return {"worktrees": [], "error": str(e)}
-
-
-@app.post("/api/v1/worktree/rebase")
-@limiter.limit("10/minute")
-async def rebase_worktree(branch_name: str, request: Request) -> dict[str, Any]:
-    from app.git_worktree import get_worktree_manager
-
-    wm = get_worktree_manager()
-    try:
-        await wm.rebase_to_main(branch_name)
-        return {"status": "rebased", "branch": branch_name}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.delete("/api/v1/worktree/{branch_name}")
-@limiter.limit("10/minute")
-async def remove_worktree(branch_name: str, request: Request) -> dict[str, Any]:
-    from app.git_worktree import get_worktree_manager
-
-    wm = get_worktree_manager()
-    try:
-        await wm.remove_worktree(branch_name)
-        return {"status": "removed", "branch": branch_name}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ── Guide & Deployment Pages ────────────────────────────────────────────────
@@ -771,3 +266,14 @@ async def configure_deploy(cfg: DeployConfig, request: Request) -> dict[str, Any
         if not errors
         else "Certains secrets n'ont pas pu être configurés.",
     }
+
+
+# ── Route Modules ──────────────────────────────────────────────────────────
+
+app.include_router(workflow_router)
+app.include_router(llm_router)
+app.include_router(content_router)
+app.include_router(management_router)
+app.include_router(kanban_router)
+app.include_router(mcp_router)
+app.include_router(worktree_router)

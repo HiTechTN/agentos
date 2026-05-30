@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import time
 import uuid
-from typing import Any, TypedDict
+from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
@@ -16,27 +18,22 @@ from app.utils.logging import get_logger
 from app.utils.metrics import get_metrics
 from app.utils.telemetry import get_telemetry
 
+from .orchestrator_state import (
+    CIRCUIT_BREAKER_THRESHOLD,
+    MAX_RETRIES,
+    TASK_PRIORITY_DEFAULT,
+    AgentOSState,
+)
 
-class AgentOSState(TypedDict):
-    project_id: str
-    session_id: str
-    trace_id: str
-    prompt: str
-    tasks: list[dict[str, Any]]
-    current_task_index: int
-    agent_sequence: list[str]
-    results: dict[str, Any]
-    errors: list[dict[str, Any]]
-    pending_hitl: list[str]
-    status: str
-    circuit_breaker: dict[str, int]
-    start_time: float
-    parallel_batch: list[str]
-
-
-MAX_RETRIES = 3
-CIRCUIT_BREAKER_THRESHOLD = 3
-TASK_PRIORITY_DEFAULT = 0
+__all__ = [
+    "MAX_RETRIES",
+    "CIRCUIT_BREAKER_THRESHOLD",
+    "TASK_PRIORITY_DEFAULT",
+    "AgentOSState",
+    "AgentOSOrchestrator",
+    "get_orchestrator",
+    "load_policies",
+]
 
 
 def load_policies() -> dict[str, Any]:
@@ -67,8 +64,8 @@ class AgentOSOrchestrator:
         }
         self.graph = self._build_graph()
 
-    def _build_graph(self) -> CompiledStateGraph:
-        workflow: StateGraph = StateGraph(AgentOSState)
+    def _build_graph(self) -> CompiledStateGraph:  # type: ignore[type-arg]
+        workflow: StateGraph[AgentOSState] = StateGraph(AgentOSState)
         workflow.add_node("analyze_prompt", self._analyze_prompt)
         workflow.add_node("route_tasks", self._route_tasks)
         workflow.add_node("execute_parallel", self._execute_parallel)

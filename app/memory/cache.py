@@ -21,11 +21,11 @@ class Cache:
         if self._redis is not None:
             return self._redis
         try:
-            self._redis = aioredis.from_url(  # type: ignore[no-untyped-call]
+            self._redis = aioredis.from_url(
                 self.settings.resolved_redis_url,
                 decode_responses=False,
             )
-            await self._redis.ping()
+            await self._redis.ping()  # type: ignore[misc]
             logger.log_action("cache", "redis_init", "connected")
             return self._redis
         except Exception as e:

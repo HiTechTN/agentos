@@ -187,7 +187,7 @@ class TestClearLLMCache:
     @pytest.mark.asyncio
     async def test_clears_cache(self, async_client: AsyncClient) -> None:
         mock_client = MagicMock()
-        with patch("app.utils.api_clients.LLMClient", return_value=mock_client):
+        with patch("app.routes.llm.LLMClient", return_value=mock_client):
             resp = await async_client.post("/api/v1/llm/cache/clear")
 
         assert resp.status_code == 200

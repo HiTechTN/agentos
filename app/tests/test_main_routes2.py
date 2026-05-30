@@ -16,7 +16,7 @@ class TestRunWorkflow:
     async def test_runs_workflow(self, async_client: AsyncClient) -> None:
         mock_orch = MagicMock()
         mock_orch.run = AsyncMock(return_value={"result": "done"})
-        with patch("app.main.get_orchestrator", return_value=mock_orch):
+        with patch("app.routes.workflow.get_orchestrator", return_value=mock_orch):
             resp = await async_client.post(
                 "/api/v1/run", json={"prompt": "test", "project_id": "p1"}
             )
@@ -30,7 +30,7 @@ class TestHITLEndpoints:
         gw, notif = MagicMock(), AsyncMock()
         gw.approve.return_value = {"ok": True}
         with (
-            patch("app.main.get_hitl_gateway", return_value=gw),
+            patch("app.routes.workflow.get_hitl_gateway", return_value=gw),
             patch("app.utils.notifications.get_notifications", return_value=notif),
         ):
             resp = await async_client.post("/api/v1/hitl/approve", json={"approval_id": "a1"})
@@ -41,7 +41,7 @@ class TestHITLEndpoints:
     async def test_approve_not_found(self, async_client: AsyncClient) -> None:
         gw = MagicMock()
         gw.approve.side_effect = ValueError("not found")
-        with patch("app.main.get_hitl_gateway", return_value=gw):
+        with patch("app.routes.workflow.get_hitl_gateway", return_value=gw):
             resp = await async_client.post("/api/v1/hitl/approve", json={"approval_id": "bad"})
         assert resp.status_code == 404
 
@@ -49,7 +49,7 @@ class TestHITLEndpoints:
     async def test_reject_success(self, async_client: AsyncClient) -> None:
         gw = MagicMock()
         gw.reject.return_value = {"ok": True}
-        with patch("app.main.get_hitl_gateway", return_value=gw):
+        with patch("app.routes.workflow.get_hitl_gateway", return_value=gw):
             resp = await async_client.post(
                 "/api/v1/hitl/reject", json={"approval_id": "a1", "reason": "no"}
             )
@@ -60,7 +60,7 @@ class TestHITLEndpoints:
     async def test_reject_not_found(self, async_client: AsyncClient) -> None:
         gw = MagicMock()
         gw.reject.side_effect = ValueError("not found")
-        with patch("app.main.get_hitl_gateway", return_value=gw):
+        with patch("app.routes.workflow.get_hitl_gateway", return_value=gw):
             resp = await async_client.post("/api/v1/hitl/reject", json={"approval_id": "bad"})
         assert resp.status_code == 404
 
@@ -68,7 +68,7 @@ class TestHITLEndpoints:
     async def test_pending(self, async_client: AsyncClient) -> None:
         gw = MagicMock()
         gw.get_pending.return_value = [{"id": "a1"}]
-        with patch("app.main.get_hitl_gateway", return_value=gw):
+        with patch("app.routes.workflow.get_hitl_gateway", return_value=gw):
             resp = await async_client.get("/api/v1/hitl/pending")
         assert resp.status_code == 200
         assert resp.json() == {"pending": [{"id": "a1"}]}
@@ -79,7 +79,7 @@ class TestLogsEndpoint:
     async def test_returns_logs(self, async_client: AsyncClient) -> None:
         tel = MagicMock()
         tel.get_spans.return_value = _SPANS
-        with patch("app.main.get_telemetry", return_value=tel):
+        with patch("app.routes.workflow.get_telemetry", return_value=tel):
             resp = await async_client.get("/api/v1/logs")
         assert resp.status_code == 200 and resp.json() == {"logs": _SPANS}
 
@@ -87,7 +87,7 @@ class TestLogsEndpoint:
     async def test_with_trace_id(self, async_client: AsyncClient) -> None:
         tel = MagicMock()
         tel.get_spans.return_value = [_SPANS[0]]
-        with patch("app.main.get_telemetry", return_value=tel):
+        with patch("app.routes.workflow.get_telemetry", return_value=tel):
             resp = await async_client.get("/api/v1/logs?trace_id=t1")
         assert resp.status_code == 200 and len(resp.json()["logs"]) == 1
 

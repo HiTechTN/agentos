@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 from app.config.settings import get_settings
 from app.utils.api_clients import LLMClient, LLMUnavailableError

@@ -23,7 +23,7 @@ class PersistentLLMCache:
     async def connect(self) -> None:
         try:
             settings = get_settings()
-            self._redis = aioredis.from_url(  # type: ignore[no-untyped-call]
+            self._redis = aioredis.from_url(
                 settings.resolved_redis_url,
                 encoding="utf-8",
                 decode_responses=True,

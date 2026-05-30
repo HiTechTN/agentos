@@ -123,7 +123,7 @@ def _load_custom_config(path: str) -> SubAgentConfig | None:
     try:
         with open(path) as f:
             content = f.read()
-        import yaml  # type: ignore[import-untyped]
+        import yaml
 
         parts = content.split("---", 2)
         if len(parts) >= 3:
