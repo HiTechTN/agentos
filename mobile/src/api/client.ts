@@ -3,6 +3,25 @@ import * as SecureStore from 'expo-secure-store';
 const TOKEN_KEY = 'agentos_token';
 const SERVER_URL_KEY = 'agentos_server_url';
 
+let _offlineEnqueue: ((req: {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body?: string;
+}) => Promise<void>) | null = null;
+
+export function setOfflineEnqueue(
+  fn: typeof _offlineEnqueue,
+): void {
+  _offlineEnqueue = fn;
+}
+
+let _isOnline = true;
+
+export function setOnlineStatus(online: boolean): void {
+  _isOnline = online;
+}
+
 let _baseUrl = 'http://localhost:8003';
 let _token: string | null = null;
 
@@ -63,6 +82,16 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   };
   if (_token) {
     headers['Authorization'] = `Bearer ${_token}`;
+  }
+
+  if (!_isOnline && _offlineEnqueue && method !== 'GET') {
+    await _offlineEnqueue({
+      url,
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    throw new Error('OFFLINE_QUEUED');
   }
 
   const response = await fetch(url, {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,30 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSizes, Spacing } from '../../src/theme';
 import { useAuth } from '../../src/auth/AuthContext';
-import { getBaseUrl, healthCheck } from '../../src/api/client';
+import {
+  getBaseUrl,
+  healthCheck,
+  setOfflineEnqueue,
+  setOnlineStatus,
+} from '../../src/api/client';
+import { useNotifications } from '../../src/services/notifications';
+import { useOffline } from '../../src/services/offline';
 
 export default function SettingsScreen() {
   const { serverUrl, updateServerUrl, logout } = useAuth();
+  const { expoPushToken, notificationsEnabled, setNotificationsEnabled } = useNotifications();
+  const { isOnline, queueLength, enqueue, flush } = useOffline();
   const [url, setUrl] = useState(serverUrl || getBaseUrl());
   const [testing, setTesting] = useState(false);
   const [useSystemTheme, setUseSystemTheme] = useState(true);
+
+  useEffect(() => {
+    setOfflineEnqueue(enqueue);
+  }, [enqueue]);
+
+  useEffect(() => {
+    setOnlineStatus(isOnline);
+  }, [isOnline]);
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -91,6 +108,66 @@ export default function SettingsScreen() {
             thumbColor={useSystemTheme ? Colors.light.primary : Colors.light.textTertiary}
           />
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Notifications</Text>
+
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Ionicons name="notifications-outline" size={20} color={Colors.light.textSecondary} />
+            <Text style={styles.settingText}>Push Notifications</Text>
+          </View>
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={setNotificationsEnabled}
+            trackColor={{
+              false: Colors.light.border,
+              true: Colors.light.primary + '60',
+            }}
+            thumbColor={notificationsEnabled ? Colors.light.primary : Colors.light.textTertiary}
+          />
+        </View>
+
+        {expoPushToken && (
+          <View style={styles.tokenCard}>
+            <Text style={styles.tokenLabel}>Push Token</Text>
+            <Text style={styles.tokenValue} numberOfLines={1} selectable>
+              {expoPushToken}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Offline</Text>
+
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Ionicons
+              name={isOnline ? 'wifi-outline' : 'cloud-offline-outline'}
+              size={20}
+              color={isOnline ? Colors.light.success : Colors.light.error}
+            />
+            <Text style={styles.settingText}>
+              {isOnline ? 'Connected' : 'Offline'}
+            </Text>
+          </View>
+          {!isOnline && (
+            <View style={styles.offlineBadge}>
+              <Text style={styles.offlineBadgeText}>{queueLength} queued</Text>
+            </View>
+          )}
+        </View>
+
+        {queueLength > 0 && isOnline && (
+          <TouchableOpacity style={styles.flushButton} onPress={flush}>
+            <Ionicons name="sync-outline" size={18} color="#fff" />
+            <Text style={styles.flushButtonText}>
+              Sync {queueLength} queued request{queueLength > 1 ? 's' : ''}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -236,5 +313,47 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.light.error,
+  },
+  tokenCard: {
+    backgroundColor: Colors.light.surfaceVariant,
+    borderRadius: 8,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  tokenLabel: {
+    fontSize: FontSizes.xs,
+    color: Colors.light.textTertiary,
+    marginBottom: 4,
+  },
+  tokenValue: {
+    fontSize: FontSizes.xs,
+    color: Colors.light.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  offlineBadge: {
+    backgroundColor: Colors.light.warning + '30',
+    borderRadius: 8,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+  },
+  offlineBadgeText: {
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    color: Colors.light.warning,
+  },
+  flushButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  flushButtonText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

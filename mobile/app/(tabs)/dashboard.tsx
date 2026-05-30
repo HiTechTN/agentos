@@ -17,6 +17,7 @@ import {
   HealthStatus,
   PendingApproval,
 } from '../../src/api/client';
+import { useOffline } from '../../src/services/offline';
 
 interface StatCard {
   label: string;
@@ -26,6 +27,7 @@ interface StatCard {
 }
 
 export default function DashboardScreen() {
+  const { isOnline, queueLength, flush } = useOffline();
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [pending, setPending] = useState<PendingApproval[]>([]);
   const [llmStatus, setLlmStatus] = useState<string>('...');
@@ -95,6 +97,15 @@ export default function DashboardScreen() {
     >
       <Text style={styles.greeting}>AgentOS</Text>
       <Text style={styles.subtitle}>v{health?.version ?? '...'}</Text>
+
+      {!isOnline && (
+        <View style={styles.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
+          <Text style={styles.offlineBannerText}>
+            Offline — {queueLength} request{queueLength !== 1 ? 's' : ''} queued
+          </Text>
+        </View>
+      )}
 
       <View style={styles.statsGrid}>
         {stats.map((stat) => (
@@ -169,7 +180,22 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FontSizes.sm,
     color: Colors.light.textSecondary,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.light.warning,
+    borderRadius: 8,
+    padding: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  offlineBannerText: {
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
   },
   statsGrid: {
     flexDirection: 'row',
