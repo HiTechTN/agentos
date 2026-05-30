@@ -1,0 +1,89 @@
+name: Mobile Build & Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build (android, ios, all)'
+        required: true
+        default: 'all'
+      profile:
+        description: 'Build profile (development, preview, production)'
+        required: true
+        default: 'preview'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ inputs.platform || 'all' }} (${{ inputs.profile || 'preview' }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android APK
+        if: inputs.platform == 'android' || inputs.platform == 'all' || github.event_name == 'release'
+        run: |
+          PLATFORM="android"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            PROFILE="production"
+          else
+            PROFILE="${{ inputs.profile || 'preview' }}"
+          fi
+          eas build --platform $PLATFORM --profile $PROFILE --non-interactive
+
+      - name: Build iOS IPA
+        if: (inputs.platform == 'ios' || inputs.platform == 'all' || github.event_name == 'release') && secrets.EXPO_IOS_TEAM_ID != ''
+        run: |
+          PLATFORM="ios"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            PROFILE="production"
+          else
+            PROFILE="${{ inputs.profile || 'preview' }}"
+          fi
+          eas build --platform $PLATFORM --profile $PROFILE --non-interactive
+        env:
+          EXPO_IOS_TEAM_ID: ${{ secrets.EXPO_IOS_TEAM_ID }}
+
+      - name: Upload build artifacts
+        if: github.event_name == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-builds
+          path: |
+            mobile/*.apk
+            mobile/*.aab
+            mobile/*.ipa
+            mobile/*.tar.gz
+          if-no-files-found: ignore
