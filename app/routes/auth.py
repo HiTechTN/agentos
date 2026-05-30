@@ -37,7 +37,8 @@ async def _get_session() -> AsyncSession:
     if _engine is None:
         _engine = create_async_engine(settings.resolved_database_url, echo=False)
         _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
-    return _session_factory()  # type: ignore[misc]
+    assert _session_factory is not None
+    return _session_factory()
 
 
 def _hash_password(password: str) -> str:
@@ -80,7 +81,7 @@ OAUTH_PROVIDERS: dict[str, dict[str, str]] = {
 
 
 @router.post("/register", response_model=UserResponse)
-@limiter.exempt
+@limiter.exempt  # type: ignore[misc]
 async def register(request: Request, body: RegisterRequest) -> UserResponse:
     if not body.email or not body.password:
         raise HTTPException(status_code=422, detail="Email and password are required")
@@ -124,19 +125,26 @@ async def register(request: Request, body: RegisterRequest) -> UserResponse:
 
 
 @router.post("/login", response_model=LoginResponse)
-@limiter.exempt
+@limiter.exempt  # type: ignore[misc]
 async def login(request: Request, body: LoginRequest) -> LoginResponse:
     if not body.email or not body.password:
         raise HTTPException(status_code=422, detail="Email and password are required")
 
     async with await _get_session() as session:
         row = await session.execute(
-            text("SELECT id, email, password_hash, name, avatar_url, role FROM users WHERE email = :email"),
+            text(
+                "SELECT id, email, password_hash, name, avatar_url, role"
+                " FROM users WHERE email = :email"
+            ),
             {"email": body.email},
         )
         user = row.fetchone()
 
-    if not user or not user.password_hash or not _verify_password(body.password, user.password_hash):
+    if (
+        not user
+        or not user.password_hash
+        or not _verify_password(body.password, user.password_hash)
+    ):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     access_token = create_access_token(
@@ -162,7 +170,9 @@ async def login(request: Request, body: LoginRequest) -> LoginResponse:
 
 
 @router.get("/{provider}/login", response_model=OAuthLoginRequest)
-async def oauth_login(provider: str, redirect_uri: str = "agentos://oauth/callback") -> OAuthLoginRequest:
+async def oauth_login(
+    provider: str, redirect_uri: str = "agentos://oauth/callback"
+) -> OAuthLoginRequest:
     config = OAUTH_PROVIDERS.get(provider)
     if not config:
         raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
@@ -284,7 +294,8 @@ async def oauth_callback(
 
         await session.execute(
             text("""
-                INSERT INTO social_accounts (user_id, provider, provider_user_id, provider_email, access_token)
+                INSERT INTO social_accounts
+                    (user_id, provider, provider_user_id, provider_email, access_token)
                 VALUES (:user_id, :provider, :provider_user_id, :provider_email, :access_token)
             """),
             {
@@ -303,7 +314,9 @@ async def oauth_callback(
         role="user",
     )
     metrics.inc(f"auth.oauth.{provider}.registered")
-    logger.log_action("auth", "oauth_callback", f"OAuth {provider} user {provider_email} registered")
+    logger.log_action(
+        "auth", "oauth_callback", f"OAuth {provider} user {provider_email} registered"
+    )
 
     return LoginResponse(
         access_token=access_token,

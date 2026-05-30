@@ -43,10 +43,14 @@ class RejectRequest(BaseModel):
 async def run_workflow(req: RunRequest, request: Request) -> dict[str, Any]:
     start = time.time()
     orchestrator = get_orchestrator()
-    attachments_data = [
-        {"filename": a.filename, "mime_type": a.mime_type, "data_base64": a.data_base64}
-        for a in req.attachments
-    ] if req.attachments else []
+    attachments_data = (
+        [
+            {"filename": a.filename, "mime_type": a.mime_type, "data_base64": a.data_base64}
+            for a in req.attachments
+        ]
+        if req.attachments
+        else []
+    )
     result = await orchestrator.run(
         prompt=req.prompt,
         project_id=req.project_id,

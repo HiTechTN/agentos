@@ -113,7 +113,9 @@ class AgentOSOrchestrator:
         graph = workflow.compile()
         return graph
 
-    async def run(self, prompt: str, project_id: str = "", attachments: list[dict[str, str]] | None = None) -> dict[str, Any]:
+    async def run(
+        self, prompt: str, project_id: str = "", attachments: list[dict[str, str]] | None = None
+    ) -> dict[str, Any]:
         trace_id = str(uuid.uuid4())
         session_id = await self.session_manager.create(project_id or "default", trace_id)
         project_id = project_id or "default"

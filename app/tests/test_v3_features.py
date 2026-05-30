@@ -190,6 +190,7 @@ class TestParallelExecution:
             "session_id": "test-session",
             "trace_id": "test-trace",
             "prompt": "test",
+            "attachments": [],
             "tasks": [
                 {"agent": "content", "action": "write", "params": {}},
                 {"agent": "marketing", "action": "email", "params": {}},

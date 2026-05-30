@@ -32,7 +32,9 @@ def upgrade() -> None:
     op.create_table(
         "social_accounts",
         sa.Column("id", sa.UUID(), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("user_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id", sa.UUID(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("provider", sa.String(50), nullable=False),
         sa.Column("provider_user_id", sa.String(255), nullable=False),
         sa.Column("provider_email", sa.String(255), nullable=True),
@@ -41,7 +43,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
     op.create_index("idx_users_email", "users", ["email"])
-    op.create_index("idx_social_accounts_provider", "social_accounts", ["provider", "provider_user_id"])
+    op.create_index(
+        "idx_social_accounts_provider", "social_accounts", ["provider", "provider_user_id"]
+    )
 
 
 def downgrade() -> None:

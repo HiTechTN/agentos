@@ -121,6 +121,7 @@ async def test_hitl_integration_with_orchestrator() -> Any:
         "session_id": "test-session",
         "trace_id": "test-trace",
         "prompt": "deploy to staging",
+        "attachments": [],
         "tasks": [{"agent": "dev", "action": "deploy", "params": {"target": "staging"}}],
         "current_task_index": 0,
         "agent_sequence": ["dev"],
