@@ -11,7 +11,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}  ╔══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}  ║     AgentOS v1.0 - Quick Install     ║${NC}"
+echo -e "${CYAN}  ║     AgentOS v5.0.0 - Quick Install     ║${NC}"
 echo -e "${CYAN}  ╚══════════════════════════════════════╝${NC}"
 echo ""
 
