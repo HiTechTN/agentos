@@ -134,10 +134,15 @@ echo -e "  4) Python pip (from source)"
 echo -e "  5) Desktop app (Tauri)"
 echo -e "  6) Download mobile APK"
 echo ""
-if [ -t 0 ]; then
+# Accept choice as CLI argument, or prompt interactively
+if [ $# -ge 1 ] && [[ "$1" =~ ^[1-6]$ ]]; then
+  choice="$1"
+elif [ -t 0 ]; then
   read -rp "  Select [1-6] (default: 1): " choice
 else
-  read -rp "  Select [1-6] (default: 1): " choice </dev/tty 2>/dev/null || true
+  # When piped (curl | bash), show prompt and try to read from terminal
+  echo -n "  Select [1-6] (default: 1): " >&2
+  { read -r choice </dev/tty; } 2>/dev/null || choice=""
 fi
 choice="${choice:-1}"
 
