@@ -127,7 +127,7 @@ async def register(request: Request, body: RegisterRequest) -> UserResponse:
         id=user_id,
         email=body.email,
         name=body.name,
-        role="user",
+        role=role,
     )
 
 

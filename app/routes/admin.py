@@ -244,21 +244,39 @@ async def test_llm_model(
 ) -> TestModelResponse:
     import time
 
-    from app.utils.api_clients import llm_complete
+    import httpx
 
     start = time.monotonic()
     try:
-        result = await llm_complete(
-            prompt=body.prompt,
-            agent_name="admin-test",
-            work_type=WorkType.GENERAL,
-        )
-        elapsed = (time.monotonic() - start) * 1000
-        return TestModelResponse(
-            success=True,
-            latency_ms=round(elapsed, 1),
-            response=str(result.get("content", ""))[:500],
-        )
+        messages = [{"role": "user", "content": body.prompt}]
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{settings.openrouter_base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.openrouter_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": body.model_id,
+                    "messages": messages,
+                    "max_tokens": 100,
+                },
+            )
+            elapsed = (time.monotonic() - start) * 1000
+            if resp.status_code == 200:
+                data = resp.json()
+                content = data["choices"][0]["message"]["content"]
+                return TestModelResponse(
+                    success=True,
+                    latency_ms=round(elapsed, 1),
+                    response=str(content)[:500],
+                )
+            else:
+                return TestModelResponse(
+                    success=False,
+                    latency_ms=round(elapsed, 1),
+                    error=f"HTTP {resp.status_code}: {resp.text[:300]}",
+                )
     except Exception as e:
         elapsed = (time.monotonic() - start) * 1000
         return TestModelResponse(
