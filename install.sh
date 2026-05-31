@@ -11,6 +11,65 @@ BRANCH="main"
 GH_BASE="https://github.com/$REPO/releases/download/v$VERSION"
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; RED='\033[0;31m'; NC='\033[0m'
 
+# Default ports (same defaults as docker-compose.yml)
+AGENTOS_DB_PORT=5432
+AGENTOS_REDIS_PORT=6379
+AGENTOS_OLLAMA_PORT=11434
+AGENTOS_MAILHOG_UI_PORT=8025
+AGENTOS_MAILHOG_SMTP_PORT=1025
+AGENTOS_STRAPI_PORT=1337
+AGENTOS_JAEGER_UI_PORT=16686
+AGENTOS_JAEGER_OTLP_PORT=4318
+AGENTOS_MINIO_API_PORT=9000
+AGENTOS_MINIO_CONSOLE_PORT=9001
+AGENTOS_API_PORT=8000
+AGENTOS_WEB_PORT=3000
+
+# =============================================================================
+# Helper: find a free port starting from the given base
+# =============================================================================
+_find_free_port() {
+  local base_port=$1
+  local port=$base_port
+  if command -v ss >/dev/null 2>&1; then
+    while ss -tlnp "sport = :$port" 2>/dev/null | grep -q LISTEN; do
+      port=$((port + 1))
+    done
+  else
+    while (: < /dev/tcp/127.0.0.1/"$port") 2>/dev/null; do
+      port=$((port + 1))
+    done
+  fi
+  echo "$port"
+}
+
+# =============================================================================
+# Helper: assign free ports for all services, export them for docker-compose
+# =============================================================================
+_assign_free_ports() {
+  # Source existing .env if present to preserve user overrides
+  [ -f .env ] && set -a && source .env && set +a 2>/dev/null || true
+  # Only assign if the default port is actually in use
+  AGENTOS_DB_PORT=$(_find_free_port "${AGENTOS_DB_PORT:-5432}")
+  AGENTOS_REDIS_PORT=$(_find_free_port "${AGENTOS_REDIS_PORT:-6379}")
+  AGENTOS_OLLAMA_PORT=$(_find_free_port "${AGENTOS_OLLAMA_PORT:-11434}")
+  AGENTOS_MAILHOG_UI_PORT=$(_find_free_port "${AGENTOS_MAILHOG_UI_PORT:-8025}")
+  AGENTOS_MAILHOG_SMTP_PORT=$(_find_free_port "${AGENTOS_MAILHOG_SMTP_PORT:-1025}")
+  AGENTOS_STRAPI_PORT=$(_find_free_port "${AGENTOS_STRAPI_PORT:-1337}")
+  AGENTOS_JAEGER_UI_PORT=$(_find_free_port "${AGENTOS_JAEGER_UI_PORT:-16686}")
+  AGENTOS_JAEGER_OTLP_PORT=$(_find_free_port "${AGENTOS_JAEGER_OTLP_PORT:-4318}")
+  AGENTOS_MINIO_API_PORT=$(_find_free_port "${AGENTOS_MINIO_API_PORT:-9000}")
+  AGENTOS_MINIO_CONSOLE_PORT=$(_find_free_port "${AGENTOS_MINIO_CONSOLE_PORT:-9001}")
+  AGENTOS_API_PORT=$(_find_free_port "${AGENTOS_API_PORT:-8000}")
+  AGENTOS_WEB_PORT=$(_find_free_port "${AGENTOS_WEB_PORT:-3000}")
+
+  export AGENTOS_DB_PORT AGENTOS_REDIS_PORT AGENTOS_OLLAMA_PORT
+  export AGENTOS_MAILHOG_UI_PORT AGENTOS_MAILHOG_SMTP_PORT AGENTOS_STRAPI_PORT
+  export AGENTOS_JAEGER_UI_PORT AGENTOS_JAEGER_OTLP_PORT
+  export AGENTOS_MINIO_API_PORT AGENTOS_MINIO_CONSOLE_PORT
+  export AGENTOS_API_PORT AGENTOS_WEB_PORT
+}
+
 # =============================================================================
 # Docker Compose Install
 # =============================================================================
@@ -43,6 +102,8 @@ install_docker() {
   echo -e "  ${YELLOW}⚠  Edit .env with your API keys before running.${NC}"
 
   echo -e "${YELLOW}[4/4] Starting AgentOS...${NC}"
+  _assign_free_ports
+  echo "  Ports: API=${AGENTOS_API_PORT} DB=${AGENTOS_DB_PORT} Web=${AGENTOS_WEB_PORT}"
   docker compose pull --quiet 2>/dev/null || true
   docker compose up -d 2>&1 | tail -5 || echo "  ⚠ Some services may have failed"
   show_urls
@@ -134,10 +195,10 @@ show_urls() {
   echo -e "${GREEN}  ║   AgentOS v${VERSION} is running!        ║${NC}"
   echo -e "${GREEN}  ╚══════════════════════════════════════╝${NC}"
   echo ""
-  echo -e "  ${CYAN}API:${NC}        http://localhost:8000"
-  echo -e "  ${CYAN}Docs:${NC}       http://localhost:8000/docs"
-  echo -e "  ${CYAN}Dashboard:${NC}  http://localhost:3000"
-  echo -e "  ${CYAN}MailHog:${NC}    http://localhost:8025"
+  echo -e "  ${CYAN}API:${NC}        http://localhost:${AGENTOS_API_PORT}"
+  echo -e "  ${CYAN}Docs:${NC}       http://localhost:${AGENTOS_API_PORT}/docs"
+  echo -e "  ${CYAN}Dashboard:${NC}  http://localhost:${AGENTOS_WEB_PORT}"
+  echo -e "  ${CYAN}MailHog:${NC}    http://localhost:${AGENTOS_MAILHOG_UI_PORT}"
   echo ""
   echo -e "  ${YELLOW}Quick commands:${NC}"
   echo -e "    cd agentos && docker compose logs -f"
