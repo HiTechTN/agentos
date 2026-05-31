@@ -24,8 +24,13 @@ install_docker() {
   if [ -d "agentos" ]; then
     echo "  Updating existing installation..."
     cd agentos
+    [ -f .env ] && cp .env /tmp/agentos_env_backup
+    git fetch origin "$BRANCH" 2>&1
     git stash --include-untracked 2>/dev/null || true
-    git pull --rebase origin "$BRANCH" 2>/dev/null || echo "  ⚠ Could not update (may be up to date)"
+    git reset --hard "origin/$BRANCH" 2>&1
+    git clean -fd 2>/dev/null || true
+    [ -f /tmp/agentos_env_backup ] && mv /tmp/agentos_env_backup .env
+    echo "  ✓ Updated to latest commit"
   else
     echo "  Cloning AgentOS..."
     git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" agentos
@@ -77,8 +82,13 @@ install_pip() {
   if [ -d "agentos" ]; then
     echo "  Updating existing installation..."
     cd agentos
+    [ -f .env ] && cp .env /tmp/agentos_env_backup
+    git fetch origin "$BRANCH" 2>&1
     git stash --include-untracked 2>/dev/null || true
-    git pull --rebase origin "$BRANCH" 2>/dev/null || echo "  ⚠ Could not update"
+    git reset --hard "origin/$BRANCH" 2>&1
+    git clean -fd 2>/dev/null || true
+    [ -f /tmp/agentos_env_backup ] && mv /tmp/agentos_env_backup .env
+    echo "  ✓ Updated to latest commit"
   else
     echo "  Cloning AgentOS..."
     git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" agentos
