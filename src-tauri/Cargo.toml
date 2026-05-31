@@ -1,6 +1,6 @@
 [package]
 name = "agentos"
-version = "5.0.0"
+version = "5.1.0"
 description = "AgentOS - Multi-Agent Workflow Orchestrator"
 authors = ["HiTechTN"]
 edition = "2021"

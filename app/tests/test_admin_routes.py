@@ -95,6 +95,29 @@ class TestSettingsEndpoint:
             )
         assert resp.status_code == 500
 
+    @pytest.mark.asyncio
+    async def test_update_settings_with_comment_lines(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        from app.config.settings import get_settings as _gs
+
+        _s = _gs()
+        _original_log_level = _s.log_level
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False, prefix=".env") as f:
+            f.write("# This is a comment\nLOG_LEVEL=INFO\n\n# Another comment\n")
+            env_path = f.name
+        try:
+            with patch("app.routes.admin.ENV_FILE", Path(env_path)):
+                resp = await async_client.put(
+                    "/api/v1/admin/settings",
+                    json={"updates": {"LOG_LEVEL": "ERROR"}},
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            assert resp.status_code == 200
+            assert resp.json()["keys"] == ["LOG_LEVEL"]
+        finally:
+            _s.log_level = _original_log_level
+            os.unlink(env_path)
+
 
 # ── Services ─────────────────────────────────────────────────────────────────
 
@@ -154,6 +177,137 @@ class TestServicesEndpoint:
             )
         assert resp.status_code == 200
         assert "error" in resp.json()["services"]["database"]
+
+    @pytest.mark.asyncio
+    async def test_services_redis_error(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+
+        with (
+            patch("app.memory.session.get_session_manager") as mock_sm,
+            patch("redis.asyncio.from_url") as mock_from_url,
+        ):
+            mock_sm.return_value._init_db = AsyncMock()
+            mock_sm.return_value._session_factory = Mock(
+                return_value=Mock(
+                    __aenter__=AsyncMock(return_value=AsyncMock()),
+                    __aexit__=AsyncMock(),
+                )
+            )
+            mock_from_url.return_value = AsyncMock(
+                ping=AsyncMock(side_effect=Exception("Redis down")),
+                aclose=AsyncMock(),
+            )
+            resp = await async_client.get(
+                "/api/v1/admin/services",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 200
+        assert "error" in resp.json()["services"]["redis"]
+
+    @pytest.mark.asyncio
+    async def test_services_openrouter_error(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        mock_session = AsyncMock()
+        mock_session.execute.return_value = Mock()
+
+        with (
+            patch(
+                "app.memory.session.get_session_manager",
+                return_value=Mock(
+                    _init_db=AsyncMock(),
+                    _session_factory=Mock(
+                        return_value=Mock(
+                            __aenter__=AsyncMock(return_value=mock_session),
+                            __aexit__=AsyncMock(),
+                        )
+                    ),
+                ),
+            ),
+            patch("httpx.AsyncClient") as mock_httpx_cls,
+        ):
+            mock_client = AsyncMock()
+            mock_httpx_cls.return_value.__aenter__.return_value = mock_client
+            mock_client.get.side_effect = [
+                Mock(status_code=200, json=lambda: {"models": [{"name": "qwen2.5"}]}),
+                Mock(status_code=401, text="Unauthorized"),
+            ]
+
+            resp = await async_client.get(
+                "/api/v1/admin/services",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["services"]["openrouter"]["status"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_services_ollama_http_error(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        mock_session = AsyncMock()
+        mock_session.execute.return_value = Mock()
+
+        with (
+            patch(
+                "app.memory.session.get_session_manager",
+                return_value=Mock(
+                    _init_db=AsyncMock(),
+                    _session_factory=Mock(
+                        return_value=Mock(
+                            __aenter__=AsyncMock(return_value=mock_session),
+                            __aexit__=AsyncMock(),
+                        )
+                    ),
+                ),
+            ),
+            patch("httpx.AsyncClient") as mock_httpx_cls,
+        ):
+            mock_client = AsyncMock()
+            mock_httpx_cls.return_value.__aenter__.return_value = mock_client
+            mock_client.get.side_effect = [
+                Mock(status_code=500, text="Ollama down"),
+                Mock(status_code=200, json=lambda: {"data": []}),
+            ]
+
+            resp = await async_client.get(
+                "/api/v1/admin/services",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["services"]["ollama"]["status"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_services_openrouter_http_error(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        mock_session = AsyncMock()
+        mock_session.execute.return_value = Mock()
+
+        with (
+            patch(
+                "app.memory.session.get_session_manager",
+                return_value=Mock(
+                    _init_db=AsyncMock(),
+                    _session_factory=Mock(
+                        return_value=Mock(
+                            __aenter__=AsyncMock(return_value=mock_session),
+                            __aexit__=AsyncMock(),
+                        )
+                    ),
+                ),
+            ),
+            patch("httpx.AsyncClient") as mock_httpx_cls,
+        ):
+            mock_client = AsyncMock()
+            mock_httpx_cls.return_value.__aenter__.return_value = mock_client
+            mock_client.get.side_effect = [
+                Mock(status_code=200, json=lambda: {"models": [{"name": "qwen2.5"}]}),
+                Mock(status_code=429, text="Rate limited"),
+            ]
+
+            resp = await async_client.get(
+                "/api/v1/admin/services",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["services"]["openrouter"]["status"] == "error"
 
 
 # ── LLM Providers ────────────────────────────────────────────────────────────
@@ -297,6 +451,119 @@ class TestLLMSelectModelEndpoint:
                 headers={"Authorization": f"Bearer {token}"},
             )
         assert resp.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_select_model_fallback_config_key(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False, prefix=".env") as f:
+            f.write("model_for_default=old_default\n")
+            env_path = f.name
+        try:
+            with patch("app.routes.admin.ENV_FILE", Path(env_path)):
+                resp = await async_client.put(
+                    "/api/v1/admin/llm/select-model",
+                    json={"work_type": "unknown_type", "model_id": "qwen/qwen3-coder:free"},
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            assert resp.status_code == 400
+        finally:
+            os.unlink(env_path)
+
+    @pytest.mark.asyncio
+    async def test_select_model_appends_new_line(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        from app.config.settings import get_settings as _gs
+
+        _s_obj = _gs()
+        _orig_code = _s_obj.model_for_code
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False, prefix=".env") as f:
+            f.write("OTHER_KEY=val\n")
+            env_path = f.name
+        try:
+            with patch("app.routes.admin.ENV_FILE", Path(env_path)):
+                resp = await async_client.put(
+                    "/api/v1/admin/llm/select-model",
+                    json={"work_type": "code_gen", "model_id": "qwen/qwen3-coder:free"},
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            assert resp.status_code == 200
+            with open(env_path) as f:
+                content = f.read()
+            assert "model_for_code=qwen/qwen3-coder:free" in content
+        finally:
+            _s_obj.model_for_code = _orig_code
+            os.unlink(env_path)
+
+
+# ── Direct check_services unit tests ───────────────────────────────────────
+
+
+class TestCheckServicesDirect:
+    @pytest.mark.asyncio
+    async def test_openrouter_http_error(self) -> None:
+        from app.routes.admin import check_services
+
+        mock_session = AsyncMock()
+        mock_session.execute.return_value = Mock()
+
+        with (
+            patch(
+                "app.memory.session.get_session_manager",
+                return_value=Mock(
+                    _init_db=AsyncMock(),
+                    _session_factory=Mock(
+                        return_value=Mock(
+                            __aenter__=AsyncMock(return_value=mock_session),
+                            __aexit__=AsyncMock(),
+                        )
+                    ),
+                ),
+            ),
+            patch("app.routes.admin.httpx.AsyncClient") as mock_cls,
+        ):
+            mock_inst = Mock()
+            mock_cls.return_value.__aenter__.return_value = mock_inst
+
+            async def _get_side_effect(*a: Any, **kw: Any) -> Mock:
+                if "openrouter" in str(a[0]) if a else "":
+                    return Mock(status_code=429, text="Rate limited")
+                return Mock(status_code=200, json=lambda: {"models": [{"name": "qwen2.5"}]})
+
+            mock_inst.get = Mock(side_effect=_get_side_effect)
+            result = await check_services(Mock())
+            assert result["services"]["openrouter"]["status"] == "error"
+            assert "Rate limited" in result["services"]["openrouter"]["detail"]
+
+    @pytest.mark.asyncio
+    async def test_openrouter_exception(self) -> None:
+        from app.routes.admin import check_services
+
+        mock_session = AsyncMock()
+        mock_session.execute.return_value = Mock()
+
+        with (
+            patch(
+                "app.memory.session.get_session_manager",
+                return_value=Mock(
+                    _init_db=AsyncMock(),
+                    _session_factory=Mock(
+                        return_value=Mock(
+                            __aenter__=AsyncMock(return_value=mock_session),
+                            __aexit__=AsyncMock(),
+                        )
+                    ),
+                ),
+            ),
+            patch("app.routes.admin.httpx.AsyncClient") as mock_cls,
+        ):
+            mock_inst = Mock()
+            mock_cls.return_value.__aenter__.return_value = mock_inst
+            mock_inst.get.side_effect = [
+                Mock(status_code=200, json=lambda: {"models": [{"name": "qwen2.5"}]}),
+                Exception("Connection refused"),
+            ]
+            result = await check_services(Mock())
+            assert "Connection refused" in result["services"]["openrouter"]["detail"]
 
 
 # ── Users ────────────────────────────────────────────────────────────────────

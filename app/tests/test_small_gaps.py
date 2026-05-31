@@ -1391,3 +1391,62 @@ class TestAuthSchemasValidators:
         assert r.email == "test@example.com"
         assert r.password == "password123"
         assert r.name == "Test"
+
+
+# =============================================================================
+# File: app/routes/auth.py (89% → 100%)
+#   Gaps: 35-39 (_get_session engine init), 52-58 (_verify_password paths)
+# =============================================================================
+
+
+class TestAuthInternalFunctions:
+    """Test internal helper functions in auth.py directly."""
+
+    def test_hash_password_returns_salt_hash_format(self) -> None:
+        from app.routes.auth import _hash_password
+
+        result = _hash_password("mypassword")
+        assert ":" in result
+        salt, pwd_hash = result.split(":")
+        assert len(salt) == 32  # 16 bytes hex
+        assert len(pwd_hash) == 64  # sha256 hex
+
+    def test_verify_password_correct(self) -> None:
+        from app.routes.auth import _hash_password, _verify_password
+
+        hashed = _hash_password("mypassword")
+        assert _verify_password("mypassword", hashed) is True
+
+    def test_verify_password_wrong(self) -> None:
+        from app.routes.auth import _hash_password, _verify_password
+
+        hashed = _hash_password("mypassword")
+        assert _verify_password("wrongpass", hashed) is False
+
+    def test_verify_password_invalid_format(self) -> None:
+        from app.routes.auth import _verify_password
+
+        assert _verify_password("pwd", "invalidformat") is False
+        assert _verify_password("pwd", "too:many:parts") is False
+
+    @pytest.mark.asyncio
+    async def test_get_session_initializes_engine(self) -> None:
+        from unittest.mock import AsyncMock, Mock, patch
+
+        import app.routes.auth as auth_mod
+
+        auth_mod._engine = None
+        auth_mod._session_factory = None
+
+        mock_engine = AsyncMock()
+        mock_session = AsyncMock()
+        mock_session_factory = Mock(return_value=mock_session)
+
+        with (
+            patch("app.routes.auth.create_async_engine", return_value=mock_engine) as mock_create,
+            patch("app.routes.auth.async_sessionmaker", return_value=mock_session_factory) as mock_sm,
+        ):
+            session = await auth_mod._get_session()
+            mock_create.assert_called_once()
+            mock_sm.assert_called_once_with(mock_engine, expire_on_commit=False)
+            assert session is mock_session

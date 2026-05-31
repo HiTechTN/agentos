@@ -94,6 +94,12 @@ class TestRegisterEndpoint:
 
 class TestLoginEndpoint:
     @pytest.mark.asyncio
+    async def test_login_empty_fields(self, async_client: AsyncClient) -> None:
+        resp = await async_client.post(
+            "/api/v1/auth/login", json={"email": "", "password": ""}
+        )
+        assert resp.status_code == 422
+    @pytest.mark.asyncio
     async def test_login_success(self, async_client: AsyncClient) -> None:
         session = _mock_db_session()
         user_row = Mock()
@@ -289,6 +295,55 @@ class TestOAuthCallbackEndpoint:
                 "/api/v1/auth/google/callback", json={"code": "bad-code"}
             )
         assert resp.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_callback_userinfo_fetch_fails(self, async_client: AsyncClient) -> None:
+        session = _mock_db_session()
+
+        with (
+            patch("app.routes.auth._get_session", return_value=session),
+            patch("httpx.AsyncClient") as mock_httpx_cls,
+        ):
+            mock_client = AsyncMock()
+            mock_httpx_cls.return_value.__aenter__.return_value = mock_client
+            mock_client.post.return_value = Mock(
+                status_code=200, json=lambda: {"access_token": "valid-token"}
+            )
+            mock_client.get.return_value = Mock(status_code=401, text="unauthorized")
+
+            resp = await async_client.post(
+                "/api/v1/auth/google/callback", json={"code": "valid-code"}
+            )
+        assert resp.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_callback_existing_user_by_email(self, async_client: AsyncClient) -> None:
+        session = _mock_db_session()
+        session.execute.return_value.fetchone.side_effect = [None, Mock(id="existing-uid")]
+
+        with (
+            patch("app.routes.auth._get_session", return_value=session),
+            patch("httpx.AsyncClient") as mock_httpx_cls,
+        ):
+            mock_client = AsyncMock()
+            mock_httpx_cls.return_value.__aenter__.return_value = mock_client
+            mock_client.post.return_value = Mock(
+                status_code=200,
+                json=lambda: {"access_token": "oauth-token"},
+            )
+            mock_client.get.return_value = Mock(
+                status_code=200,
+                json=lambda: {
+                    "id": "new-g-id",
+                    "email": "existing@example.com",
+                    "name": "Existing",
+                },
+            )
+            resp = await async_client.post(
+                "/api/v1/auth/google/callback", json={"code": "new-code"}
+            )
+        assert resp.status_code == 200
+        assert "access_token" in resp.json()
 
 
 # ── Get Me ───────────────────────────────────────────────────────────────────

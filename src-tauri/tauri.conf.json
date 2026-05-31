@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicegui/tauri/refs/heads/main/tauri.conf.schema.json",
   "productName": "AgentOS",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "identifier": "com.hitechtn.agentos",
   "build": {
     "frontendDist": "../ui/out",

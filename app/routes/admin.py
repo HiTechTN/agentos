@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
@@ -158,8 +159,6 @@ async def check_services(user: AdminUser) -> dict[str, Any]:
         results["redis"] = f"error: {e}"
 
     try:
-        import httpx
-
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(f"{settings.ollama_base_url}/api/tags")
             if resp.status_code == 200:
@@ -246,8 +245,6 @@ async def test_llm_model(
 ) -> TestModelResponse:
     import time
 
-    import httpx
-
     start = time.monotonic()
     try:
         messages = [{"role": "user", "content": body.prompt}]
@@ -315,9 +312,7 @@ async def select_llm_model(
         "general": "model_for_default",
     }
 
-    config_key = settings_map.get(body.work_type.lower())
-    if not config_key:
-        config_key = "model_for_default"
+    config_key = settings_map.get(body.work_type.lower(), "model_for_default")
 
     if not ENV_FILE.exists():
         raise HTTPException(status_code=500, detail=".env file not found")

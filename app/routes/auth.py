@@ -81,9 +81,6 @@ OAUTH_PROVIDERS: dict[str, dict[str, str]] = {
 @router.post("/register", response_model=UserResponse)
 @limiter.exempt  # type: ignore[misc]
 async def register(request: Request, body: RegisterRequest) -> UserResponse:
-    if not body.email or not body.password:
-        raise HTTPException(status_code=422, detail="Email and password are required")
-
     password_hash = _hash_password(body.password)
     user_id = str(uuid.uuid4())
     now = datetime.now(UTC)

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentOS v5.0 - AI Agent Orchestration System</title>
-<meta name="description" content="AgentOS v5.0 orchestrates 8 AI agents (4 domain + 4 sub-agents) with Plan-Code-Verify workflow, Kanban boards, Pulse dashboards, MCP integration, and cross-platform UI (Web + Desktop + PWA). Self-hosted, MIT licensed.">
+<title>AgentOS v5.1 - AI Agent Orchestration System</title>
+<meta name="description" content="AgentOS v5.1 orchestrates 8 AI agents (4 domain + 4 sub-agents) with Plan-Code-Verify workflow, Kanban boards, Pulse dashboards, MCP integration, and cross-platform UI (Web + Desktop + PWA + Mobile). Self-hosted, MIT licensed.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234c6ef5'/><text x='16' y='22' text-anchor='middle' font-size='18' font-weight='bold' fill='white'>A</text></svg>">
 <style>
 :root {
@@ -163,7 +163,7 @@ footer a:hover { color: var(--primary); }
       <a href="#agents">Agents</a>
       <a href="#how">How it works</a>
       <a href="https://github.com/HiTechTN/agentos" target="_blank">GitHub</a>
-      <span class="nav-badge">v5.0.0</span>
+      <span class="nav-badge">v5.1.0</span>
     </div>
   </div>
 </nav>
@@ -171,7 +171,7 @@ footer a:hover { color: var(--primary); }
 <section class="hero">
   <div class="container">
     <h1>From one sentence to<br><span>working software</span> in minutes</h1>
-    <p class="subtitle">AgentOS orchestrates 8 AI agents — 4 domain specialists + 4 sub-agents — with Plan &#x2192; Code &#x2192; Verify workflow. Cross-platform: Web (Next.js 16), Desktop (Tauri v2), Mobile PWA. Kanban, Pulse, MCP, git worktree isolation. Self-hosted, MIT licensed.</p>
+    <p class="subtitle">AgentOS orchestrates 8 AI agents — 4 domain specialists + 4 sub-agents — with Plan &#x2192; Code &#x2192; Verify workflow. Cross-platform: Web (Next.js 16), Desktop (Tauri v2), Mobile (React Native), PWA. Kanban, Pulse, MCP, git worktree isolation, auth system, admin panel, multi-modal chat, 28+ free LLM models. Self-hosted, MIT licensed.</p>
     <div class="hero-btns">
       <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">&#x1F680; Deploy with Docker</a>
       <a href="#how" class="btn btn-outline btn-lg">How it works</a>
@@ -179,10 +179,10 @@ footer a:hover { color: var(--primary); }
     </div>
     <div class="hero-stats">
       <div><strong>8</strong><span>AI agents</span></div>
-      <div><strong>421+</strong><span>automated tests</span></div>
-      <div><strong>44</strong><span>API endpoints</span></div>
-      <div><strong>3</strong><span>platform targets</span></div>
-      <div><strong>&lt; 15 min</strong><span>first deploy</span></div>
+      <div><strong>716+</strong><span>automated tests</span></div>
+      <div><strong>50+</strong><span>API endpoints</span></div>
+      <div><strong>4</strong><span>platform targets</span></div>
+      <div><strong>100%</strong><span>test coverage</span></div>
     </div>
   </div>
 </section>
@@ -250,19 +250,22 @@ footer a:hover { color: var(--primary); }
     <h2>&#x2728; Why AgentOS?</h2>
     <p>Everything you need to ship AI-powered workflows, self-hosted and MIT licensed.</p>
     <div class="features-grid">
-      <div class="feature-card"><div class="icon">&#x1F916;</div><h3>8 AI agents <span class="tag-new">NEW</span></h3><p>4 domain agents (Dev, Content, Marketing, Commerce) + 4 sub-agents (Planner, Verifier, Explorer, CodeReviewer) with auto-routing.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F5A5;&#xFE0F;</div><h3>Cross-Platform UI <span class="tag-new">v5.0</span></h3><p>Next.js 16 web app + Tauri v2 desktop (deb/rpm/AppImage) + installable mobile PWA. Single React codebase.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4CB;</div><h3>Plan Mode <span class="tag-new">NEW</span></h3><p>@Planner sub-agent produces structured plans with phases, tasks, risks, dependencies, and architecture summaries.</p></div>
-      <div class="feature-card"><div class="icon">&#x2705;</div><h3>Verify Mode <span class="tag-new">NEW</span></h3><p>@Verifier validates code changes: lint, type safety, coverage, security. Returns JSON-format issue reports.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4CA;</div><h3>Kanban Board <span class="tag-new">NEW</span></h3><p>6 columns (backlog &#x2192; done), full CRUD API, WebSocket real-time updates. Track every task.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4C8;</div><h3>Pulse Dashboards <span class="tag-new">NEW</span></h3><p>Real-time metrics: agent activity, task completion, cards by column, historical timeline.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F517;</div><h3>MCP Integration <span class="tag-new">NEW</span></h3><p>Register and call any MCP-compatible tool server. Extend AgentOS with databases, APIs, cloud services.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4DD;</div><h3>AGENTS.md Rules <span class="tag-new">NEW</span></h3><p>Project rules (AGENTS.md), global rules (VERDENT.md), plan rules (plan_rules.md). Auto-init with one API call.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F333;</div><h3>Git Worktree <span class="tag-new">NEW</span></h3><p>Safe parallel execution in isolated git branches via worktree CRUD API. No merge conflicts.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F6E1;&#xFE0F;</div><h3>Human-in-the-loop</h3><p>Critical actions require your approval. Deployments, payments, and publications are gated.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F916;</div><h3>8 AI agents <span class="tag-new">v5.0</span></h3><p>4 domain agents (Dev, Content, Marketing, Commerce) + 4 sub-agents (Planner, Verifier, Explorer, CodeReviewer) with auto-routing.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F5A5;&#xFE0F;</div><h3>Cross-Platform UI <span class="tag-new">v5.1</span></h3><p>Next.js 16 web app + Tauri v2 desktop (deb/rpm/AppImage) + React Native mobile (APK/IPA) + installable PWA. Single React codebase.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F510;</div><h3>Auth System <span class="tag-new">v5.1</span></h3><p>Email/password registration, JWT authentication, OAuth (Google/GitHub). Role-based access control (user/admin). Admin auto-promotion via env var.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F6E1;&#xFE0F;</div><h3>Admin Panel <span class="tag-new">v5.1</span></h3><p>Full admin dashboard: system settings editor, service health checks, LLM provider browser, model selection, user management, usage reports.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F4F1;</div><h3>Mobile App <span class="tag-new">v5.1</span></h3><p>React Native (Expo) companion app. Chat with agents, manage sessions, admin controls, offline queue, push notifications. Android APK available.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F5BC;&#xFE0F;</div><h3>Multi-Modal Chat <span class="tag-new">v5.1</span></h3><p>Upload images from camera/gallery in chat. Base64 image transfer. Vision-analysis skill for image understanding.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F4CB;</div><h3>Plan Mode</h3><p>@Planner sub-agent produces structured plans with phases, tasks, risks, dependencies, and architecture summaries.</p></div>
+      <div class="feature-card"><div class="icon">&#x2705;</div><h3>Verify Mode</h3><p>@Verifier validates code changes: lint, type safety, coverage, security. Returns JSON-format issue reports.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F4CA;</div><h3>Kanban Board</h3><p>6 columns (backlog &#x2192; done), full CRUD API, WebSocket real-time updates. Track every task.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F4C8;</div><h3>Pulse Dashboards</h3><p>Real-time metrics: agent activity, task completion, cards by column, historical timeline.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F517;</div><h3>MCP Integration</h3><p>Register and call any MCP-compatible tool server. Extend AgentOS with databases, APIs, cloud services.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F504;</div><h3>Smart LLM Router <span class="tag-new">v5.0</span></h3><p>28+ free OpenRouter models across 8 work types. Auto-detection, rate-limiting, 4-level fallback (OpenRouter → Ollama → degraded).</p></div>
       <div class="feature-card"><div class="icon">&#x1F504;</div><h3>LLM fallback</h3><p>OpenRouter primary, Ollama local fallback, degraded response as last resort.</p></div>
       <div class="feature-card"><div class="icon">&#x1F9F0;</div><h3>Vector memory</h3><p>PostgreSQL + pgvector 768d stores project embeddings for cross-session context retention.</p></div>
       <div class="feature-card"><div class="icon">&#x26A1;</div><h3>Circuit breaker</h3><p>Auto-disables agents after 3 consecutive failures. No runaway costs.</p></div>
+      <div class="feature-card"><div class="icon">&#x1F4E6;</div><h3>Linux Packages <span class="tag-new">v5.1</span></h3><p>Pre-built .deb (Debian/Ubuntu) and .rpm (Fedora/RHEL). One-command install via apt/dnf. Docker Compose stack with 10 services.</p></div>
     </div>
   </div>
 </section>
@@ -367,7 +370,7 @@ footer a:hover { color: var(--primary); }
 
 <footer>
   <div class="container">
-    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v5.0.0 &mdash; MIT License &mdash; <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> &mdash; Built with Python &amp; Next.js 16 &amp; Tauri v2</p>
+    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v5.1.0 &mdash; MIT License &mdash; <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> &mdash; Built with Python 3.13 &amp; Next.js 16 &amp; Tauri v2 &amp; React Native</p>
   </div>
 </footer>
 
