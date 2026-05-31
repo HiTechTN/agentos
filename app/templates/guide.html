@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentOS v5.0 — Guide Complet</title>
+<title>AgentOS v5.1.0 — Guide Complet</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 <style>
   :root {
@@ -366,7 +366,7 @@
     <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
     <div class="logo">
       🤖 <span>AgentOS</span>
-      <span class="badge">Guide v5.0</span>
+      <span class="badge">Guide v5.1.0</span>
     </div>
   </div>
   <nav>
@@ -500,7 +500,7 @@
   <!-- ── MAIN CONTENT ── -->
   <main class="main" id="main-content">
 
-    <h1>Guide <span class="hl">AgentOS</span> v5.0</h1>
+    <h1>Guide <span class="hl">AgentOS</span> v5.1.0</h1>
     <p class="subtitle">Plateforme d'orchestration multi-agent — Architecture, déploiement, API et développement</p>
 
     <!-- ═══════════════ 1. ARCHITECTURE ═══════════════ -->
@@ -602,12 +602,12 @@
 
     <!-- ═══════════════ 2. UI CROSS-PLATFORM ═══════════════ -->
     <h2 id="ui">🖥️ 2. Interface Cross-Platform</h2>
-    <p>AgentOS v5.0 propose une interface unifiée sur <strong>3 plateformes</strong> partageant la même base de code React.</p>
+    <p>AgentOS v5.1.0 propose une interface unifiée sur <strong>3 plateformes</strong> partageant la même base de code React.</p>
 
     <div class="cards">
       <div class="card"><div class="icon">🌐</div><h4>Web App</h4><p>Next.js 16 + Tailwind CSS v4. 10 pages : Dashboard, Chat, Agents, Sessions, Kanban, Pulse, Settings, Deploy, Guide.</p><div class="tags"><span class="tag">Next.js 16</span><span class="tag purple">Tailwind v4</span><span class="tag">TypeScript</span></div></div>
       <div class="card"><div class="icon">🖥️</div><h4>Desktop (Tauri v2)</h4><p>Application native Rust pour Linux (.deb, .rpm, .AppImage), macOS et Windows. Fenêtre 1280×800 redimensionnable.</p><div class="tags"><span class="tag orange">Tauri v2</span><span class="tag">Rust</span><span class="tag green">Native</span></div></div>
-      <div class="card"><div class="icon">📱</div><h4>Mobile PWA</h4><p>Application web progressive installable. Service worker avec cache offline. Icône personnalisée et écran de démarrage.</p><div class="tags"><span class="tag purple">PWA</span><span class="tag">Service Worker</span><span class="tag">Offline</span></div></div>
+      <div class="card"><div class="icon">📱</div><h4>Mobile (React Native)</h4><p>Application native Android APK avec Expo. 6 écrans : Dashboard, Chat, Agents, Sessions, Settings, Admin. Auth JWT avec SecureStore, queue offline.</p><div class="tags"><span class="tag purple">React Native</span><span class="tag">Expo</span><span class="tag green">APK</span></div></div>
     </div>
 
     <h3 id="ui-stack">Stack technique</h3>
@@ -619,7 +619,7 @@
         <tr><td>Graphiques</td><td>Recharts</td><td>Courbes de latence, activité des agents, métriques temps réel</td></tr>
         <tr><td>État / Data</td><td>React Query + Context</td><td>Cache API, auth JWT, état global</td></tr>
         <tr><td>Desktop</td><td>Tauri v2</td><td>Runtime Rust natif, fenêtre OS, menus système</td></tr>
-        <tr><td>Mobile</td><td>PWA</td><td>Manifest + service worker, installation via navigateur</td></tr>
+        <tr><td>Mobile</td><td>React Native (Expo)</td><td>APK Android, 6 écrans, Auth JWT, Admin panel, Offline queue</td></tr>
         <tr><td>CI Desktop</td><td>npm run tauri build</td><td>Génère .deb, .rpm, .AppImage (Linux)</td></tr>
       </table>
     </div>
@@ -705,13 +705,40 @@ uv run uvicorn app.main:app --reload
     </div>
 
     <h3 id="manuel">2.3 Déploiement manuel</h3>
-    <div class="steps">
-      <div class="step" data-num="1"><div class="step-body"><h4>Provisionner un serveur</h4><p>VPS chez Hetzner (recommandé) ou DigitalOcean avec Ubuntu 22.04+.</p></div></div>
-      <div class="step" data-num="2"><div class="step-body"><h4>Installer Docker</h4>
-        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋</button></div>
-        <pre><code>curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker deploy</code></pre></div>
-      </div></div>
+    <div class="tabs">
+      <div class="tab-bar">
+        <button class="active" onclick="switchTab(this, 'deploy-docker')">Docker</button>
+        <button onclick="switchTab(this, 'deploy-pkg')">Package (.deb/.rpm)</button>
+        <button onclick="switchTab(this, 'deploy-source')">Source</button>
+      </div>
+      <div class="tab-panel active" id="deploy-docker">
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+        <pre><code><span class="hljs-comment"># Installation interactive (recommandée)</span>
+curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash
+
+<span class="hljs-comment"># Ou installation automatique (Docker)</span>
+curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash -s 1</code></pre></div>
+      </div>
+      <div class="tab-panel" id="deploy-pkg">
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+        <pre><code><span class="hljs-comment"># Debian/Ubuntu</span>
+curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash -s 2
+
+<span class="hljs-comment"># Fedora/RHEL</span>
+curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash -s 3</code></pre></div>
+      </div>
+      <div class="tab-panel" id="deploy-source">
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+        <pre><code><span class="hljs-comment"># Installer uv</span>
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+<span class="hljs-comment"># Cloner et installer</span>
+git clone https://github.com/HiTechTN/agentos.git
+cd agentos
+uv sync --all-extras
+uv run uvicorn app.main:app --reload --port 8000</code></pre></div>
+      </div>
+    </div>
       <div class="step" data-num="3"><div class="step-body"><h4>Cloner et configurer</h4>
         <div class="code-block"><div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋</button></div>
         <pre><code>git clone https://github.com/HiTechTN/agentos.git /opt/agentos
@@ -764,6 +791,12 @@ certbot --nginx -d votre-domaine.com</code></pre>
         <tr><td><code>GET</code></td><td><code>/docs</code></td><td>—</td><td>—</td><td>Swagger UI</td></tr>
         <tr><td><code>GET</code></td><td><code>/deploy</code></td><td>—</td><td>—</td><td>Assistant déploiement</td></tr>
         <tr><td><code>GET</code></td><td><code>/guide</code></td><td>—</td><td>—</td><td>Ce guide interactif</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/auth/register</code></td><td>5/min</td><td>—</td><td>Inscription</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/auth/login</code></td><td>10/min</td><td>—</td><td>Connexion JWT</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/auth/me</code></td><td>30/min</td><td>✓</td><td>Profil utilisateur</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/llm/router/status</code></td><td>10/min</td><td>✓</td><td>Statut du routeur LLM</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/admin/services</code></td><td>10/min</td><td>✓</td><td>Santé des services (admin)</td></tr>
+        <tr><td><code>PUT</code></td><td><code>/api/v1/admin/settings</code></td><td>5/min</td><td>✓</td><td>Modifier la configuration</td></tr>
       </table>
     </div>
 
@@ -818,7 +851,48 @@ ws.onmessage = (event) => {
       </table>
     </div>
 
-    <h3 id="hitl">5.3 Human-In-The-Loop</h3>
+    <h3 id="auth-system">5.3 Authentification & Comptes</h3>
+    <p>AgentOS v5.1.0 intègre un système d'authentification complet : inscription par email, connexion JWT et OAuth (Google/GitHub).</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Inscription</span>
+<span class="hljs-keyword">POST</span> /api/v1/auth/register
+{ <span class="hljs-string">"email"</span>: <span class="hljs-string">"user@example.com"</span>, <span class="hljs-string">"password"</span>: <span class="hljs-string">"securepass123"</span> }
+
+<span class="hljs-comment"># Connexion</span>
+<span class="hljs-keyword">POST</span> /api/v1/auth/login
+{ <span class="hljs-string">"email"</span>: <span class="hljs-string">"user@example.com"</span>, <span class="hljs-string">"password"</span>: <span class="hljs-string">"securepass123"</span> }
+<span class="hljs-comment"># → { "access_token": "eyJ...", "user": { "email": "...", "role": "admin" } }
+
+<span class="hljs-comment"># OAuth (Google/GitHub)</span>
+<span class="hljs-keyword">GET</span> /api/v1/auth/oauth/&lt;provider&gt;
+<span class="hljs-comment"># Redirige vers le fournisseur OAuth, puis callback vers l'app</span></code></pre>
+    </div>
+
+    <h3 id="admin">5.4 Administration</h3>
+    <p>Panneau d'administration complet avec gestion des paramètres, services, modèles LLM et utilisateurs. Accès réservé aux emails listés dans la variable d'environnement <code>admin_emails</code>.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># État des services</span>
+<span class="hljs-keyword">GET</span> /api/v1/admin/services
+<span class="hljs-comment"># → { "services": { "db": "ok", "redis": "ok", "ollama": "ok", ... } }</span>
+
+<span class="hljs-comment"># Configuration (environnement)</span>
+<span class="hljs-keyword">GET</span> /api/v1/admin/settings
+<span class="hljs-keyword">PUT</span> /api/v1/admin/settings
+{ <span class="hljs-string">"OPENROUTER_API_KEY"</span>: <span class="hljs-string">"sk-..."</span> }
+
+<span class="hljs-comment"># Modèles LLM disponibles</span>
+<span class="hljs-keyword">GET</span> /api/v1/admin/llm/providers
+<span class="hljs-keyword">GET</span> /api/v1/admin/llm/models
+<span class="hljs-keyword">POST</span> /api/v1/admin/llm/select
+{ <span class="hljs-string">"work_type"</span>: <span class="hljs-string">"code_gen"</span>, <span class="hljs-string">"model_id"</span>: <span class="hljs-string">"anthropic/claude-sonnet-..."</span> }
+
+<span class="hljs-comment"># Utilisateurs</span>
+<span class="hljs-keyword">GET</span> /api/v1/admin/users</code></pre>
+    </div>
+
+    <h3 id="hitl">5.5 Human-In-The-Loop</h3>
     <p>Les actions critiques suspendent le workflow en attente d'approbation humaine.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -831,7 +905,7 @@ ws.onmessage = (event) => {
 { <span class="hljs-string">"approval_id"</span>: <span class="hljs-string">"uuid-xxx"</span>, <span class="hljs-string">"reason"</span>: <span class="hljs-string">"Pas prêt"</span> }</code></pre>
     </div>
 
-    <h3 id="debugger">5.4 @Debugger Sub-Agent</h3>
+    <h3 id="debugger">5.6 @Debugger Sub-Agent</h3>
     <p>Analyse d'erreurs avec suggestions de correction structurées.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -845,7 +919,7 @@ ws.onmessage = (event) => {
 <span class="hljs-comment"># → { root_cause, explanation, fix_suggestion, confidence }</span></code></pre>
     </div>
 
-    <h3 id="orchestrateur">5.5 Orchestrateur LangGraph</h3>
+    <h3 id="orchestrateur">5.7 Orchestrateur LangGraph</h3>
     <div class="diagram">
       <span class="box" style="border-color:var(--accent);">🔍 analyze_prompt</span>
       <div class="arrow">→</div>
@@ -861,7 +935,7 @@ ws.onmessage = (event) => {
     </div>
     <p>Caractéristiques : <strong>Circuit Breaker</strong> (3 échecs → arrêt), <strong>Retry</strong> automatique (3 tentatives), <strong>Exécution parallèle</strong> (tâches indépendantes), <strong>HITL propagation</strong> (suspension sur actions critiques).</p>
 
-    <h3 id="llm-cache">5.6 LLM Cache</h3>
+    <h3 id="llm-cache">5.8 LLM Cache</h3>
     <p>Cache à 2 niveaux : L1 local (instantané) + Redis (persistant). Clé = SHA256(model + messages + temperature). TTL par défaut : 7 jours.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">env</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -869,7 +943,7 @@ ws.onmessage = (event) => {
 LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
     </div>
 
-    <h3 id="scheduler">5.7 Scheduler</h3>
+    <h3 id="scheduler">5.9 Scheduler</h3>
     <p>Planification de tâches cron pour exécution automatique de prompts.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -882,7 +956,7 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
 }</code></pre>
     </div>
 
-    <h3 id="mcp">5.8 MCP (Model Context Protocol)</h3>
+    <h3 id="mcp">5.10 MCP (Model Context Protocol)</h3>
     <p>Intégration avec des outils externes via le protocole MCP standard.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -896,13 +970,17 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
     <h3 id="setup">6.1 Setup local</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
-      <pre><code><span class="hljs-comment"># Installer uv</span>
+      <pre><code><span class="hljs-comment"># Option 1 : Script d'installation (recommandé)</span>
+curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash -s 4
+
+<span class="hljs-comment"># Option 2 : Manuel</span>
+<span class="hljs-comment"># Installer uv</span>
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 <span class="hljs-comment"># Cloner et installer</span>
 git clone https://github.com/HiTechTN/agentos.git
 cd agentos
-uv sync --frozen
+uv sync --all-extras
 cp .env.example .env
 
 <span class="hljs-comment"># Lancer</span>
@@ -969,7 +1047,7 @@ uv run alembic downgrade -1</code></pre>
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Endpoint santé</span>
 curl http://localhost:8000/health
-<span class="hljs-comment"># → {"api":"ok","database":"ok","redis":"ok","version":"5.0.0"}</span>
+<span class="hljs-comment"># → {"api":"ok","database":"ok","redis":"ok","version":"5.1.0"}</span>
 
 <span class="hljs-comment"># Métriques Prometheus</span>
 curl http://localhost:8000/metrics
@@ -992,7 +1070,7 @@ curl -X POST http://localhost:8000/api/v1/sub-agent/debug \
 
     <hr style="border-color:var(--border);margin:48px 0;">
     <p style="text-align:center;color:var(--text-muted);font-size:.85rem;">
-      AgentOS v5.0.0 · Document généré le 22 mai 2026 · 
+      AgentOS v5.1.0 · 716 tests · 100% coverage · 4 plateformes · Document généré le 31 mai 2026 · 
       <a href="https://github.com/HiTechTN/agentos">GitHub</a> · 
       <a href="/deploy">Assistant déploiement</a> · 
       <a href="/docs">API Docs</a>
