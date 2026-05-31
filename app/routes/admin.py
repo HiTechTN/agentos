@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 
@@ -120,9 +118,13 @@ async def update_settings(
 
     ENV_FILE.write_text("\n".join(new_lines) + "\n")
 
-    import importlib
+    from app.config.settings import Settings as _Settings
+    from app.config.settings import get_settings as _get_settings
 
-    importlib.reload(__import__("app.config.settings", fromlist=["Settings"]))
+    _settings_obj = _get_settings()
+    _new_settings = _Settings(_env_file=str(ENV_FILE))  # type: ignore[call-arg]
+    for _field_name in _new_settings.model_fields_set:
+        setattr(_settings_obj, _field_name, getattr(_new_settings, _field_name))
 
     metrics.inc("admin.settings.updated")
     logger.log_action("admin", "settings_update", "Settings updated by admin")
@@ -216,7 +218,7 @@ async def list_llm_providers(user: AdminUser) -> dict[str, Any]:
         )
     )
 
-    usage = smart_router.get_usage_report()
+    usage = await smart_router.get_usage_report()
 
     return {
         "providers": all_providers,
@@ -333,9 +335,10 @@ async def select_llm_model(
 
     ENV_FILE.write_text("\n".join(lines) + "\n")
 
-    import importlib
+    from app.config.settings import get_settings as _get_settings
 
-    importlib.reload(__import__("app.config.settings", fromlist=["Settings"]))
+    _settings_obj = _get_settings()
+    setattr(_settings_obj, config_key, body.model_id)
 
     metrics.inc("admin.llm.model_selected")
     logger.log_action("admin", "select_model", f"Model {body.model_id} for {body.work_type}")

@@ -1359,3 +1359,35 @@ class TestSettingsLazyInit:
         finally:
             if patcher is not None:
                 patcher.start()
+
+
+# =============================================================================
+# File: app/schemas/auth.py (83% → 100%)
+#   Gaps: 22-24 (validate_email ValueError), 29-31 (validate_password ValueError)
+# =============================================================================
+
+
+class TestAuthSchemasValidators:
+    def test_register_request_validates_invalid_email(self) -> None:
+        from pydantic import ValidationError
+
+        from app.schemas.auth import RegisterRequest
+
+        with pytest.raises(ValidationError, match="Invalid email address"):
+            RegisterRequest(email="notanemail", password="password123")
+
+    def test_register_request_validates_short_password(self) -> None:
+        from pydantic import ValidationError
+
+        from app.schemas.auth import RegisterRequest
+
+        with pytest.raises(ValidationError, match="Password must be at least 8 characters"):
+            RegisterRequest(email="test@example.com", password="short")
+
+    def test_register_request_valid_email_lowercased(self) -> None:
+        from app.schemas.auth import RegisterRequest
+
+        r = RegisterRequest(email="Test@Example.COM", password="password123", name="Test")
+        assert r.email == "test@example.com"
+        assert r.password == "password123"
+        assert r.name == "Test"
