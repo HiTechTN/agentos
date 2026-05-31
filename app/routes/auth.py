@@ -90,6 +90,12 @@ async def register(request: Request, body: RegisterRequest) -> UserResponse:
     user_id = str(uuid.uuid4())
     now = datetime.now(UTC)
 
+    from app.config.settings import get_settings as _get_settings
+
+    _settings = _get_settings()
+    admin_emails = {e.strip().lower() for e in _settings.admin_emails.split(",") if e.strip()}
+    role = "admin" if body.email.lower() in admin_emails else "user"
+
     async with await _get_session() as session:
         existing = await session.execute(
             text("SELECT id FROM users WHERE email = :email"), {"email": body.email}
@@ -99,14 +105,15 @@ async def register(request: Request, body: RegisterRequest) -> UserResponse:
 
         await session.execute(
             text("""
-                INSERT INTO users (id, email, password_hash, name, created_at, updated_at)
-                VALUES (:id, :email, :password_hash, :name, :created_at, :updated_at)
+                INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at)
+                VALUES (:id, :email, :password_hash, :name, :role, :created_at, :updated_at)
             """),
             {
                 "id": user_id,
                 "email": body.email,
                 "password_hash": password_hash,
                 "name": body.name,
+                "role": role,
                 "created_at": now,
                 "updated_at": now,
             },
@@ -147,10 +154,16 @@ async def login(request: Request, body: LoginRequest) -> LoginResponse:
     ):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    from app.config.settings import get_settings as _get_settings
+
+    _settings = _get_settings()
+    admin_emails = {e.strip().lower() for e in _settings.admin_emails.split(",") if e.strip()}
+    effective_role = "admin" if body.email.lower() in admin_emails else (user.role or "user")
+
     access_token = create_access_token(
         sub=str(user.id),
         workspace="default",
-        role=user.role or "user",
+        role=effective_role,
     )
 
     metrics.inc("auth.login.success")
@@ -164,7 +177,7 @@ async def login(request: Request, body: LoginRequest) -> LoginResponse:
             email=user.email,
             name=user.name,
             avatar_url=user.avatar_url,
-            role=user.role or "user",
+            role=effective_role,
         ),
     )
 

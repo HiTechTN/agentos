@@ -265,3 +265,73 @@ export async function getRouterStatus(): Promise<LLMRouterStatus> {
 export async function createPlan(goal: string): Promise<{ plan: string }> {
   return api.post<{ plan: string }>('/api/v1/plan', { goal });
 }
+
+// ── Admin API ───────────────────────────────────────────────────────────────
+
+export interface AdminSettings {
+  [key: string]: string | number | boolean | null;
+}
+
+export interface ServiceStatus {
+  services: Record<string, string | { status: string; models?: string[]; detail?: string }>;
+}
+
+export interface LLMModelInfo {
+  id: string;
+  name: string;
+  context_window: number;
+  supports_tools: boolean;
+  supports_vision: boolean;
+  req_per_min: number;
+  req_per_day: number;
+}
+
+export interface AdminLLMProviders {
+  providers: string[];
+  models_by_type: Record<string, LLMModelInfo[]>;
+  current_selections: Record<string, string>;
+  usage: Record<string, unknown>;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name?: string;
+  avatar_url?: string;
+  role: string;
+  email_verified: boolean;
+  created_at: string;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+  total: number;
+}
+
+export async function getAdminSettings(): Promise<{ settings: AdminSettings }> {
+  return api.get<{ settings: AdminSettings }>('/api/v1/admin/settings');
+}
+
+export async function updateAdminSettings(updates: Record<string, string>): Promise<{ status: string; keys: string[] }> {
+  return api.put<{ status: string; keys: string[] }>('/api/v1/admin/settings', { updates });
+}
+
+export async function getAdminServices(): Promise<ServiceStatus> {
+  return api.get<ServiceStatus>('/api/v1/admin/services');
+}
+
+export async function getAdminLLMProviders(): Promise<AdminLLMProviders> {
+  return api.get<AdminLLMProviders>('/api/v1/admin/llm/providers');
+}
+
+export async function testLLMModel(modelId: string, prompt?: string): Promise<{ success: boolean; latency_ms?: number; response?: string; error?: string }> {
+  return api.post<{ success: boolean; latency_ms?: number; response?: string; error?: string }>('/api/v1/admin/llm/test', { model_id: modelId, prompt });
+}
+
+export async function selectLLMModel(workType: string, modelId: string): Promise<{ status: string; key: string; value: string }> {
+  return api.put<{ status: string; key: string; value: string }>('/api/v1/admin/llm/select-model', { work_type: workType, model_id: modelId });
+}
+
+export async function getAdminUsers(): Promise<AdminUsersResponse> {
+  return api.get<AdminUsersResponse>('/api/v1/admin/users');
+}

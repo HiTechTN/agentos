@@ -91,6 +91,9 @@ class Settings(BaseSettings):
     github_client_id: str = ""
     github_client_secret: str = ""
 
+    # Admin
+    admin_emails: str = ""
+
     # Stripe
     stripe_api_key: str = ""
     stripe_webhook_secret: str = ""
