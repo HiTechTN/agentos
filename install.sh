@@ -11,37 +11,6 @@ BRANCH="main"
 GH_BASE="https://github.com/$REPO/releases/download/v$VERSION"
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; RED='\033[0;31m'; NC='\033[0m'
 
-echo ""
-echo -e "${CYAN}  ╔══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}  ║     AgentOS v${VERSION} - Install       ║${NC}"
-echo -e "${CYAN}  ╚══════════════════════════════════════╝${NC}"
-echo ""
-echo -e "  ${YELLOW}Choose install method:${NC}"
-echo -e "  1) Docker Compose (recommended — full stack)"
-echo -e "  2) Linux package (.deb — Debian/Ubuntu)"
-echo -e "  3) Linux package (.rpm — Fedora/RHEL)"
-echo -e "  4) Python pip (from source)"
-echo -e "  5) Desktop app (Tauri)"
-echo -e "  6) Download mobile APK"
-echo ""
-if [ -t 0 ]; then
-  read -rp "  Select [1-6] (default: 1): " choice
-else
-  # When piped (curl | bash), read from terminal directly
-  read -rp "  Select [1-6] (default: 1): " choice </dev/tty 2>/dev/null || true
-fi
-choice="${choice:-1}"
-
-case "$choice" in
-  1) install_docker; exit 0 ;;
-  2) install_deb; exit 0 ;;
-  3) install_rpm; exit 0 ;;
-  4) install_pip; exit 0 ;;
-  5) install_desktop; exit 0 ;;
-  6) download_mobile; exit 0 ;;
-  *) echo "Invalid choice"; exit 1 ;;
-esac
-
 # =============================================================================
 # Docker Compose Install
 # =============================================================================
@@ -108,10 +77,8 @@ install_pip() {
 install_desktop() {
   echo -e "${YELLOW}AgentOS Desktop v${VERSION} — Tauri builds:${NC}"
   echo ""
-  echo "  Linux:    $GH_BASE/agentos_${VERSION}_amd64.AppImage"
-  echo "  Linux:    $GH_BASE/agentos_${VERSION}_amd64.deb"
-  echo "  macOS:    $GH_BASE/agentos_${VERSION}_x64.dmg"
-  echo "  Windows:  $GH_BASE/agentos_${VERSION}_x64.msi"
+  echo "  Linux:    $GH_BASE/AgentOS_${VERSION}_amd64.AppImage"
+  echo "  Linux:    $GH_BASE/AgentOS_${VERSION}_amd64.deb"
   echo ""
   echo -e "${YELLOW}Or build from source:${NC}"
   echo "    git clone https://github.com/$REPO.git"
@@ -150,3 +117,36 @@ show_urls() {
   echo -e "    cd agentos && make test"
   echo ""
 }
+
+# =============================================================================
+# Main Menu
+# =============================================================================
+echo ""
+echo -e "${CYAN}  ╔══════════════════════════════════════╗${NC}"
+echo -e "${CYAN}  ║     AgentOS v${VERSION} - Install       ║${NC}"
+echo -e "${CYAN}  ╚══════════════════════════════════════╝${NC}"
+echo ""
+echo -e "  ${YELLOW}Choose install method:${NC}"
+echo -e "  1) Docker Compose (recommended — full stack)"
+echo -e "  2) Linux package (.deb — Debian/Ubuntu)"
+echo -e "  3) Linux package (.rpm — Fedora/RHEL)"
+echo -e "  4) Python pip (from source)"
+echo -e "  5) Desktop app (Tauri)"
+echo -e "  6) Download mobile APK"
+echo ""
+if [ -t 0 ]; then
+  read -rp "  Select [1-6] (default: 1): " choice
+else
+  read -rp "  Select [1-6] (default: 1): " choice </dev/tty 2>/dev/null || true
+fi
+choice="${choice:-1}"
+
+case "$choice" in
+  1) install_docker ;;
+  2) install_deb ;;
+  3) install_rpm ;;
+  4) install_pip ;;
+  5) install_desktop ;;
+  6) download_mobile ;;
+  *) echo "Invalid choice"; exit 1 ;;
+esac
