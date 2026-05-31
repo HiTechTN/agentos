@@ -102,8 +102,16 @@ install_docker() {
   echo -e "  ${YELLOW}⚠  Edit .env with your API keys before running.${NC}"
 
   echo -e "${YELLOW}[4/4] Starting AgentOS...${NC}"
-  _assign_free_ports
+  if [ -f ".env" ]; then
+    # Existing install — keep the same ports from .env
+    set -a; source .env; set +a 2>/dev/null || true
+    echo "  Using existing port configuration"
+  else
+    # Fresh install — auto-detect free ports
+    _assign_free_ports
+  fi
   echo "  Ports: API=${AGENTOS_API_PORT} DB=${AGENTOS_DB_PORT} Web=${AGENTOS_WEB_PORT}"
+  docker compose down 2>/dev/null || true
   docker compose pull --quiet 2>/dev/null || true
   docker compose up -d 2>&1 | tail -5 || echo "  ⚠ Some services may have failed"
   show_urls
