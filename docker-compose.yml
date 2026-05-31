@@ -71,7 +71,7 @@ services:
       ollama pull qwen2.5 &&
       wait"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/11434 2>/dev/null && exec 3>&-"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -86,7 +86,7 @@ services:
     networks:
       - agentos_net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8025/"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -127,7 +127,7 @@ services:
     networks:
       - agentos_net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:16686/"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -148,7 +148,7 @@ services:
     networks:
       - agentos_net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 2>/dev/null && exec 3>&-"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -224,7 +224,7 @@ services:
     networks:
       - agentos_net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
       interval: 15s
       timeout: 5s
       start_period: 60s
