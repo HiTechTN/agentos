@@ -110,10 +110,35 @@ install_docker() {
     # Fresh install — auto-detect free ports
     _assign_free_ports
   fi
+
+  # Check for local Ollama — skip Docker Ollama if already running
+  _local_ollama=false
+  if command -v curl >/dev/null 2>&1 && curl -s --max-time 2 http://localhost:11434/api/tags >/dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${NC} Local Ollama detected at http://localhost:11434"
+    _local_ollama=true
+  fi
+
   echo "  Ports: API=${AGENTOS_API_PORT} DB=${AGENTOS_DB_PORT} Web=${AGENTOS_WEB_PORT}"
   docker compose down 2>/dev/null || true
+
+  if [ "$_local_ollama" = true ]; then
+    # Override compose — skip Docker Ollama, point app to host Ollama
+    cat > docker-compose.override.yml << 'OVERRIDE'
+services:
+  ollama:
+    profiles: ["disabled"]
+  app:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+OVERRIDE
+    echo -e "  ${GREEN}✓${NC} Created docker-compose.override.yml for local Ollama"
+  fi
+
   docker compose pull --quiet 2>/dev/null || true
   docker compose up -d 2>&1 | tail -5 || echo "  ⚠ Some services may have failed"
+
   show_urls
 }
 

@@ -9,22 +9,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../src/theme';
+import { Colors, FontSizes, Spacing } from '../src/theme';
 import { useAuth } from '../src/auth/AuthContext';
 import { healthCheck } from '../src/api/client';
 
 export default function LoginScreen() {
   const { serverUrl, updateServerUrl, login } = useAuth();
-  const [url, setUrl] = useState(serverUrl || 'http://localhost:8003');
+  const [url, setUrl] = useState(serverUrl || '');
   const [connecting, setConnecting] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleConnect = async () => {
+    const targetUrl = url.trim() || (serverUrl || '').trim() || 'http://192.168.0.100:8004';
+    setUrl(targetUrl);
     setConnecting(true);
     try {
-      await updateServerUrl(url);
+      await updateServerUrl(targetUrl);
       const health = await healthCheck();
       if (health.api !== 'ok') {
         Alert.alert('Connection Error', 'Server is not responding');
@@ -41,18 +45,17 @@ export default function LoginScreen() {
   };
 
   const handleSocialLogin = async (provider: string) => {
+    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8004';
+    if (!url.trim()) setUrl(targetUrl);
     setConnecting(true);
     try {
-      await updateServerUrl(url);
+      await updateServerUrl(targetUrl);
       const resp = await fetch(
-        `${url.replace(/\/+$/, '')}/api/v1/auth/${provider}/login?redirect_uri=agentos://oauth/callback/${provider}`,
+        `${targetUrl.replace(/\/+$/, '')}/api/v1/auth/${provider}/login?redirect_uri=agentos://oauth/callback/${provider}`,
       );
       const data = await resp.json();
       if (data.authorization_url) {
-        router.push({
-          pathname: '/oauth',
-          params: { authUrl: data.authorization_url, provider },
-        });
+        router.push({ pathname: '/oauth', params: { authUrl: data.authorization_url, provider } });
       }
     } catch (e: any) {
       Alert.alert('OAuth Error', e?.message || `Could not connect to ${provider}`);
@@ -67,69 +70,104 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>⚡</Text>
+        <View style={styles.heroSection}>
+          <View style={styles.heroIcon}>
+            <Ionicons name="sparkles" size={40} color={Colors.light.primary} />
+          </View>
           <Text style={styles.title}>AgentOS</Text>
-          <Text style={styles.subtitle}>Mobile</Text>
+          <Text style={styles.subtitle}>Multi-Agent Platform</Text>
         </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Server URL</Text>
-          <TextInput
-            style={styles.input}
-            value={url}
-            onChangeText={setUrl}
-            placeholder="http://your-server:8003"
-            placeholderTextColor={Colors.light.textTertiary}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-
+        <View style={styles.card}>
           <TouchableOpacity
-            style={[styles.button, styles.primaryButton, connecting && styles.buttonDisabled]}
+            style={styles.quickConnectButton}
             onPress={handleConnect}
             disabled={connecting}
+            activeOpacity={0.8}
           >
             {connecting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.buttonText}>Connect</Text>
+              <>
+                <Ionicons name="flash" size={20} color="#fff" />
+                <Text style={styles.quickConnectText}>Quick Connect</Text>
+              </>
             )}
           </TouchableOpacity>
-        </View>
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <View style={styles.socialRow}>
           <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton]}
-            onPress={() => handleSocialLogin('google')}
+            style={styles.advancedToggle}
+            onPress={() => setShowAdvanced(!showAdvanced)}
           >
-            <Ionicons name="logo-google" size={20} color={Colors.light.text} />
-            <Text style={styles.socialText}>Google</Text>
+            <Text style={styles.advancedToggleText}>
+              {showAdvanced ? 'Hide manual URL' : 'Manual server URL'}
+            </Text>
+            <Ionicons
+              name={showAdvanced ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={Colors.light.textTertiary}
+            />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.socialButton, styles.githubButton]}
-            onPress={() => handleSocialLogin('github')}
-          >
-            <Ionicons name="logo-github" size={20} color="#fff" />
-            <Text style={[styles.socialText, { color: '#fff' }]}>GitHub</Text>
+
+          {showAdvanced && (
+            <View style={styles.advancedSection}>
+              <Text style={styles.inputLabel}>Server URL</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.input}
+                  value={url}
+                  onChangeText={setUrl}
+                  placeholder="http://192.168.0.100:8004"
+                  placeholderTextColor={Colors.light.textTertiary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                />
+                <TouchableOpacity style={styles.connectButton} onPress={handleConnect} disabled={connecting}>
+                  {connecting ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or continue with</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.socialRow}>
+            <TouchableOpacity
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={() => handleSocialLogin('google')}
+              disabled={connecting}
+            >
+              <Ionicons name="logo-google" size={18} color={Colors.light.text} />
+              <Text style={styles.socialText}>Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.socialButton, styles.githubButton]}
+              onPress={() => handleSocialLogin('github')}
+              disabled={connecting}
+            >
+              <Ionicons name="logo-github" size={18} color="#fff" />
+              <Text style={[styles.socialText, { color: '#fff' }]}>GitHub</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.registerLink} onPress={() => router.push('/register')}>
+            <Text style={styles.registerText}>
+              New to AgentOS? <Text style={styles.registerHighlight}>Create account</Text>
+            </Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.registerLink} onPress={() => router.push('/register')}>
-          <Text style={styles.registerText}>
-            Don't have an account? <Text style={styles.registerHighlight}>Create one</Text>
-          </Text>
-        </TouchableOpacity>
 
         <Text style={styles.hint}>
-          Enter the URL of your AgentOS server to connect remotely.
+          Connect to your AgentOS server to manage agents, workflows, and chat.
         </Text>
       </View>
     </KeyboardAvoidingView>
@@ -144,66 +182,105 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
-  header: {
+  heroSection: {
     alignItems: 'center',
-    marginBottom: 36,
+    marginBottom: 32,
   },
-  logo: {
-    fontSize: 64,
-    marginBottom: 8,
+  heroIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: Colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: FontSizes.title,
+    fontWeight: '800',
     color: Colors.light.text,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: FontSizes.md,
     color: Colors.light.textSecondary,
     marginTop: 4,
   },
-  form: {
-    gap: 12,
+  card: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 20,
+    padding: Spacing.xxl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  label: {
-    fontSize: 14,
+  quickConnectButton: {
+    backgroundColor: Colors.light.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  quickConnectText: {
+    color: '#fff',
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+  },
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.xs,
+  },
+  advancedToggleText: {
+    fontSize: FontSizes.sm,
+    color: Colors.light.textTertiary,
+  },
+  advancedSection: {
+    marginBottom: Spacing.md,
+  },
+  inputLabel: {
+    fontSize: FontSizes.sm,
     fontWeight: '600',
-    color: Colors.light.text,
-    marginBottom: -4,
+    color: Colors.light.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
   input: {
-    backgroundColor: Colors.light.surface,
+    flex: 1,
+    backgroundColor: Colors.light.surfaceVariant,
     borderWidth: 1,
     borderColor: Colors.light.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 16,
+    fontSize: FontSizes.sm,
     color: Colors.light.text,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  button: {
+  connectButton: {
+    width: 48,
+    height: 48,
     borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  primaryButton: {
     backgroundColor: Colors.light.primary,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: Spacing.xl,
   },
   dividerLine: {
     flex: 1,
@@ -212,13 +289,13 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 12,
-    fontSize: 13,
+    fontSize: FontSizes.xs,
     color: Colors.light.textTertiary,
   },
   socialRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   socialButton: {
     flex: 1,
@@ -239,15 +316,14 @@ const styles = StyleSheet.create({
     borderColor: '#24292e',
   },
   socialText: {
-    fontSize: 14,
+    fontSize: FontSizes.sm,
     fontWeight: '600',
   },
   registerLink: {
     alignItems: 'center',
-    marginBottom: 16,
   },
   registerText: {
-    fontSize: 14,
+    fontSize: FontSizes.sm,
     color: Colors.light.textSecondary,
   },
   registerHighlight: {
@@ -257,7 +333,9 @@ const styles = StyleSheet.create({
   hint: {
     textAlign: 'center',
     color: Colors.light.textTertiary,
-    fontSize: 13,
+    fontSize: FontSizes.xs,
     lineHeight: 18,
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
   },
 });

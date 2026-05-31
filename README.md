@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentOS-v5.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/AgentOS-v5.1.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
   <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Desktop-Tauri_v2-FFC131?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
-  <img src="https://img.shields.io/badge/PWA-Installable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA">
-  <img src="https://img.shields.io/badge/663%20tests-100%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/Mobile-React%20Native-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React Native">
+  <img src="https://img.shields.io/badge/716%20tests-100%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/Smart%20Router-28_models-4c6ef5?style=for-the-badge&logo=openai&logoColor=white" alt="Smart Router">
   <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
   <img src="https://img.shields.io/badge/Storage-S3_Friendly-569A31?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO">
@@ -40,13 +40,13 @@ curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | b
 
 | Step | Action |
 |------|--------|
-| 1 | Checks prerequisites (git, docker, docker compose) |
-| 2 | Clones the repo (`--depth 1`) |
-| 3 | Copies `.env.example` → `.env` |
-| 4 | Pulls Docker images |
-| 5 | Runs `docker compose up -d` |
+| 1 | Interactive menu with 6 install options |
+| 2 | Detects available ports (auto-resolves conflicts) |
+| 3 | Clones the repo, copies `.env.example` → `.env` |
+| 4 | Pulls Docker images, runs `docker compose up -d` |
+| 5 | Preserves `.env` port overrides on subsequent runs |
 
-> **Prerequisites**: git · docker · docker compose
+> **Prerequisites**: git · docker · docker compose · bash 4+
 </details>
 
 ---
@@ -123,6 +123,8 @@ HITL gate → Deploy / Publish / Charge
 | `app` | FastAPI orchestrator | 8000 |
 | `web` | Next.js dashboard | 3000 |
 
+> 🔌 Ports auto-detected on fresh install — `install.sh` finds free ports if defaults are taken. `.env` port overrides preserved on updates.
+
 </details>
 
 ---
@@ -179,12 +181,13 @@ Custom sub-agents: create markdown files in `~/.agentos/subagents/<name>.md` wit
 
 | | Feature | Description |
 |---|---------|-------------|
-| 🖥️ | **Cross-Platform UI** | Next.js 16 · Tauri v2 Desktop · PWA Mobile — same React codebase |
+| 🖥️ | **Cross-Platform UI** | Next.js 16 · Tauri v2 Desktop · React Native Mobile (Expo) |
 | 🤖 | **4 Domain Agents** | Dev, Content, Marketing, Commerce — each with domain-specific tools |
 | 🧩 | **Sub-Agent System** | @Planner, @Verifier, @Explorer, @CodeReviewer with auto-routing + custom |
 | 📋 | **Plan Mode** | Structured plans with phases, tasks, risks, dependencies, architecture |
 | ✅ | **Verify Mode** | Automatic code validation with JSON issue tracking |
-| 👤 | **Human-in-the-Loop** | Deploy, publish, charge actions require your approval |
+| 👤 | **User Auth System** | Register, login, OAuth (Google/GitHub), JWT tokens, admin auto-promotion |
+| 🛡️ | **Admin Panel** | Manage settings, services, LLM models, users — 7 admin API endpoints |
 | 📊 | **Kanban Board** | 6 columns (backlog → done), full CRUD, WebSocket updates |
 | 📈 | **Pulse Dashboards** | Real-time metrics, agent activity, task tracking |
 | 🔗 | **MCP Integration** | Register and call any MCP-compatible tool server |
@@ -248,7 +251,7 @@ watch docker compose ps  # Wait until all services are "healthy"
 
 ```bash
 curl http://localhost:8000/health
-# → {"status":"ok","version":"5.0.0","environment":"development"}
+# → {"status":"ok","version":"5.1.0","environment":"development"}
 ```
 
 ### 4️⃣ Run a workflow
@@ -309,7 +312,36 @@ curl http://localhost:8000/api/v1/pulse/default
 | `/health/full` | GET | Full health (DB, Redis, Ollama) |
 | `/metrics` | GET | Prometheus metrics |
 | `/guide` | GET | Interactive guide page |
+| `/docs` | GET | Swagger UI |
 | `/ws/logs` | WS | Real-time log stream |
+
+### Auth
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/auth/register` | POST | Register a new user |
+| `/api/v1/auth/login` | POST | Login with email/password |
+| `/api/v1/auth/oauth` | POST | Social OAuth login (Google/GitHub) |
+| `/api/v1/auth/me` | GET | Get current user profile |
+
+### Admin
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/admin/settings` | GET | Get app settings |
+| `/api/v1/admin/settings` | PUT | Update app settings |
+| `/api/v1/admin/services` | GET | Get service statuses |
+| `/api/v1/admin/services` | POST | Restart a service |
+| `/api/v1/admin/llm/models` | GET | List available LLM models |
+| `/api/v1/admin/llm/select` | POST | Select active LLM model |
+| `/api/v1/admin/users` | GET | List users (admin only) |
+
+### Smart LLM Router
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/llm/router/status` | GET | Router health & rate-limit status |
+| `/api/v1/llm/router/models` | GET | Categorized model listing |
 
 ### Workflow
 
@@ -431,7 +463,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  AgentOS v5.0 Dashboard          [Chat] [Deploy] [Guide] │
+│  AgentOS v5.1 Dashboard    [Chat] [Admin] [Deploy] [Guide]│
 ├──────────────────┬───────────────────────────────────────┤
 │  💬 Chat LLM     │  📊 Pulse Dashboard                   │
 │  ┌──────────────┐│  Latency ●  Agent Activity ●  Tasks   │
@@ -442,7 +474,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 │  📋 Kanban Board │  🚀 Deploy Assistant                  │
 │  ToDo│InProg│Done│  1. Server   2. Keys   3. Deploy      │
 ├──────────────────┴───────────────────────────────────────┤
-│  ⚡ 663 tests · 100% coverage · ruff ✓ · mypy ✓ · bandit ✓   │
+│  ⚡ 716 tests · 100% coverage · ruff ✓ · mypy ✓ · bandit ✓  │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -452,9 +484,9 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 |----------|------|--------|
 | 🌐 **Web** | Next.js 16 + Tailwind v4 | ✅ `npm run build` |
 | 🖥️ **Desktop** | Tauri v2 (Rust) | ✅ `.deb` · `.rpm` · `.AppImage` |
-| 📱 **Mobile PWA** | Service Worker + Manifest | ✅ Installable via browser |
+| 📱 **Mobile** | React Native (Expo) | ✅ APK built · iOS needs Apple Developer Program |
 
-**Login**: `admin@agentos.local` / `agentos`
+**Login**: Register at `/api/v1/auth/register` or use `admin@agentos.local` (auto‑promoted if in `ADMIN_EMAILS`)
 
 ---
 
@@ -469,16 +501,24 @@ agentos/
 ├── Dockerfile             # Python 3.13 app container
 ├── Makefile               # 12 automation commands
 ├── .env.example           # 99 env vars with demo defaults
-├── install.sh             # One-liner curl installer
+├── install.sh             # Interactive 6-option installer
+├── build/build.sh         # Multi-platform package builder (wheel → tar.gz → .deb → .rpm)
 ├── docs/                  # GitHub Pages landing page
-├── ui/                    # Cross-platform app (Next.js 16 + Tauri v2 + PWA)
+├── ui/                    # Cross-platform app (Next.js 16 + Tauri v2 Desktop)
 │   ├── src/               # 10 pages: Dashboard, Chat, Agents, Sessions, Kanban, Pulse, Settings, Deploy, Guide
 │   ├── src-tauri/         # Tauri v2 Rust backend (Linux .deb/.rpm/.AppImage)
-│   ├── public/sw.js       # PWA service worker
 │   └── setup.sh           # One-command environment setup
+├── mobile/                # React Native (Expo) app
+│   ├── app/               # 6 screens via Expo Router
+│   ├── components/        # Reusable UI components
+│   ├── services/          # API client, auth, offline queue
+│   └── app.json           # Expo config
 ├── AGENTS.md              # Project rules (auto-init)
 └── app/
-    ├── main.py            # FastAPI entrypoint with 30+ routes
+    ├── main.py            # FastAPI entrypoint with 40+ routes
+    ├── routes/
+    │   ├── auth.py        # Register, login, OAuth, profile
+    │   └── admin.py       # Settings, services, LLM, users
     ├── orchestrator.py    # LangGraph state machine (retry×3, circuit breaker, parallel)
     ├── scheduler.py       # Cron-based periodic task executor
     ├── kanban.py          # Kanban board with WebSocket updates
@@ -513,26 +553,28 @@ agentos/
     │   ├── sandbox.py      # Docker container isolation
     │   ├── metrics.py      # Prometheus counters, histograms, gauges
     │   ├── telemetry.py    # OpenTelemetry tracing with Jaeger export
-    │   └── notifications.py # Slack + Console multi-channel
+    │   ├── notifications.py # Slack + Console multi-channel
+    │   └── llm_router.py   # SmartLLMRouter — 28 models, 8 WorkTypes, 4-level fallback
     ├── tests/
-    │   ├── conftest.py          # Fixtures, mocks (Redis, LLM, settings)
-    │   ├── test_auth.py         # JWT auth, token creation/validation
-    │   ├── test_llm_cache.py    # LLM response cache lifecycle
-    │   ├── test_rate_limit.py   # Rate limit configuration
-    │   ├── test_request_id.py   # Request ID middleware
-    │   ├── test_responses.py    # APIResponse envelope tests
+    │   ├── conftest.py            # Fixtures, mocks (Redis, LLM, settings)
+    │   ├── test_auth.py           # JWT auth, token creation/validation
+    │   ├── test_auth_routes.py    # Auth endpoint integration tests
+    │   ├── test_admin_routes.py   # Admin endpoint tests
+    │   ├── test_orchestrator.py   # 10+ tests
+    │   ├── test_hitl.py           # 7 tests
+    │   ├── test_memory.py         # 9 tests
+    │   ├── test_memory_cache.py   # Cache read/write/fallback tests
+    │   ├── test_advanced.py       # 15+ tests (v2/v3 features)
+    │   ├── test_v3_features.py    # 15+ tests (v3 features)
+    │   ├── test_v4_features.py    # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
+    │   ├── test_llm_router.py     # 49 tests (SmartLLMRouter)
+    │   ├── test_llm_cache.py      # LLM response cache lifecycle
+    │   ├── test_rate_limit.py     # Rate limit configuration
+    │   ├── test_request_id.py     # Request ID middleware
+    │   ├── test_responses.py      # APIResponse envelope tests
     │   ├── test_debugger_agent.py # @Debugger sub-agent tests
-    │   ├── test_orchestrator.py       # 10+ tests
-    │   ├── test_hitl.py               # 7 tests
-    │   ├── test_memory.py             # 9 tests
-    │   ├── test_memory_cache.py       # Cache read/write/fallback tests
-    │   ├── test_advanced.py           # 15+ tests (v2/v3 features)
-    │   ├── test_v3_features.py        # 15+ tests (v3 features)
-    │   ├── test_v4_features.py        # 25+ tests (sub-agents, kanban, pulse, mcp, rules)
-    │   ├── test_llm_router.py         # 49 tests (SmartLLMRouter)
-    │   ├── test_main_routes.py        # Auth/route coverage tests
-    │   ├── test_main_routes2.py       # Redis/WebSocket coverage
-    │   └── test_small_gaps.py         # Edge-case coverage tests
+    │   ├── test_main_routes.py    # Route coverage tests
+    │   └── test_small_gaps.py     # Edge-case coverage tests
     └── web/                # Legacy dashboard (deprecated, see ui/)
         ├── app/            # Pages, layouts, components
         └── Dockerfile.web  # Standalone container
@@ -553,8 +595,8 @@ uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Coverage | ≥ 90% | **99.42%** ✅ |
-| Tests | 592+ | **592** ✅ |
+| Coverage | 100% | **100%** ✅ |
+| Tests | 716+ | **716** ✅ |
 | ruff | 0 errors | **0** ✅ |
 | mypy strict | 0 errors | **0** ✅ |
 | bandit HIGH/MEDIUM | 0 issues | **0** ✅ |
@@ -580,7 +622,7 @@ uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll
 | Docker Web | `ghcr.io/hitechtn/agentos/web:latest` |
 | Landing | [hitechtn.github.io/agentos](https://hitechtn.github.io/agentos/) |
 | License | [MIT](LICENSE) |
-| Latest Release | [v5.0.0](https://github.com/HiTechTN/agentos/releases/tag/v5.0.0) |
+| Latest Release | [v5.1.0](https://github.com/HiTechTN/agentos/releases/tag/v5.1.0) |
 
 ---
 

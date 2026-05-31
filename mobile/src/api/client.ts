@@ -335,3 +335,54 @@ export async function selectLLMModel(workType: string, modelId: string): Promise
 export async function getAdminUsers(): Promise<AdminUsersResponse> {
   return api.get<AdminUsersResponse>('/api/v1/admin/users');
 }
+
+// ── Admin Caching ────────────────────────────────────────────────────────────
+
+import { getAdminCache, setAdminCache } from '../components/AdminCache';
+
+export async function getAdminDataCached(): Promise<{
+  settings: { settings: AdminSettings };
+  services: ServiceStatus;
+  llm: AdminLLMProviders;
+  users: AdminUsersResponse;
+}> {
+  const cached = await getAdminCache();
+  if (cached?.settings && cached?.services && cached?.llmModels) {
+    return {
+      settings: { settings: cached.settings as AdminSettings },
+      services: cached.services as ServiceStatus,
+      llm: cached.llmModels as unknown as AdminLLMProviders,
+      users: cached.users ? { users: cached.users as AdminUser[], total: cached.users.length } : { users: [], total: 0 },
+    };
+  }
+
+  const [settings, services, llm, users] = await Promise.all([
+    getAdminSettings(),
+    getAdminServices(),
+    getAdminLLMProviders(),
+    getAdminUsers(),
+  ]);
+
+  await setAdminCache({
+    settings: settings.settings,
+    services: services as any,
+    llmModels: llm as any,
+    users: users.users,
+  });
+
+  return { settings, services, llm, users };
+}
+
+// ── Document upload helpers ──────────────────────────────────────────────────
+
+export async function uploadDocumentAttachment(
+  uri: string,
+  filename: string,
+  mimeType: string,
+): Promise<AttachmentData> {
+  const fs = require('expo-file-system');
+  const base64 = await fs.readAsStringAsync(uri, {
+    encoding: fs.EncodingType.Base64,
+  });
+  return { filename, mime_type: mimeType, data_base64: base64 };
+}

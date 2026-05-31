@@ -7,19 +7,22 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSizes, Spacing } from '../../src/theme';
+import { Card, Badge } from '../../src/components';
 import {
   healthCheck,
   getRouterStatus,
   getPendingApprovals,
+  getAdminSettings,
   HealthStatus,
   PendingApproval,
 } from '../../src/api/client';
+import { setAdminCache } from '../../src/components/AdminCache';
 import { useOffline } from '../../src/services/offline';
 
-interface StatCard {
+interface StatItem {
   label: string;
   value: string;
   icon: keyof typeof Ionicons.glyphMap;
@@ -27,7 +30,7 @@ interface StatCard {
 }
 
 export default function DashboardScreen() {
-  const { isOnline, queueLength, flush } = useOffline();
+  const { isOnline, queueLength } = useOffline();
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [pending, setPending] = useState<PendingApproval[]>([]);
   const [llmStatus, setLlmStatus] = useState<string>('...');
@@ -38,22 +41,21 @@ export default function DashboardScreen() {
       const [h, p, llm] = await Promise.all([
         healthCheck().catch(() => null),
         getPendingApprovals().catch(() => ({ pending: [] })),
-        getRouterStatus()
-          .then(() => 'Online')
-          .catch(() => 'Offline'),
+        getRouterStatus().then(() => 'Online').catch(() => 'Offline'),
       ]);
       if (h) setHealth(h);
       setPending(p.pending || []);
       setLlmStatus(llm);
-    } catch {
-      // silently fail on refresh
-    }
+
+      // Pre-fetch admin data in background
+      getAdminSettings().then((s) =>
+        setAdminCache({ settings: s.settings })
+      ).catch(() => {});
+    } catch { /* silent */ }
   }, []);
 
   useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [fetchData]),
+    useCallback(() => { fetchData(); }, [fetchData]),
   );
 
   const onRefresh = async () => {
@@ -62,28 +64,24 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const stats: StatCard[] = [
+  const stats: StatItem[] = [
     {
-      label: 'API',
-      value: health?.api ?? '...',
+      label: 'API', value: health?.api ?? '...',
       icon: 'server-outline',
       color: health?.api === 'ok' ? Colors.light.success : Colors.light.error,
     },
     {
-      label: 'Database',
-      value: health?.database ?? '...',
+      label: 'Database', value: health?.database ?? '...',
       icon: 'server-outline',
       color: health?.database === 'ok' ? Colors.light.success : Colors.light.warning,
     },
     {
-      label: 'Redis',
-      value: health?.redis ?? '...',
+      label: 'Redis', value: health?.redis ?? '...',
       icon: 'layers-outline',
       color: health?.redis === 'ok' ? Colors.light.success : Colors.light.warning,
     },
     {
-      label: 'LLM Router',
-      value: llmStatus,
+      label: 'LLM Router', value: llmStatus,
       icon: 'sparkles-outline',
       color: llmStatus === 'Online' ? Colors.light.success : Colors.light.textTertiary,
     },
@@ -95,70 +93,107 @@ export default function DashboardScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.greeting}>AgentOS</Text>
-      <Text style={styles.subtitle}>v{health?.version ?? '...'}</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>AgentOS</Text>
+          <Text style={styles.version}>v{health?.version ?? '...'}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.adminChip}
+          onPress={() => router.push('/(tabs)/admin')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="shield-outline" size={16} color={Colors.light.primary} />
+          <Text style={styles.adminChipText}>Admin</Text>
+        </TouchableOpacity>
+      </View>
 
       {!isOnline && (
-        <View style={styles.offlineBanner}>
-          <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
-          <Text style={styles.offlineBannerText}>
-            Offline — {queueLength} request{queueLength !== 1 ? 's' : ''} queued
-          </Text>
-        </View>
+        <Card variant="elevated" style={styles.offlineCard}>
+          <View style={styles.offlineRow}>
+            <Ionicons name="cloud-offline-outline" size={20} color={Colors.light.warning} />
+            <Text style={styles.offlineText}>
+              Offline — {queueLength} request{queueLength !== 1 ? 's' : ''} queued
+            </Text>
+          </View>
+        </Card>
       )}
 
       <View style={styles.statsGrid}>
         {stats.map((stat) => (
-          <View key={stat.label} style={styles.statCard}>
-            <Ionicons name={stat.icon} size={24} color={stat.color} />
+          <Card key={stat.label} variant="elevated" style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: stat.color + '15' }]}>
+              <Ionicons name={stat.icon} size={22} color={stat.color} />
+            </View>
             <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
             <Text style={styles.statLabel}>{stat.label}</Text>
-          </View>
+          </Card>
         ))}
       </View>
 
       {pending.length > 0 && (
-        <View style={styles.section}>
+        <Card variant="outlined" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="hand-left-outline" size={18} color={Colors.light.warning} />
-            <Text style={styles.sectionTitle}>
-              Pending Approvals ({pending.length})
-            </Text>
+            <Ionicons name="hand-left" size={18} color={Colors.light.warning} />
+            <Text style={styles.sectionTitle}>Pending Approvals</Text>
+            <Badge label={String(pending.length)} variant="warning" />
           </View>
           {pending.map((item) => (
-            <View key={item.id} style={styles.approvalCard}>
+            <TouchableOpacity key={item.id} style={styles.approvalRow} activeOpacity={0.7}>
               <View style={styles.approvalInfo}>
                 <Text style={styles.approvalAction}>{item.action}</Text>
                 <Text style={styles.approvalAgent}>{item.agent}</Text>
               </View>
-              <TouchableOpacity style={styles.approveBtn}>
-                <Ionicons name="checkmark-circle" size={28} color={Colors.light.success} />
-              </TouchableOpacity>
-            </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.light.textTertiary} />
+            </TouchableOpacity>
           ))}
-        </View>
+        </Card>
       )}
 
-      <View style={styles.section}>
+      <Card variant="default" style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="information-circle-outline" size={18} color={Colors.light.textSecondary} />
+          <Ionicons name="flash" size={18} color={Colors.light.primary} />
           <Text style={styles.sectionTitle}>Quick Actions</Text>
         </View>
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="chatbubble-ellipses-outline" size={22} color={Colors.light.primary} />
-            <Text style={styles.actionText}>New Chat</Text>
+        <View style={styles.actionsGrid}>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(tabs)/chat')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: Colors.light.primaryLight }]}>
+              <Ionicons name="chatbubble-ellipses" size={24} color={Colors.light.primary} />
+            </View>
+            <Text style={styles.actionLabel}>New Chat</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="git-branch-outline" size={22} color={Colors.light.primary} />
-            <Text style={styles.actionText}>Run Plan</Text>
+          <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
+            <View style={[styles.actionIcon, { backgroundColor: Colors.light.successLight }]}>
+              <Ionicons name="git-branch" size={24} color={Colors.light.success} />
+            </View>
+            <Text style={styles.actionLabel}>Run Plan</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="refresh-outline" size={22} color={Colors.light.primary} />
-            <Text style={styles.actionText}>Refresh</Text>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(tabs)/sessions')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: Colors.light.infoLight }]}>
+              <Ionicons name="time" size={24} color={Colors.light.info} />
+            </View>
+            <Text style={styles.actionLabel}>Sessions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(tabs)/admin')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: Colors.light.warningLight }]}>
+              <Ionicons name="shield" size={24} color={Colors.light.warning} />
+            </View>
+            <Text style={styles.actionLabel}>Admin</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Card>
     </ScrollView>
   );
 }
@@ -172,29 +207,48 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: 32,
   },
-  greeting: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xl,
+  },
+  title: {
     fontSize: FontSizes.xxl,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.light.text,
   },
-  subtitle: {
+  version: {
     fontSize: FontSizes.sm,
     color: Colors.light.textSecondary,
-    marginBottom: Spacing.sm,
+    marginTop: 2,
   },
-  offlineBanner: {
+  adminChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.light.warning,
-    borderRadius: 8,
-    padding: Spacing.sm,
-    marginBottom: Spacing.lg,
+    gap: 6,
+    backgroundColor: Colors.light.primaryLight,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  offlineBannerText: {
-    fontSize: FontSizes.xs,
+  adminChipText: {
+    fontSize: FontSizes.sm,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.light.primary,
+  },
+  offlineCard: {
+    marginBottom: Spacing.md,
+  },
+  offlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  offlineText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
+    color: Colors.light.warning,
     flex: 1,
   },
   statsGrid: {
@@ -204,20 +258,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   statCard: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 16,
-    padding: Spacing.lg,
     width: '47%',
+    padding: Spacing.lg,
     alignItems: 'center',
-    gap: 6,
-    shadowColor: Colors.light.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
+    gap: 8,
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statValue: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontWeight: '700',
   },
   statLabel: {
@@ -225,8 +279,8 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     fontWeight: '500',
   },
-  section: {
-    marginBottom: Spacing.xl,
+  sectionCard: {
+    marginBottom: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -238,20 +292,14 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.light.text,
+    flex: 1,
   },
-  approvalCard: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 12,
-    padding: Spacing.lg,
+  approvalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
-    shadowColor: Colors.light.cardShadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.borderLight,
   },
   approvalInfo: {
     flex: 1,
@@ -266,29 +314,29 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     marginTop: 2,
   },
-  approveBtn: {
-    padding: 4,
-  },
-  quickActions: {
+  actionsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  actionButton: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 12,
+  actionCard: {
+    width: '47%',
+    backgroundColor: Colors.light.surfaceVariant,
+    borderRadius: 14,
     padding: Spacing.lg,
     alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    shadowColor: Colors.light.cardShadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 1,
+    gap: Spacing.sm,
   },
-  actionText: {
-    fontSize: FontSizes.xs,
-    fontWeight: '500',
-    color: Colors.light.textSecondary,
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionLabel: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.light.text,
   },
 });

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { Colors, FontSizes, Spacing } from '../../src/theme';
+import { FilePreview } from '../../src/components';
 import {
   runWorkflow,
   WorkflowResult,
@@ -26,22 +27,29 @@ interface PickedAttachment {
   uri: string;
   filename: string;
   mimeType: string;
+  size?: number;
 }
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   text: string;
-  attachments?: { uri: string; filename: string }[];
+  attachments?: { uri: string; filename: string; mimeType: string }[];
   timestamp: Date;
 }
+
+const ALLOWED_EXTENSIONS = [
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+  'md', 'txt', 'csv', 'json', 'xml', 'yaml', 'yml',
+  'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp',
+];
 
 export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      text: 'Hello! I am AgentOS. Send me a prompt and I will execute it using my agents.',
+      text: 'Hello! I am AgentOS. Send me a prompt, attach documents, or both — I can analyze PDFs, Word docs, spreadsheets, Markdown, and more.',
       timestamp: new Date(),
     },
   ]);
@@ -50,30 +58,68 @@ export default function ChatScreen() {
   const [pickedAttachments, setPickedAttachments] = useState<PickedAttachment[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    ImagePicker.requestCameraPermissionsAsync();
-    ImagePicker.requestMediaLibraryPermissionsAsync();
-  }, []);
-
-  const pickImage = async () => {
+  const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.7,
     });
     if (result.canceled) return;
     const newAttachments: PickedAttachment[] = result.assets.map((a) => ({
       uri: a.uri,
-      filename: a.fileName || `attachment_${Date.now()}`,
+      filename: a.fileName || `image_${Date.now()}.jpg`,
       mimeType: a.mimeType || 'image/jpeg',
+      size: a.fileSize || undefined,
     }));
     setPickedAttachments((prev) => [...prev, ...newAttachments]);
   };
 
+  const pickDocuments = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-powerpoint',
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          'text/plain',
+          'text/csv',
+          'text/markdown',
+          'application/json',
+          'application/xml',
+          'image/*',
+        ],
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+      const assets = 'assets' in result ? result.assets : [result];
+      const newAttachments: PickedAttachment[] = assets.map((a: any) => ({
+        uri: a.uri || a.file?.uri || '',
+        filename: a.name || a.file?.name || `doc_${Date.now()}`,
+        mimeType: a.mimeType || a.file?.mimeType || 'application/octet-stream',
+        size: a.size || a.file?.size || undefined,
+      })).filter((a: PickedAttachment) => a.uri);
+
+      setPickedAttachments((prev) => [...prev, ...newAttachments]);
+    } catch (e: any) {
+      if (e?.message !== 'User canceled') {
+        Alert.alert('Error', 'Could not pick document');
+      }
+    }
+  };
+
   const takePhoto = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.7,
-    });
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission required', 'Camera access is needed to take photos');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
     if (result.canceled) return;
     const asset = result.assets[0];
     setPickedAttachments((prev) => [
@@ -82,6 +128,7 @@ export default function ChatScreen() {
         uri: asset.uri,
         filename: asset.fileName || `photo_${Date.now()}.jpg`,
         mimeType: asset.mimeType || 'image/jpeg',
+        size: asset.fileSize || undefined,
       },
     ]);
   };
@@ -91,9 +138,10 @@ export default function ChatScreen() {
   };
 
   const pickFile = () => {
-    Alert.alert('Add Attachment', 'Choose an option', [
-      { text: 'Photo Library', onPress: pickImage },
-      { text: 'Take Photo', onPress: takePhoto },
+    Alert.alert('Add to message', 'What would you like to attach?', [
+      { text: '📷 Camera', onPress: takePhoto },
+      { text: '🖼 Gallery', onPress: pickImages },
+      { text: '📄 Document (PDF, DOCX, MD...)', onPress: pickDocuments },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -122,7 +170,7 @@ export default function ChatScreen() {
       id: Date.now().toString(),
       role: 'user',
       text: trimmed,
-      attachments: pickedAttachments.map((a) => ({ uri: a.uri, filename: a.filename })),
+      attachments: pickedAttachments.map((a) => ({ uri: a.uri, filename: a.filename, mimeType: a.mimeType })),
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMsg]);
@@ -133,6 +181,7 @@ export default function ChatScreen() {
     try {
       const prompt = trimmed || `Analyze the attached ${attachmentData.length > 1 ? 'files' : 'file'}`;
       const result: WorkflowResult = await runWorkflow(prompt, 'default', attachmentData);
+
       const responseText =
         result.status === 'failed'
           ? `Error: ${result.error?.message || 'Unknown error'}`
@@ -162,14 +211,24 @@ export default function ChatScreen() {
     const isUser = item.role === 'user';
     return (
       <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
+        {!isUser && (
+          <View style={styles.avatar}>
+            <Ionicons name="sparkles" size={16} color={Colors.light.primary} />
+          </View>
+        )}
         <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
           {item.text ? (
-            <Text style={[styles.messageText, isUser && styles.userText]}>
-              {item.text}
-            </Text>
+            <Text style={[styles.messageText, isUser && styles.userText]}>{item.text}</Text>
           ) : null}
           {item.attachments?.map((att, i) => (
-            <Image key={i} source={{ uri: att.uri }} style={styles.attachedImage} />
+            <View key={i} style={styles.attachPreview}>
+              <FilePreview
+                uri={att.uri}
+                filename={att.filename}
+                mimeType={att.mimeType}
+                variant="chat"
+              />
+            </View>
           ))}
         </View>
       </View>
@@ -191,18 +250,30 @@ export default function ChatScreen() {
         onContentSizeChange={() =>
           flatListRef.current?.scrollToEnd({ animated: true })
         }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Ionicons name="chatbubbles-outline" size={48} color={Colors.light.textTertiary} />
+            <Text style={styles.emptyText}>Start a conversation</Text>
+          </View>
+        }
       />
 
       {pickedAttachments.length > 0 && (
-        <View style={styles.attachmentPreview}>
+        <View style={styles.attachmentBar}>
           {pickedAttachments.map((att, i) => (
             <View key={i} style={styles.attachmentChip}>
-              <Image source={{ uri: att.uri }} style={styles.thumb} />
-              <Text style={styles.thumbFilename} numberOfLines={1}>
-                {att.filename}
-              </Text>
-              <TouchableOpacity onPress={() => removeAttachment(i)}>
-                <Ionicons name="close-circle" size={18} color={Colors.light.error} />
+              <FilePreview
+                uri={att.uri}
+                filename={att.filename}
+                mimeType={att.mimeType}
+                size={att.size}
+                variant="chat"
+              />
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => removeAttachment(i)}
+              >
+                <Ionicons name="close-circle" size={20} color={Colors.light.error} />
               </TouchableOpacity>
             </View>
           ))}
@@ -211,7 +282,7 @@ export default function ChatScreen() {
 
       <View style={styles.inputBar}>
         <TouchableOpacity style={styles.attachButton} onPress={pickFile}>
-          <Ionicons name="attach" size={22} color={Colors.light.textSecondary} />
+          <Ionicons name="add-circle" size={26} color={Colors.light.textSecondary} />
         </TouchableOpacity>
         <TextInput
           style={styles.input}
@@ -219,8 +290,8 @@ export default function ChatScreen() {
           onChangeText={setInput}
           placeholder={
             pickedAttachments.length > 0
-              ? 'Optional prompt for the attachment...'
-              : 'Type a prompt...'
+              ? 'Optional prompt for the attached files...'
+              : 'Type a prompt or attach a document...'
           }
           placeholderTextColor={Colors.light.textTertiary}
           multiline
@@ -240,7 +311,7 @@ export default function ChatScreen() {
           {loading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="send" size={20} color="#fff" />
+            <Ionicons name="arrow-up" size={22} color="#fff" />
           )}
         </TouchableOpacity>
       </View>
@@ -260,6 +331,8 @@ const styles = StyleSheet.create({
   messageRow: {
     marginBottom: Spacing.md,
     flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.sm,
   },
   userRow: {
     justifyContent: 'flex-end',
@@ -267,8 +340,16 @@ const styles = StyleSheet.create({
   assistantRow: {
     justifyContent: 'flex-start',
   },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bubble: {
-    maxWidth: '80%',
+    maxWidth: '78%',
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -291,17 +372,20 @@ const styles = StyleSheet.create({
   userText: {
     color: '#fff',
   },
-  attachedImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 8,
-    marginTop: 6,
-    resizeMode: 'cover',
+  attachPreview: {
+    marginTop: Spacing.sm,
   },
-  attachmentPreview: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: Spacing.md,
+  },
+  emptyText: {
+    fontSize: FontSizes.md,
+    color: Colors.light.textTertiary,
+  },
+  attachmentBar: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.light.surfaceVariant,
@@ -311,23 +395,11 @@ const styles = StyleSheet.create({
   attachmentChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.light.surface,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    marginBottom: Spacing.xs,
   },
-  thumb: {
-    width: 28,
-    height: 28,
-    borderRadius: 4,
-  },
-  thumbFilename: {
-    fontSize: FontSizes.xs,
-    color: Colors.light.text,
-    maxWidth: 80,
+  removeButton: {
+    marginLeft: Spacing.sm,
+    padding: 4,
   },
   inputBar: {
     flexDirection: 'row',
@@ -337,15 +409,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.light.border,
-    gap: 6,
+    gap: 8,
+    paddingBottom: Platform.OS === 'ios' ? 24 : Spacing.sm,
   },
   attachButton: {
-    padding: 8,
+    padding: 6,
   },
   input: {
     flex: 1,
     backgroundColor: Colors.light.surfaceVariant,
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: FontSizes.sm,
@@ -354,9 +427,9 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     backgroundColor: Colors.light.primary,
-    borderRadius: 24,
-    width: 44,
-    height: 44,
+    borderRadius: 22,
+    width: 42,
+    height: 42,
     justifyContent: 'center',
     alignItems: 'center',
   },
