@@ -20,9 +20,18 @@ install_docker() {
   command -v docker >/dev/null 2>&1 || { echo "Requires Docker"; exit 1; }; echo "  ✓ docker"
   docker compose version >/dev/null 2>&1 || { echo "Requires Docker Compose"; exit 1; }; echo "  ✓ docker compose"
 
-  echo -e "${YELLOW}[2/4] Cloning AgentOS...${NC}"
-  if [ -d "agentos" ]; then cd agentos && git pull origin "$BRANCH"; else git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" agentos && cd agentos; fi
-  echo "  ✓ Cloned to $(pwd)"
+  echo -e "${YELLOW}[2/4] Setting up AgentOS...${NC}"
+  if [ -d "agentos" ]; then
+    echo "  Updating existing installation..."
+    cd agentos
+    git stash --include-untracked 2>/dev/null || true
+    git pull --rebase origin "$BRANCH" 2>/dev/null || echo "  ⚠ Could not update (may be up to date)"
+  else
+    echo "  Cloning AgentOS..."
+    git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" agentos
+    cd agentos
+  fi
+  echo "  ✓ $(pwd)"
 
   echo -e "${YELLOW}[3/4] Configuring environment...${NC}"
   [ -f ".env" ] || cp .env.example .env
@@ -64,9 +73,17 @@ install_pip() {
   command -v python3 >/dev/null 2>&1 || { echo "Requires Python 3.13+"; exit 1; }
   command -v uv >/dev/null 2>&1 || { curl -LsSf https://astral.sh/uv/install.sh | sh; }
 
-  echo -e "${YELLOW}Cloning & installing AgentOS v${VERSION}...${NC}"
-  git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" agentos 2>/dev/null || true
-  cd agentos
+  echo -e "${YELLOW}Setting up AgentOS v${VERSION}...${NC}"
+  if [ -d "agentos" ]; then
+    echo "  Updating existing installation..."
+    cd agentos
+    git stash --include-untracked 2>/dev/null || true
+    git pull --rebase origin "$BRANCH" 2>/dev/null || echo "  ⚠ Could not update"
+  else
+    echo "  Cloning AgentOS..."
+    git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" agentos
+    cd agentos
+  fi
   uv sync --all-extras
   echo -e "${GREEN}Installed! Run: uv run uvicorn app.main:app${NC}"
 }
