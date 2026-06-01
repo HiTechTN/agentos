@@ -22,6 +22,7 @@ from app.routes.management import router as management_router
 from app.routes.mcp import router as mcp_router
 from app.routes.workflow import router as workflow_router
 from app.routes.worktree import router as worktree_router
+from app.api.intelligence import router as intelligence_router
 from app.utils.auth import create_access_token, get_current_user
 from app.utils.llm_cache import llm_cache
 from app.utils.llm_router import smart_router
@@ -281,3 +282,4 @@ app.include_router(management_router)
 app.include_router(kanban_router)
 app.include_router(mcp_router)
 app.include_router(worktree_router)
+app.include_router(intelligence_router)

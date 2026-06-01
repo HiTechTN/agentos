@@ -1,12 +1,13 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentOS-v5.1.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/AgentOS-v6.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
   <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Desktop-Tauri_v2-FFC131?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/Mobile-React%20Native-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React Native">
-  <img src="https://img.shields.io/badge/716%20tests-100%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/980%20tests-99%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/Smart%20Router-28_models-4c6ef5?style=for-the-badge&logo=openai&logoColor=white" alt="Smart Router">
+  <img src="https://img.shields.io/badge/Intelligence%20Engine-Self--Improving-7950f2?style=for-the-badge&logo=deepnote&logoColor=white" alt="Intelligence Engine">
   <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
   <img src="https://img.shields.io/badge/Storage-S3_Friendly-569A31?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO">
   <img src="https://img.shields.io/badge/Sub--Agents-4-brightgreen?style=for-the-badge" alt="Sub-Agents">
@@ -207,7 +208,8 @@ Custom sub-agents: create markdown files in `~/.agentos/subagents/<name>.md` wit
 | 📊 | **Prometheus Metrics** | `/metrics` endpoint for counters, histograms, gauges |
 | 🔍 | **Distributed Tracing** | OpenTelemetry spans exported to Jaeger |
 | 🔔 | **Notifications** | Slack + Console multi-channel broadcasts |
-| 🗓️ | **Scheduler** | Cron-based periodic task execution |
+| 🗓️ | **Scheduler** | Cron-based periodic task execution + nightly self-reflection at 2am |
+| 🧠 | **Intelligence Engine** | Episodic memory, skills registry, knowledge base, self-reflection, context enrichment for continuous self-improvement |
 | 🏢 | **Workspaces** | Multi-tenant project isolation |
 | 🌲 | **Git Worktree** | Safe parallel execution in isolated branches |
 
@@ -417,6 +419,19 @@ curl http://localhost:8000/api/v1/pulse/default
 | `/api/v1/worktree/rebase` | POST | Rebase to main |
 | `/api/v1/worktree/{branch}` | DELETE | Remove worktree |
 
+### Intelligence Engine
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/intelligence/memories/{id}` | GET | List episodic memories |
+| `/api/v1/intelligence/memories/{id}/stats` | GET | Memory performance stats |
+| `/api/v1/intelligence/skills/{id}` | GET | List skills |
+| `/api/v1/intelligence/knowledge/{id}` | GET | List knowledge |
+| `/api/v1/intelligence/knowledge/{id}` | POST | Add knowledge entry |
+| `/api/v1/intelligence/reflect/{id}` | POST | Trigger self-reflection |
+| `/api/v1/intelligence/reflect/{id}/reports` | GET | List reflection reports |
+| `/api/v1/intelligence/evolutions/{id}` | GET | List agent evolutions |
+
 ### Project & LLM
 
 | Endpoint | Method | Description |
@@ -595,8 +610,8 @@ uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Coverage | 100% | **100%** ✅ |
-| Tests | 716+ | **716** ✅ |
+| Coverage | 99% | **99%** ✅ |
+| Tests | 980+ | **980** ✅ |
 | ruff | 0 errors | **0** ✅ |
 | mypy strict | 0 errors | **0** ✅ |
 | bandit HIGH/MEDIUM | 0 issues | **0** ✅ |

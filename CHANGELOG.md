@@ -1,5 +1,30 @@
 # Changelog
 
+## v6.0.0 (2026-06-01)
+
+### Added
+- **Intelligence Engine** — Self-improving system with 5 modules and 8 API endpoints
+- **Episodic Memory** (`app/memory/episodic.py`) — `TaskOutcome` dataclass, `EpisodicMemory.record()`, `.recall_similar()`, `.get_best_strategy()`, `.get_stats()` — tracks every task execution with quality scoring, workspace isolation, and strategy tracking
+- **Skills Registry** (`app/skills/registry.py`) — `SkillsRegistry.extract_from_outcome()` (LLM auto-discovery from successful tasks), `.find_relevant()` (keyword scoring), `.record_usage()` (reinforcement: +0.05 success, -0.1 failure, auto-disable at 4 failures), `.get_all()`
+- **Knowledge Base** (`app/memory/knowledge.py`) — `KnowledgeBase.add()`, `.query()` (ILIKE keyword search with usage_count increment), `.build_context_block()` (markdown formatted for prompt injection), `.validate()` — supports 6 kinds: api_pattern, code_pattern, constraint, best_practice, domain_fact, failure_mode
+- **Self-Reflection Engine** (`app/learning/reflection.py`) — `SelfReflectionEngine.should_reflect()` (threshold=10 tasks), `.run(force)` (collect → LLM reflect → extract skills → record evolutions → save report), `.summarize_memories()`, `.record_evolution()`
+- **Context Enricher** (`app/learning/context_enricher.py`) — `ContextEnricher.enrich()` auto-injects past experiences, relevant skills, and domain knowledge into agent system prompts (capped at 2000 chars)
+- **Intelligence API** (`app/api/intelligence.py`) — 8 endpoints under `/api/v1/intelligence`: memories list/stats, skills list, knowledge CRUD, reflection trigger, reports list, evolutions list — all JWT-protected
+- **Nightly Reflection** (`app/scheduler.py`) — Cron `0 2 * * *`, iterates all active workspaces, triggers `SelfReflectionEngine.run(force=True)` daily
+- **Alembic Migration** (`002_intelligence_engine.py`) — 5 new tables: `episodic_memories`, `skills`, `knowledge_entries`, `agent_evolutions`, `reflection_reports` with UUID PKs, JSONB, pgvector extension
+- **Intelligence Engine Tests** (264 tests) — 100% coverage for all 5 modules + API endpoints
+
+### Changed
+- Version bumped to 6.0.0
+- Test count: 716 → 980
+- Module responsibilities updated: `app/learning/` and `app/skills/` added
+- AGENTS.md updated with full Intelligence Engine rules
+- `app/main.py` — intelligence_router wired at `/api/v1/intelligence`
+
+### Infrastructure
+- `app/scheduler.py` — Added nightly reflection task registration on start
+- `settings.nightly_reflection_cron` — Configurable cron expression (default `0 2 * * *`)
+
 ## v5.1.0 (2026-05-31)
 
 ### Added

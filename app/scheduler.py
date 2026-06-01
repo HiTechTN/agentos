@@ -10,6 +10,8 @@ from app.utils.notifications import get_notifications
 
 logger = get_logger("scheduler")
 
+_NIGHTLY_REFLECTION_MARKER = "__nightly_reflection__"
+
 
 class ScheduledTask:
     def __init__(
@@ -70,6 +72,12 @@ class Scheduler:
 
     async def start(self) -> None:
         self._running = True
+        cron = getattr(self.settings, "nightly_reflection_cron", "0 2 * * *")
+        template = self._tasks.get("__nightly__")
+        if not template:
+            task = ScheduledTask("nightly_reflection", cron, _NIGHTLY_REFLECTION_MARKER)
+            task.id = "__nightly__"
+            self._tasks[task.id] = task
         logger.log_action("scheduler", "started", "completed")
         asyncio.create_task(self._run_loop())
 
@@ -125,6 +133,9 @@ class Scheduler:
             "scheduler", "task_run", "started", details={"name": task.name, "task_id": task.id}
         )
         try:
+            if task.prompt == _NIGHTLY_REFLECTION_MARKER:
+                await self._run_nightly_reflection()
+                return
             orchestrator = get_orchestrator()
             result = await orchestrator.run(prompt=task.prompt, project_id=task.project_id)
             await get_notifications().send(
@@ -141,6 +152,39 @@ class Scheduler:
             )
         except Exception as e:
             logger.log_error("scheduler", "task_run", str(e), details={"name": task.name})
+
+    async def _run_nightly_reflection(self) -> None:
+        """Trigger self-reflection for all active workspaces."""
+        try:
+            from sqlalchemy import text as sa_text
+            from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+            from app.config.settings import get_settings
+            from app.learning.reflection import SelfReflectionEngine
+
+            settings = get_settings()
+            db_engine = create_async_engine(settings.resolved_database_url, echo=False)
+            session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
+            async with session_factory() as db:
+                workspaces_result = await db.execute(
+                    sa_text("SELECT DISTINCT workspace_id FROM episodic_memories")
+                )
+                workspace_ids = [r[0] for r in workspaces_result.fetchall()]
+                for ws_id in workspace_ids or ["default"]:
+                    eng = SelfReflectionEngine(db_session=db, workspace_id=ws_id)
+                    report = await eng.run(force=True)
+                    if report:
+                        logger.log_action(
+                            "scheduler",
+                            "nightly_reflection_done",
+                            "completed",
+                            details={
+                                "workspace": ws_id,
+                                "new_skills": report["new_skills_discovered"],
+                            },
+                        )
+        except Exception as e:
+            logger.log_error("scheduler", "nightly_reflection", str(e))
 
 
 _scheduler: Scheduler | None = None

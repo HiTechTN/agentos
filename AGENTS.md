@@ -1,4 +1,4 @@
-# AGENTS.md — AgentOS Project Rules v5.0
+# AGENTS.md — AgentOS Project Rules v6.0
 # Auto-loaded by @Planner, @Verifier, @Explorer, @CodeReviewer
 
 ## GLOBAL RULES (s'appliquent à tous les agents)
@@ -177,6 +177,8 @@ module: app.agents.dev
 - `app/agents/` → logique métier des agents uniquement
 - `app/workflow/` → orchestration de flux (plan/verify)
 - `app/memory/` → persistance et retrieval uniquement
+- `app/learning/` → self-reflection et context enrichment uniquement
+- `app/skills/` → registre de compétences auto-découvertes uniquement
 - `app/utils/` → utilitaires transverses sans logique métier
 - `app/config/` → configuration et settings uniquement
 - `app/mcp/` → intégration MCP protocol uniquement
@@ -216,3 +218,60 @@ module: app.agents.dev
 - 28+ modèles OpenRouter gratuits catalogués dans `FREE_MODELS` triés par priorité par catégorie
 - Endpoints API : `GET /api/v1/llm/router/status` et `GET /api/v1/llm/router/models`
 - Lifetime : `smart_router.close()` appelé dans le shutdown du lifespan de main.py
+
+---
+
+## INTELLIGENCE ENGINE (v6.0)
+
+### Intelligence Endpoints
+- Base path: `/api/v1/intelligence`
+- Auth: Tous les endpoints requièrent auth JWT (`CurrentUser` / `AdminUser`)
+- Modules: `app/api/intelligence.py` — 8 endpoints (memories, skills, knowledge CRUD, reflection, reports, evolutions)
+
+### Episodic Memory (`app/memory/episodic.py`)
+- `TaskOutcome` dataclass : workspace_id, task_type, prompt_summary, outcome, quality_score, strategy_used
+- `EpisodicMemory.record(outcome)` — INSERT dans `episodic_memories` avec UUID
+- `EpisodicMemory.recall_similar(task_type, workspace_id, limit, outcome_filter)` — SELECT trié par quality_score DESC
+- `EpisodicMemory.get_best_strategy(task_type, workspace_id)` — renvoie la meilleure stratégie
+- `EpisodicMemory.get_stats(workspace_id, days)` — agrégations par task_type (total, success, avg quality, avg duration)
+- Table: `episodic_memories` (UUID PK, JSONB context_tags, workspace_id + created_at indexes)
+
+### Skills Registry (`app/skills/registry.py`)
+- `SkillsRegistry.extract_from_outcome(workspace_id, task_description, successful_approach, task_type, memory_id)` — LLM auto-extraction avec validation de slug
+- `SkillsRegistry.find_relevant(task_description, workspace_id, limit, min_confidence)` — keyword scoring + confidence
+- `SkillsRegistry.record_usage(workspace_id, slug, succeeded)` — reinforcement learning (+0.05 success, -0.1 failure, désactivation à 4 échecs)
+- `SkillsRegistry.get_all(workspace_id, category)` — liste toutes les compétences actives
+- Table: `skills` (UUID PK, unique(workspace_id, slug), JSONB trigger_patterns + source_memory_ids)
+
+### Knowledge Base (`app/memory/knowledge.py`)
+- `KnowledgeBase.add(workspace_id, kind, title, content, source_type, confidence, tags)` — INSERT avec validation
+- `KnowledgeBase.query(workspace_id, keywords, kind, limit, min_confidence)` — ILIKE ANY search, incrémente usage_count
+- `KnowledgeBase.build_context_block(workspace_id, keywords, max_chars)` — formate en markdown pour injection dans system prompts
+- `KnowledgeBase.validate(workspace_id, entry_id, is_valid)` — ajuste la confiance (+0.1 valid, -0.2 invalid)
+- 6 kinds: api_pattern, code_pattern, constraint, best_practice, domain_fact, failure_mode
+- Table: `knowledge_entries` (UUID PK, JSONB tags, confidence + usage_count indexes)
+
+### Self-Reflection Engine (`app/learning/reflection.py`)
+- `SelfReflectionEngine.should_reflect()` — COUNT tâches depuis dernier rapport, threshold = 10
+- `SelfReflectionEngine.run(force)` — collecte memories → LLM reflection → extract skills → record evolution → save report
+- `SelfReflectionEngine._llm_reflect(summary)` — appel LLM avec `_REFLECTION_SYSTEM` prompt, parse JSON structuré
+- Détection auto des patterns, recommandations, nouvelles connaissances, agent evolutions
+- Table: `reflection_reports` (UUID PK, JSONB top_patterns + recommendations + model_performance)
+- Table: `agent_evolutions` (UUID PK, JSONB after_state)
+
+### Context Enricher (`app/learning/context_enricher.py`)
+- `ContextEnricher.enrich(base_system, task_description, task_type, workspace_id, flags)` — augmente le system prompt
+- 3 blocs optionnels : memories (recall_similar), skills (find_relevant), knowledge (build_context_block)
+- Cap à 2000 chars pour le bloc d'enrichissement
+- Usage typique : `BaseAgent.build_system_prompt()` appelle enricher avant chaque exécution
+
+### Scheduler Nightly Reflection
+- Cron: `0 2 * * *` (2am daily, configurable via `settings.nightly_reflection_cron`)
+- Itère sur tous les workspace_id distincts dans `episodic_memories`
+- Appelle `SelfReflectionEngine.run(force=True)` pour chaque workspace
+
+### Migration Alembic
+- Révision: `002_intelligence_engine.py` (revise `7e3f1a2b5c0d`)
+- Crée 5 tables: `episodic_memories`, `skills`, `knowledge_entries`, `agent_evolutions`, `reflection_reports`
+- Active pgvector extension
+- UUID PKs, JSONB pour données flexibles, unique constraint sur skills(workspace_id, slug)
