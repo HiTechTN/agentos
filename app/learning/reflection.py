@@ -8,10 +8,11 @@ After every N tasks (or on schedule), the engine:
   5. Generates recommendations for agent strategy updates
   6. Stores a reflection report
 """
+
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
@@ -113,11 +114,9 @@ class SelfReflectionEngine:
         if not force and not await self.should_reflect():
             return None
 
-        logger.info("reflection_started", workspace=self.workspace_id)
-        period_start = datetime.now(timezone.utc) - timedelta(
-            hours=self.REFLECTION_WINDOW_HOURS
-        )
-        period_end = datetime.now(timezone.utc)
+        logger.info("reflection_started workspace=%s", self.workspace_id)
+        period_start = datetime.now(UTC) - timedelta(hours=self.REFLECTION_WINDOW_HOURS)
+        period_end = datetime.now(UTC)
 
         # 1. Collect recent memories
         memories = await self._collect_recent_memories(period_start)
@@ -145,8 +144,7 @@ class SelfReflectionEngine:
 
         # 4. Extract skills from top success patterns
         success_memories = [
-            m for m in memories if m["outcome"] == "success"
-                                   and m.get("quality_score", 0) >= 0.7
+            m for m in memories if m["outcome"] == "success" and m.get("quality_score", 0) >= 0.7
         ]
         for mem in success_memories[:3]:
             skill_id = await self.skills.extract_from_outcome(
@@ -166,10 +164,7 @@ class SelfReflectionEngine:
 
         # 6. Save reflection report
         report_id = str(uuid.uuid4())
-        avg_quality = (
-            sum(m.get("quality_score", 0.5) or 0.5 for m in memories)
-            / len(memories)
-        )
+        avg_quality = sum(m.get("quality_score", 0.5) or 0.5 for m in memories) / len(memories)
         await self._db.execute(
             sa.text("""
                 INSERT INTO reflection_reports (
@@ -210,16 +205,17 @@ class SelfReflectionEngine:
             "summary": reflection.get("summary", ""),
             "recommendations": reflection.get("recommendations", []),
         }
-        logger.info("reflection_completed", **{
-            k: v for k, v in report.items()
-            if k in ("tasks_analyzed", "new_skills_discovered",
-                     "overall_health")
-        })
+        logger.info(
+            "reflection_completed",
+            **{
+                k: v
+                for k, v in report.items()
+                if k in ("tasks_analyzed", "new_skills_discovered", "overall_health")
+            },
+        )
         return report
 
-    async def _collect_recent_memories(
-        self, since: datetime
-    ) -> list[dict[str, Any]]:
+    async def _collect_recent_memories(self, since: datetime) -> list[dict[str, Any]]:
         rows = await self._db.execute(
             sa.text("""
                 SELECT id, task_type, prompt_summary, outcome, quality_score,
@@ -237,9 +233,7 @@ class SelfReflectionEngine:
     def _summarize_memories(self, memories: list[dict[str, Any]]) -> str:
         total = len(memories)
         successes = sum(1 for m in memories if m["outcome"] == "success")
-        avg_q = (
-            sum(m.get("quality_score") or 0.5 for m in memories) / total
-        )
+        avg_q = sum(m.get("quality_score") or 0.5 for m in memories) / total
         by_type: dict[str, int] = {}
         for m in memories:
             by_type[m["task_type"]] = by_type.get(m["task_type"], 0) + 1
@@ -259,6 +253,7 @@ class SelfReflectionEngine:
 
     async def _llm_reflect(self, summary: str) -> dict[str, Any]:
         import json
+
         response = await smart_router.complete(
             prompt=summary,
             system=_REFLECTION_SYSTEM,
@@ -268,9 +263,13 @@ class SelfReflectionEngine:
         try:
             return dict(json.loads(content))
         except (ValueError, KeyError):
-            return {"top_patterns": [], "recommendations": [],
-                    "new_knowledge": [], "overall_health": "unknown",
-                    "summary": "Reflection parsing failed."}
+            return {
+                "top_patterns": [],
+                "recommendations": [],
+                "new_knowledge": [],
+                "overall_health": "unknown",
+                "summary": "Reflection parsing failed.",
+            }
 
     async def _record_evolution(self, rec: dict[str, Any]) -> None:
         await self._db.execute(

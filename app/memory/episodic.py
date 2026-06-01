@@ -3,12 +3,11 @@
 AgentOS learns from experience by storing what happened, how well it
 went, and what patterns led to success or failure.
 """
+
 from __future__ import annotations
 
-import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Any
 
 import sqlalchemy as sa
@@ -22,11 +21,12 @@ logger = get_logger(__name__)
 @dataclass
 class TaskOutcome:
     """Result of a completed agent task, ready to be memorised."""
+
     workspace_id: str
     task_type: str
     prompt_summary: str
-    outcome: str                          # "success" | "failure" | "partial"
-    quality_score: float | None = None    # 0.0-1.0, None if unscored
+    outcome: str  # "success" | "failure" | "partial"
+    quality_score: float | None = None  # 0.0-1.0, None if unscored
     duration_ms: int | None = None
     agent_used: str = ""
     model_used: str = ""
@@ -151,9 +151,7 @@ class EpisodicMemory:
         rows = await self._db.execute(sa.text(query), params)
         return [dict(row._mapping) for row in rows.fetchall()]
 
-    async def get_best_strategy(
-        self, task_type: str, workspace_id: str
-    ) -> str | None:
+    async def get_best_strategy(self, task_type: str, workspace_id: str) -> str | None:
         """Return the strategy that achieved the highest quality for this task type."""
         memories = await self.recall_similar(
             task_type, workspace_id, limit=3, outcome_filter="success"
@@ -163,9 +161,7 @@ class EpisodicMemory:
         best = max(memories, key=lambda m: m.get("quality_score") or 0.0)
         return best.get("strategy_used")
 
-    async def get_stats(
-        self, workspace_id: str, days: int = 7
-    ) -> dict[str, Any]:
+    async def get_stats(self, workspace_id: str, days: int = 7) -> dict[str, Any]:
         """Return task performance statistics for the last N days."""
         result = await self._db.execute(
             sa.text("""

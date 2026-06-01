@@ -39,7 +39,7 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/token", response_model=TokenResponse)
-@limiter.exempt
+@limiter.exempt  # type: ignore[misc]
 async def create_quick_token(request: Request, body: QuickTokenRequest) -> TokenResponse:
     # Quick dev token — always admin for full access
     role = "admin"
@@ -60,6 +60,7 @@ async def create_quick_token(request: Request, body: QuickTokenRequest) -> Token
     metrics.inc("auth.token.created")
     logger.log_action("auth", "quick_token", f"Token created for {user_sub} ({role})")
     return TokenResponse(access_token=access_token)
+
 
 _engine: Any = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None

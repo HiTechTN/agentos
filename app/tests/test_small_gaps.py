@@ -1444,7 +1444,9 @@ class TestAuthInternalFunctions:
 
         with (
             patch("app.routes.auth.create_async_engine", return_value=mock_engine) as mock_create,
-            patch("app.routes.auth.async_sessionmaker", return_value=mock_session_factory) as mock_sm,
+            patch(
+                "app.routes.auth.async_sessionmaker", return_value=mock_session_factory
+            ) as mock_sm,
         ):
             session = await auth_mod._get_session()
             mock_create.assert_called_once()

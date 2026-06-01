@@ -6,6 +6,7 @@ and reused in future tasks of the same type.
 
 A skill = (trigger_patterns, procedure, success_examples, confidence_score)
 """
+
 from __future__ import annotations
 
 import re
@@ -84,6 +85,7 @@ class SkillsRegistry:
 
         try:
             import json
+
             data = json.loads(content)
         except (ValueError, KeyError):
             return None
@@ -131,8 +133,12 @@ class SkillsRegistry:
             },
         )
         await self._db.commit()
-        logger.info("skill_extracted", skill_id=skill_id, slug=slug,
-                    workspace=workspace_id)
+        logger.info(
+            "skill_extracted skill_id=%s slug=%s workspace=%s",
+            skill_id,
+            slug,
+            workspace_id,
+        )
         return skill_id
 
     # ── Lookup ────────────────────────────────────────────────────────
@@ -176,6 +182,7 @@ class SkillsRegistry:
         scored: list[tuple[float, dict[str, Any]]] = []
         for skill in candidates:
             import json
+
             try:
                 triggers = json.loads(skill["trigger_patterns"] or "[]")
             except (ValueError, TypeError):
@@ -188,9 +195,7 @@ class SkillsRegistry:
         scored.sort(key=lambda x: x[0], reverse=True)
         return [s for _, s in scored[:limit]]
 
-    async def get_all(
-        self, workspace_id: str, category: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def get_all(self, workspace_id: str, category: str | None = None) -> list[dict[str, Any]]:
         """Return all active skills for a workspace."""
         q = "SELECT * FROM skills WHERE workspace_id=:w AND is_active=true"
         params: dict[str, Any] = {"w": workspace_id}
@@ -203,18 +208,14 @@ class SkillsRegistry:
 
     # ── Reinforcement ─────────────────────────────────────────────────
 
-    async def record_usage(
-        self, workspace_id: str, slug: str, succeeded: bool
-    ) -> None:
+    async def record_usage(self, workspace_id: str, slug: str, succeeded: bool) -> None:
         """Update skill stats and confidence after use."""
         if succeeded:
             await self._increment_success(workspace_id, slug)
         else:
             await self._increment_failure(workspace_id, slug)
 
-    async def _increment_success(
-        self, workspace_id: str, slug: str
-    ) -> None:
+    async def _increment_success(self, workspace_id: str, slug: str) -> None:
         await self._db.execute(
             sa.text("""
                 UPDATE skills SET
@@ -227,9 +228,7 @@ class SkillsRegistry:
         )
         await self._db.commit()
 
-    async def _increment_failure(
-        self, workspace_id: str, slug: str
-    ) -> None:
+    async def _increment_failure(self, workspace_id: str, slug: str) -> None:
         await self._db.execute(
             sa.text("""
                 UPDATE skills SET

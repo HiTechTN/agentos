@@ -95,10 +95,9 @@ class TestRegisterEndpoint:
 class TestLoginEndpoint:
     @pytest.mark.asyncio
     async def test_login_empty_fields(self, async_client: AsyncClient) -> None:
-        resp = await async_client.post(
-            "/api/v1/auth/login", json={"email": "", "password": ""}
-        )
+        resp = await async_client.post("/api/v1/auth/login", json={"email": "", "password": ""})
         assert resp.status_code == 422
+
     @pytest.mark.asyncio
     async def test_login_success(self, async_client: AsyncClient) -> None:
         session = _mock_db_session()

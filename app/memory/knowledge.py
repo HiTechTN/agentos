@@ -4,9 +4,9 @@ Every time an agent discovers something useful (an API pattern, a project
 constraint, a best practice), it's stored here and automatically injected
 into future agent contexts.
 """
+
 from __future__ import annotations
 
-import re
 import uuid
 from typing import Any
 
@@ -17,12 +17,12 @@ from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-KIND_API_PATTERN   = "api_pattern"
-KIND_CODE_PATTERN  = "code_pattern"
-KIND_CONSTRAINT    = "constraint"
+KIND_API_PATTERN = "api_pattern"
+KIND_CODE_PATTERN = "code_pattern"
+KIND_CONSTRAINT = "constraint"
 KIND_BEST_PRACTICE = "best_practice"
-KIND_DOMAIN_FACT   = "domain_fact"
-KIND_FAILURE_MODE  = "failure_mode"
+KIND_DOMAIN_FACT = "domain_fact"
+KIND_FAILURE_MODE = "failure_mode"
 
 
 class KnowledgeBase:
@@ -71,7 +71,7 @@ class KnowledgeBase:
             },
         )
         await self._db.commit()
-        logger.debug("knowledge_added", kind=kind, title=title[:50])
+        logger.debug("knowledge_added kind=%s title=%s", kind, title[:50])
         return entry_id
 
     async def query(
@@ -178,9 +178,7 @@ class KnowledgeBase:
 
         return "".join(lines)
 
-    async def validate(
-        self, workspace_id: str, entry_id: str, is_valid: bool
-    ) -> None:
+    async def validate(self, workspace_id: str, entry_id: str, is_valid: bool) -> None:
         """Validate or invalidate a knowledge entry based on observed outcomes."""
         delta = 0.1 if is_valid else -0.2
         await self._db.execute(

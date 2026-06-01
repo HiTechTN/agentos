@@ -12,6 +12,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.responses import Response
 
+from app.api.intelligence import router as intelligence_router
 from app.config.settings import get_settings
 from app.routes.admin import router as admin_router
 from app.routes.auth import router as auth_router
@@ -22,8 +23,7 @@ from app.routes.management import router as management_router
 from app.routes.mcp import router as mcp_router
 from app.routes.workflow import router as workflow_router
 from app.routes.worktree import router as worktree_router
-from app.api.intelligence import router as intelligence_router
-from app.utils.auth import create_access_token, get_current_user
+from app.utils.auth import get_current_user
 from app.utils.llm_cache import llm_cache
 from app.utils.llm_router import smart_router
 from app.utils.logging import get_logger

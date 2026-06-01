@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentOS v5.1.0 — Guide Complet</title>
+<title>AgentOS v6.0.0 — Guide Complet</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 <style>
   :root {
@@ -366,7 +366,7 @@
     <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
     <div class="logo">
       🤖 <span>AgentOS</span>
-      <span class="badge">Guide v5.1.0</span>
+      <span class="badge">Guide v6.0.0</span>
     </div>
   </div>
   <nav>
@@ -415,6 +415,20 @@
           <a class="sidebar-item" href="#ui-stack">Stack technique</a>
           <a class="sidebar-item" href="#ui-pages">Pages</a>
           <a class="sidebar-item" href="#ui-build">Build</a>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title" onclick="toggleSection(this)">
+          <span>Intelligence Engine</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="sidebar-items">
+          <a class="sidebar-item" href="#intelligence">Présentation</a>
+          <a class="sidebar-item" href="#memories">Mémoire épisodique</a>
+          <a class="sidebar-item" href="#skills">Registre de compétences</a>
+          <a class="sidebar-item" href="#knowledge">Base de connaissances</a>
+          <a class="sidebar-item" href="#reflection">Réflexion automatique</a>
+          <a class="sidebar-item" href="#enricher">Context Enricher</a>
         </div>
       </div>
       <div class="sidebar-section">
@@ -500,12 +514,12 @@
   <!-- ── MAIN CONTENT ── -->
   <main class="main" id="main-content">
 
-    <h1>Guide <span class="hl">AgentOS</span> v5.1.0</h1>
-    <p class="subtitle">Plateforme d'orchestration multi-agent — Architecture, déploiement, API et développement</p>
+    <h1>Guide <span class="hl">AgentOS</span> v6.0.0</h1>
+    <p class="subtitle">Plateforme d'orchestration multi-agent — Intelligence Engine, Application mobile, API et déploiement</p>
 
     <!-- ═══════════════ 1. ARCHITECTURE ═══════════════ -->
     <h2 id="architecture">🏗️ 1. Architecture</h2>
-    <p>AgentOS est une plateforme d'orchestration multi-agent basée sur <strong>FastAPI</strong> + <strong>LangGraph</strong>, avec persistance <strong>PostgreSQL/pgvector</strong> et cache <strong>Redis</strong>.</p>
+    <p>AgentOS est une plateforme d'orchestration multi-agent basée sur <strong>FastAPI</strong> + <strong>LangGraph</strong>, avec persistance <strong>PostgreSQL/pgvector</strong>, cache <strong>Redis</strong> et un <strong>Intelligence Engine</strong> auto-apprenant (mémoire épisodique, registre de compétences, base de connaissances, réflexion automatique).</p>
 
     <div class="diagram">
       <div class="box">🌐 Client</div>
@@ -525,6 +539,7 @@
       <div class="box" style="border-color:var(--warning);background:#d2992222;">🗄️ PostgreSQL</div>
       <div class="box" style="border-color:var(--danger);background:#f8514922;">⚡ Redis</div>
       <div class="box" style="border-color:var(--pink);background:#f778ba22;">🤖 LLM API</div>
+      <div class="box" style="border-color:#58a6ff;background:#58a6ff22;">🧠 Intelligence Engine</div>
     </div>
 
     <h3 id="composants">1.2 Composants clés</h3>
@@ -535,6 +550,7 @@
       <div class="card"><div class="icon">🎯</div><h4>Sub-Agents</h4><p>Sous-agents LLM spécialisés : Planner, Verifier, Explorer, CodeReviewer, Debugger.</p><div class="tags"><span class="tag purple">LLM Prompting</span></div></div>
       <div class="card"><div class="icon">🗄️</div><h4>Memory</h4><p>Persistance des sessions + RAG vectoriel (pgvector) + cache applicatif distribués.</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag orange">pgvector</span></div></div>
       <div class="card"><div class="icon">⚡</div><h4>LLM Cache</h4><p>Cache distribué SHA256 à 2 niveaux (L1 local + Redis) avec TTL de 7 jours.</p><div class="tags"><span class="tag">Redis</span><span class="tag green">SHA256</span></div></div>
+      <div class="card"><div class="icon">🧠</div><h4>Intelligence Engine</h4><p>Mémoire épisodique, registre de compétences, base de connaissances, réflexion automatique nocturne et enrichissement de contexte.</p><div class="tags"><span class="tag blue">pgvector</span><span class="tag purple">LLM</span><span class="tag">JSONB</span></div></div>
     </div>
 
     <h3 id="flux">1.3 Flux de travail typique</h3>
@@ -602,7 +618,7 @@
 
     <!-- ═══════════════ 2. UI CROSS-PLATFORM ═══════════════ -->
     <h2 id="ui">🖥️ 2. Interface Cross-Platform</h2>
-    <p>AgentOS v5.1.0 propose une interface unifiée sur <strong>3 plateformes</strong> partageant la même base de code React.</p>
+    <p>AgentOS v6.0.0 propose une interface unifiée sur <strong>5 plateformes</strong> (Web, Desktop Tauri, Mobile React Native, PWA et API REST) partageant la même base de code.</p>
 
     <div class="cards">
       <div class="card"><div class="icon">🌐</div><h4>Web App</h4><p>Next.js 16 + Tailwind CSS v4. 10 pages : Dashboard, Chat, Agents, Sessions, Kanban, Pulse, Settings, Deploy, Guide.</p><div class="tags"><span class="tag">Next.js 16</span><span class="tag purple">Tailwind v4</span><span class="tag">TypeScript</span></div></div>
@@ -628,14 +644,15 @@
     <div class="table-wrap">
       <table>
         <tr><th>Page</th><th>Route</th><th>Contenu</th></tr>
-        <tr><td>🏠 Dashboard</td><td><code>/</code></td><td>4 cartes statistiques, graphique d'activité, sessions récentes, statut des agents</td></tr>
-        <tr><td>💬 Chat</td><td><code>/chat</code></td><td>Interface de chat LLM avec bulles, historique, loading spinner</td></tr>
-        <tr><td>🤖 Agents</td><td><code>/dashboard/agents</code></td><td>Cartes des 4 agents avec statut, modèle, tâches et dernière exécution</td></tr>
-        <tr><td>📋 Sessions</td><td><code>/dashboard/sessions</code></td><td>Tableau des sessions avec recherche et badges de statut</td></tr>
+        <tr><td>🏠 Dashboard</td><td><code>/</code></td><td>4 cartes de statistiques cliquables, graphique d'activité, sessions récentes, statut des agents, assistant d'onboarding (première connexion), suggestions de démarrage rapide, actions rapides (chat, agents, sessions, admin)</td></tr>
+        <tr><td>💬 Chat</td><td><code>/chat</code></td><td>Interface de chat LLM avec bulles, historique, suggestions contextuelles ("Écrire un article", "Débugger du code", "Analyser des données") et chargement</td></tr>
+        <tr><td>🤖 Agents</td><td><code>/dashboard/agents</code></td><td>Cartes des 4 agents avec statut, modèle, tâches, dernière exécution et modale de détail avec bouton "Chat avec l'agent"</td></tr>
+        <tr><td>📋 Sessions</td><td><code>/dashboard/sessions</code></td><td>Tableau des sessions avec recherche, badges de statut et modale de détail avec infos de trace</td></tr>
         <tr><td>📊 Kanban</td><td><code>/dashboard/kanban</code></td><td>Board 3 colonnes (To Do, In Progress, Done) avec badges de priorité</td></tr>
         <tr><td>📈 Pulse</td><td><code>/dashboard/pulse</code></td><td>3 cartes stats + graphique latence (Recharts)</td></tr>
-        <tr><td>⚙️ Settings</td><td><code>/dashboard/settings</code></td><td>Configuration API et modèle</td></tr>
+        <tr><td>⚙️ Settings</td><td><code>/dashboard/settings</code></td><td>Configuration API et modèle, URL du serveur personnalisable</td></tr>
         <tr><td>🚀 Deploy</td><td><code>/deploy</code></td><td>Assistant déploiement en 3 étapes</td></tr>
+        <tr><td>🔐 Admin</td><td><code>/dashboard/admin</code></td><td>Panneau d'administration (utilisateurs, services, fournisseurs LLM, configuration système)</td></tr>
         <tr><td>📖 Guide</td><td><code>/guide</code></td><td>Ce guide interactif</td></tr>
       </table>
     </div>
@@ -673,10 +690,92 @@ npm run build       <span class="hljs-comment"># Copie sw.js + manifest.json dan
       </div>
     </div>
 
-    <!-- ═══════════════ 3. DÉPLOIEMENT ═══════════════ -->
-    <h2 id="deploiement">🚀 3. Déploiement</h2>
+    <!-- ═══════════════ 3. INTELLIGENCE ENGINE ═══════════════ -->
+    <h2 id="intelligence">🧠 3. Intelligence Engine</h2>
+    <p>L'Intelligence Engine v6.0.0 est le système d'auto-apprentissage d'AgentOS. Il permet à la plateforme de mémoriser les résultats passés, d'extraire des compétences réutilisables, de constituer une base de connaissances dynamique et de réfléchir automatiquement à son propre fonctionnement pour s'améliorer en continu.</p>
 
-    <h3 id="prerequis">2.1 Prérequis</h3>
+    <div class="cards">
+      <div class="card"><div class="icon">📝</div><h4>Mémoire épisodique</h4><p>Enregistre chaque exécution (type de tâche, score qualité, stratégie utilisée) pour retrouver la meilleure approche lors d'une tâche similaire.</p><div class="tags"><span class="tag">pgvector</span><span class="tag">JSONB</span></div></div>
+      <div class="card"><div class="icon">🎯</div><h4>Registre de compétences</h4><p>Extraction automatique par LLM de compétences réutilisables à partir des exécutions réussies, avec renforcement par l'usage et désactivation après 4 échecs.</p><div class="tags"><span class="tag purple">LLM</span><span class="tag">Auto-apprentissage</span></div></div>
+      <div class="card"><div class="icon">📚</div><h4>Base de connaissances</h4><p>6 types d'entrées (api_pattern, code_pattern, constraint, best_practice, domain_fact, failure_mode) avec recherche ILIKE et ajustement de confiance.</p><div class="tags"><span class="tag green">ILIKE</span><span class="tag">Confiance</span></div></div>
+      <div class="card"><div class="icon">🔄</div><h4>Réflexion automatique</h4><p>Analyse périodique (cron 2h du matin) des performances passées, génération de rapports, extraction de patterns et recommandations d'amélioration.</p><div class="tags"><span class="tag orange">Cron</span><span class="tag">Rapports</span></div></div>
+      <div class="card"><div class="icon">🔗</div><h4>Context Enricher</h4><p>Augmente automatiquement les system prompts des agents avec les souvenirs, compétences et connaissances pertinents (limité à 2000 caractères).</p><div class="tags"><span class="tag purple">LLM</span><span class="tag">Pipeline</span></div></div>
+    </div>
+
+    <h3 id="memories">3.1 Mémoire épisodique</h3>
+    <p>La mémoire épisodique stocke chaque résultat de tâche dans la table <code>episodic_memories</code>. Chaque entrée contient le type de tâche, le résumé du prompt, le score de qualité (0-1), la stratégie utilisée et l'ID du workspace.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP API</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Enregistrer un résultat</span>
+<span class="hljs-keyword">POST</span> /api/v1/intelligence/memories/{workspace_id}
+{
+  <span class="hljs-string">"task_type"</span>: <span class="hljs-string">"code_gen"</span>,
+  <span class="hljs-string">"prompt_summary"</span>: <span class="hljs-string">"Créer une API REST"</span>,
+  <span class="hljs-string">"outcome"</span>: <span class="hljs-string">"success"</span>,
+  <span class="hljs-string">"quality_score"</span>: 0.95,
+  <span class="hljs-string">"strategy_used"</span>: <span class="hljs-string">"iterative_refinement"</span>
+}
+
+<span class="hljs-comment"># Récupérer la meilleure stratégie</span>
+<span class="hljs-keyword">GET</span> /api/v1/intelligence/memories/{workspace_id}/best-strategy?task_type=code_gen
+
+<span class="hljs-comment"># Statistiques</span>
+<span class="hljs-keyword">GET</span> /api/v1/intelligence/memories/{workspace_id}/stats?days=30</code></pre>
+    </div>
+
+    <h3 id="skills">3.2 Registre de compétences</h3>
+    <p>Les compétences sont extraites automatiquement par LLM à partir des résultats de tâches. Chaque compétence a un slug unique par workspace, des patterns de déclenchement, un niveau de confiance, et un compteur d'usages.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP API</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Lister les compétences</span>
+<span class="hljs-keyword">GET</span> /api/v1/intelligence/skills/{workspace_id}
+
+<span class="hljs-comment"># Rechercher des compétences pertinentes</span>
+<span class="hljs-keyword">GET</span> /api/v1/intelligence/skills/{workspace_id}/search?q=api+rest&limit=5</code></pre>
+    </div>
+
+    <h3 id="knowledge">3.3 Base de connaissances</h3>
+    <p>La base de connaissances stocke des entrées typées avec recherche plein texte et ajustement de confiance automatique. Utilisée par le Context Enricher pour enrichir les prompts.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">HTTP API</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Ajouter une connaissance</span>
+<span class="hljs-keyword">POST</span> /api/v1/intelligence/knowledge/{workspace_id}
+{
+  <span class="hljs-string">"kind"</span>: <span class="hljs-string">"best_practice"</span>,
+  <span class="hljs-string">"title"</span>: <span class="hljs-string">"Utiliser des type hints"</span>,
+  <span class="hljs-string">"content"</span>: <span class="hljs-string">"Toujours utiliser des type hints Python complets"</span>,
+  <span class="hljs-string">"tags"</span>: [<span class="hljs-string">"python"</span>, <span class="hljs-string">"typing"</span>]
+}
+
+<span class="hljs-comment"># Valider/invalider une entrée</span>
+<span class="hljs-keyword">PATCH</span> /api/v1/intelligence/knowledge/{workspace_id}/{entry_id}?is_valid=<span class="hljs-keyword">true</span></code></pre>
+    </div>
+
+    <h3 id="reflection">3.4 Réflexion automatique</h3>
+    <p>Tous les jours à 2h du matin (configurable), le Scheduler exécute une analyse complète pour chaque workspace ayant des entrées dans la mémoire épisodique. Le LLM analyse les tendances, identifie les patterns, et génère des recommandations. Les rapports sont stockés dans <code>reflection_reports</code> et les évolutions dans <code>agent_evolutions</code>.</p>
+
+    <h3 id="enricher">3.5 Context Enricher</h3>
+    <p>Le Context Enricher est appelé automatiquement par <code>BaseAgent.build_system_prompt()</code> avant chaque exécution d'agent. Il ajoute jusqu'à 2000 caractères de contexte pertinent : souvenirs similaires, compétences applicables et connaissances de la base. Cela permet aux agents de bénéficier de l'expérience passée sans intervention humaine.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="lang">python</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+      <pre><code><span class="hljs-comment"># Activation dans le code agent</span>
+<span class="hljs-keyword">from</span> app.learning.context_enricher <span class="hljs-keyword">import</span> ContextEnricher
+
+enricher = ContextEnricher()
+system_prompt = <span class="hljs-keyword">await</span> enricher.enrich(
+    base_system=<span class="hljs-string">"Tu es un assistant expert..."</span>,
+    task_description=<span class="hljs-string">"Générer du code Python"</span>,
+    task_type=<span class="hljs-string">"code_gen"</span>,
+    workspace_id=<span class="hljs-string">"ws-123"</span>,
+    flags={<span class="hljs-string">"memories"</span>: <span class="hljs-keyword">True</span>, <span class="hljs-string">"skills"</span>: <span class="hljs-keyword">True</span>, <span class="hljs-string">"knowledge"</span>: <span class="hljs-keyword">True</span>}
+)</code></pre>
+    </div>
+
+    <!-- ═══════════════ 4. DÉPLOIEMENT ═══════════════ -->
+    <h2 id="deploiement">🚀 4. Déploiement</h2>
+
+    <h3 id="prerequis">4.1 Prérequis</h3>
     <div class="table-wrap">
       <table>
         <tr><th>Ressource</th><th>Minimum</th><th>Recommandé</th></tr>
@@ -690,7 +789,7 @@ npm run build       <span class="hljs-comment"># Copie sw.js + manifest.json dan
       </table>
     </div>
 
-    <h3 id="assistant">2.2 Assistant de déploiement</h3>
+    <h3 id="assistant">4.2 Assistant de déploiement</h3>
     <p>L'<a href="/deploy" target="_blank">assistant de déploiement</a> vous guide en 3 étapes avec des liens vers chaque fournisseur :</p>
     <div class="cards">
       <div class="card"><div class="icon">🖥️</div><h4>Étape 1 — Serveur</h4><p>IP, utilisateur SSH, clé privée. Guides vers DigitalOcean, Hetzner, AWS, GCP.</p></div>
@@ -704,7 +803,7 @@ uv run uvicorn app.main:app --reload
 <span class="hljs-comment"># Ouvrir http://localhost:8000/deploy</span></code></pre>
     </div>
 
-    <h3 id="manuel">2.3 Déploiement manuel</h3>
+    <h3 id="manuel">4.3 Déploiement manuel</h3>
     <div class="tabs">
       <div class="tab-bar">
         <button class="active" onclick="switchTab(this, 'deploy-docker')">Docker</button>
@@ -748,8 +847,8 @@ docker compose up -d</code></pre></div>
       </div></div>
     </div>
 
-    <h3 id="cicd">2.4 Déploiement CI/CD</h3>
-    <p>Le workflow <code>.github/workflows/docker.yml</code> exécute automatiquement :</p>
+    <h3 id="cicd">4.4 Déploiement CI/CD</h3>
+    <p>Le workflow <code>.github/workflows/ci.yml</code> exécute automatiquement :</p>
     <div class="diagram">
       <span class="box" style="border-color:var(--success);">📝 git push main</span>
       <div class="arrow">→</div>
@@ -765,7 +864,7 @@ docker compose up -d</code></pre></div>
     </div>
     <p>Secrets GitHub requis : <code>DEPLOY_HOST</code>, <code>DEPLOY_USER</code>, <code>DEPLOY_KEY</code>, <code>OPENROUTER_API_KEY</code>, <code>DATABASE_URL</code>, <code>REDIS_URL</code>.</p>
 
-    <h3 id="securisation">2.5 Sécurisation</h3>
+    <h3 id="securisation">4.5 Sécurisation</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Firewall</span>
@@ -777,9 +876,9 @@ certbot --nginx -d votre-domaine.com</code></pre>
     </div>
 
     <!-- ═══════════════ 3. API ═══════════════ -->
-    <h2 id="api">📡 4. API Reference</h2>
+    <h2 id="api">📡 5. API Reference</h2>
 
-    <h3 id="endpoints">4.1 Endpoints principaux</h3>
+    <h3 id="endpoints">5.1 Endpoints principaux</h3>
     <div class="table-wrap">
       <table>
         <tr><th>Méthode</th><th>Path</th><th>Rate Limit</th><th>Auth</th><th>Description</th></tr>
@@ -800,14 +899,14 @@ certbot --nginx -d votre-domaine.com</code></pre>
       </table>
     </div>
 
-    <h3 id="auth">4.2 Authentification JWT</h3>
+    <h3 id="auth">5.2 Authentification JWT</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Middleware optionnel — populate request.state.user si token valide</span>
 <span class="hljs-keyword">Authorization:</span> Bearer eyJhbGciOiJIUzI1NiIs...</code></pre>
     </div>
 
-    <h3 id="rate-limit">4.3 Rate Limiting</h3>
+    <h3 id="rate-limit">5.3 Rate Limiting</h3>
     <p>Protection sur tous les endpoints POST/PUT/DELETE via slowapi + Redis (fallback mémoire en dev).</p>
     <div class="table-wrap">
       <table>
@@ -818,7 +917,7 @@ certbot --nginx -d votre-domaine.com</code></pre>
       </table>
     </div>
 
-    <h3 id="websocket">4.4 WebSocket</h3>
+    <h3 id="websocket">5.4 WebSocket</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">JavaScript</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-keyword">const</span> ws = <span class="hljs-keyword">new</span> WebSocket(<span class="hljs-string">"ws://localhost:8000/ws/logs"</span>);
@@ -829,9 +928,9 @@ ws.onmessage = (event) => {
     </div>
 
     <!-- ═══════════════ 4. FEATURES ═══════════════ -->
-    <h2 id="features">✨ 5. Features</h2>
+    <h2 id="features">✨ 6. Features</h2>
 
-    <h3 id="agents">5.1 Agents</h3>
+    <h3 id="agents">6.1 Agents</h3>
     <div class="cards">
       <div class="card"><div class="icon">🤖</div><h4>DevAgent</h4><p>Analyse, scaffold, code, deploy</p><div class="tags"><span class="tag">claude-sonnet</span></div></div>
       <div class="card"><div class="icon">✍️</div><h4>ContentAgent</h4><p>Write, image, publish</p><div class="tags"><span class="tag green">GPT-4o</span></div></div>
@@ -839,7 +938,7 @@ ws.onmessage = (event) => {
       <div class="card"><div class="icon">🛒</div><h4>CommerceAgent</h4><p>Catalog, pricing, checkout, inventory, faq</p><div class="tags"><span class="tag green">GPT-4o</span></div></div>
     </div>
 
-    <h3 id="sub-agents">5.2 Sub-Agents</h3>
+    <h3 id="sub-agents">6.2 Sub-Agents</h3>
     <div class="table-wrap">
       <table>
         <tr><th>Sub-Agent</th><th>Rôle</th><th>Déclencheurs</th></tr>
@@ -851,8 +950,8 @@ ws.onmessage = (event) => {
       </table>
     </div>
 
-    <h3 id="auth-system">5.3 Authentification & Comptes</h3>
-    <p>AgentOS v5.1.0 intègre un système d'authentification complet : inscription par email, connexion JWT et OAuth (Google/GitHub).</p>
+    <h3 id="auth-system">6.3 Authentification & Comptes</h3>
+    <p>AgentOS v6.0.0 intègre un système d'authentification complet : inscription par email, connexion JWT et OAuth (Google/GitHub), avec un mode Quick Connect réservé au développement qui délivre un token administrateur.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Inscription</span>
@@ -869,7 +968,7 @@ ws.onmessage = (event) => {
 <span class="hljs-comment"># Redirige vers le fournisseur OAuth, puis callback vers l'app</span></code></pre>
     </div>
 
-    <h3 id="admin">5.4 Administration</h3>
+    <h3 id="admin">6.4 Administration</h3>
     <p>Panneau d'administration complet avec gestion des paramètres, services, modèles LLM et utilisateurs. Accès réservé aux emails listés dans la variable d'environnement <code>admin_emails</code>.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -892,7 +991,7 @@ ws.onmessage = (event) => {
 <span class="hljs-keyword">GET</span> /api/v1/admin/users</code></pre>
     </div>
 
-    <h3 id="hitl">5.5 Human-In-The-Loop</h3>
+    <h3 id="hitl">6.5 Human-In-The-Loop</h3>
     <p>Les actions critiques suspendent le workflow en attente d'approbation humaine.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -905,7 +1004,7 @@ ws.onmessage = (event) => {
 { <span class="hljs-string">"approval_id"</span>: <span class="hljs-string">"uuid-xxx"</span>, <span class="hljs-string">"reason"</span>: <span class="hljs-string">"Pas prêt"</span> }</code></pre>
     </div>
 
-    <h3 id="debugger">5.6 @Debugger Sub-Agent</h3>
+    <h3 id="debugger">6.6 @Debugger Sub-Agent</h3>
     <p>Analyse d'erreurs avec suggestions de correction structurées.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -919,7 +1018,7 @@ ws.onmessage = (event) => {
 <span class="hljs-comment"># → { root_cause, explanation, fix_suggestion, confidence }</span></code></pre>
     </div>
 
-    <h3 id="orchestrateur">5.7 Orchestrateur LangGraph</h3>
+    <h3 id="orchestrateur">6.7 Orchestrateur LangGraph</h3>
     <div class="diagram">
       <span class="box" style="border-color:var(--accent);">🔍 analyze_prompt</span>
       <div class="arrow">→</div>
@@ -935,7 +1034,7 @@ ws.onmessage = (event) => {
     </div>
     <p>Caractéristiques : <strong>Circuit Breaker</strong> (3 échecs → arrêt), <strong>Retry</strong> automatique (3 tentatives), <strong>Exécution parallèle</strong> (tâches indépendantes), <strong>HITL propagation</strong> (suspension sur actions critiques).</p>
 
-    <h3 id="llm-cache">5.8 LLM Cache</h3>
+    <h3 id="llm-cache">6.8 LLM Cache</h3>
     <p>Cache à 2 niveaux : L1 local (instantané) + Redis (persistant). Clé = SHA256(model + messages + temperature). TTL par défaut : 7 jours.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">env</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -943,7 +1042,7 @@ ws.onmessage = (event) => {
 LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
     </div>
 
-    <h3 id="scheduler">5.9 Scheduler</h3>
+    <h3 id="scheduler">6.9 Scheduler</h3>
     <p>Planification de tâches cron pour exécution automatique de prompts.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -956,7 +1055,7 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
 }</code></pre>
     </div>
 
-    <h3 id="mcp">5.10 MCP (Model Context Protocol)</h3>
+    <h3 id="mcp">6.10 MCP (Model Context Protocol)</h3>
     <p>Intégration avec des outils externes via le protocole MCP standard.</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
@@ -965,9 +1064,9 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
     </div>
 
     <!-- ═══════════════ 5. DÉVELOPPEMENT ═══════════════ -->
-    <h2 id="dev">🛠️ 6. Développement</h2>
+    <h2 id="dev">🛠️ 7. Développement</h2>
 
-    <h3 id="setup">6.1 Setup local</h3>
+    <h3 id="setup">7.1 Setup local</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Option 1 : Script d'installation (recommandé)</span>
@@ -987,7 +1086,7 @@ cp .env.example .env
 uv run uvicorn app.main:app --reload --port 8000</code></pre>
     </div>
 
-    <h3 id="commandes">6.2 Commandes essentielles</h3>
+    <h3 id="commandes">7.2 Commandes essentielles</h3>
     <div class="table-wrap">
       <table>
         <tr><th>Commande</th><th>Description</th></tr>
@@ -999,7 +1098,7 @@ uv run uvicorn app.main:app --reload --port 8000</code></pre>
       </table>
     </div>
 
-    <h3 id="ajouter-agent">6.3 Ajouter un agent</h3>
+    <h3 id="ajouter-agent">7.3 Ajouter un agent</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">python</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># 1. app/agents/mon_agent.py</span>
@@ -1014,7 +1113,7 @@ self.agents[<span class="hljs-string">"mon_agent"</span>] = MonAgent()
 workflow.add_node(<span class="hljs-string">"execute_mon_agent"</span>, self._execute_mon_agent)</code></pre>
     </div>
 
-    <h3 id="migrations">6.4 Migrations</h3>
+    <h3 id="migrations">7.4 Migrations</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Créer une migration automatique</span>
@@ -1028,9 +1127,9 @@ uv run alembic downgrade -1</code></pre>
     </div>
 
     <!-- ═══════════════ 6. DÉPANNAGE ═══════════════ -->
-    <h2 id="troubleshooting">🔧 7. Dépannage</h2>
+    <h2 id="troubleshooting">🔧 8. Dépannage</h2>
 
-    <h3 id="problemes">7.1 Problèmes courants</h3>
+    <h3 id="problemes">8.1 Problèmes courants</h3>
     <div class="table-wrap">
       <table>
         <tr><th>Problème</th><th>Cause</th><th>Solution</th></tr>
@@ -1042,7 +1141,7 @@ uv run alembic downgrade -1</code></pre>
       </table>
     </div>
 
-    <h3 id="logs">7.2 Logs et métriques</h3>
+    <h3 id="logs">8.2 Logs et métriques</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Endpoint santé</span>
@@ -1056,7 +1155,7 @@ curl http://localhost:8000/metrics
 docker compose logs -f app | grep <span class="hljs-string">"error"</span></code></pre>
     </div>
 
-    <h3 id="debugging">7.3 Debugging</h3>
+    <h3 id="debugging">8.3 Debugging</h3>
     <div class="code-block">
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Mode verbose</span>
@@ -1070,7 +1169,7 @@ curl -X POST http://localhost:8000/api/v1/sub-agent/debug \
 
     <hr style="border-color:var(--border);margin:48px 0;">
     <p style="text-align:center;color:var(--text-muted);font-size:.85rem;">
-      AgentOS v5.1.0 · 716 tests · 100% coverage · 4 plateformes · Document généré le 31 mai 2026 · 
+      AgentOS v6.0.0 · Intelligence Engine · Mobile App · 5 plateformes · Document généré le 1 juin 2026 · 
       <a href="https://github.com/HiTechTN/agentos">GitHub</a> · 
       <a href="/deploy">Assistant déploiement</a> · 
       <a href="/docs">API Docs</a>

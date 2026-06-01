@@ -8,9 +8,8 @@ Before any agent executes a task, the enricher:
 
 This makes every agent smarter over time without any manual intervention.
 """
-from __future__ import annotations
 
-from typing import Any
+from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -126,9 +125,9 @@ class ContextEnricher:
         enrichment = "\n".join(blocks)
         enriched = f"{enrichment}\n\n---\n\n{base_system}"
         logger.debug(
-            "context_enriched",
-            task_type=task_type,
-            enrichment_chars=len(enrichment),
-            blocks=len(blocks),
+            "context_enriched task_type=%s chars=%d blocks=%d",
+            task_type,
+            len(enrichment),
+            len(blocks),
         )
         return enriched
