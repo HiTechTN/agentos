@@ -184,6 +184,13 @@ export default function RegisterScreen() {
             Already have an account? <Text style={styles.loginLinkHighlight}>Log in</Text>
           </Text>
         </TouchableOpacity>
+
+        <View style={styles.helpCard}>
+          <Ionicons name="information-circle-outline" size={16} color={Colors.light.info} />
+          <Text style={styles.helpText}>
+            After registering, you can sign in with your email and password from the login screen.
+          </Text>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -316,5 +323,20 @@ const styles = StyleSheet.create({
   loginLinkHighlight: {
     color: Colors.light.primary,
     fontWeight: '600',
+  },
+  helpCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: Colors.light.infoLight,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  helpText: {
+    flex: 1,
+    fontSize: FontSizes.xs,
+    color: Colors.light.textSecondary,
+    lineHeight: 18,
   },
 });

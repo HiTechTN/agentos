@@ -113,8 +113,8 @@ class SkillsRegistry:
                     auto_discovered, source_memory_ids
                 ) VALUES (
                     :id, :workspace_id, :name, :slug, :category,
-                    :description, :trigger_patterns::jsonb, :procedure,
-                    :confidence_score, true, :source_memory_ids::jsonb
+                    :description, CAST(:trigger_patterns AS jsonb), :procedure,
+                    :confidence_score, true, CAST(:source_memory_ids AS jsonb)
                 )
             """),
             {

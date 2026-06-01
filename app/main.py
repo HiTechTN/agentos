@@ -96,12 +96,6 @@ async def optional_auth_middleware(request: Request, call_next: Any) -> Response
     return response
 
 
-@app.post("/api/v1/auth/token")
-async def get_token(sub: str = "demo", workspace: str = "default") -> dict[str, str]:
-    token = create_access_token(sub=sub, workspace=workspace)
-    return {"access_token": token, "token_type": "bearer"}
-
-
 @app.get("/health")
 async def health() -> dict[str, str]:
     import asyncpg

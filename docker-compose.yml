@@ -141,26 +141,29 @@ services:
       retries: 3
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
     container_name: agentos-app
     restart: unless-stopped
+    image: ghcr.io/hitechtn/agentos:6.0.0
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      jaeger:
-        condition: service_started
-      minio:
-        condition: service_healthy
     environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: agentos
+      POSTGRES_USER: agentos
+      POSTGRES_PASSWORD: agentos_demo_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: agentos_redis_demo
+      JWT_SECRET: agentos-v6-compose-secret
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+      LOG_LEVEL: INFO
+      ENVIRONMENT: production
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    env_file:
-      - .env
     ports:
       - "${AGENTOS_API_PORT:-8000}:8000"
     volumes:

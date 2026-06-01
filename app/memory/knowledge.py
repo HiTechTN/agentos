@@ -55,7 +55,7 @@ class KnowledgeBase:
                     source_type, confidence, tags
                 ) VALUES (
                     :id, :workspace_id, :kind, :title, :content,
-                    :source_type, :confidence, :tags::jsonb
+                    :source_type, :confidence, CAST(:tags AS jsonb)
                 )
                 ON CONFLICT DO NOTHING
             """),
@@ -77,7 +77,7 @@ class KnowledgeBase:
     async def query(
         self,
         workspace_id: str,
-        keywords: list[str],
+        keywords: list[str] | None = None,
         kind: str | None = None,
         limit: int = 5,
         min_confidence: float = 0.5,
@@ -87,6 +87,7 @@ class KnowledgeBase:
         Args:
             workspace_id: Workspace scope.
             keywords: Keywords to search for in title and content.
+                      If None or empty, returns all entries sorted by confidence.
             kind: Optional filter by knowledge kind.
             limit: Max entries to return.
             min_confidence: Minimum confidence threshold.
@@ -95,7 +96,22 @@ class KnowledgeBase:
             List of matching knowledge entries.
         """
         if not keywords:
-            return []
+            rows = await self._db.execute(
+                sa.text("""
+                    SELECT id, kind, title, content, confidence, usage_count, tags
+                    FROM knowledge_entries
+                    WHERE workspace_id = :workspace_id
+                      AND confidence >= :min_confidence
+                    ORDER BY confidence DESC, usage_count DESC
+                    LIMIT :limit
+                """),
+                {
+                    "workspace_id": workspace_id,
+                    "min_confidence": min_confidence,
+                    "limit": limit,
+                },
+            )
+            return [dict(r._mapping) for r in rows.fetchall()]
 
         kind_clause = "AND kind = :kind" if kind else ""
 

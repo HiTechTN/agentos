@@ -51,6 +51,38 @@ async def get_memories(
     return APIResponse(data=results)
 
 
+@router.post("/memories/{workspace_id}")
+async def add_memory(
+    user: CurrentUser,
+    workspace_id: str,
+    body: dict[str, Any],
+) -> APIResponse[dict[str, str]]:
+    """Manually add an episodic memory."""
+    async with await _get_session() as db:
+        memory = EpisodicMemory(db)
+        from app.memory.episodic import TaskOutcome
+
+        outcome = TaskOutcome(
+            workspace_id=workspace_id,
+            task_type=body.get("task_type", "manual"),
+            prompt_summary=body.get("prompt_summary", ""),
+            outcome=body.get("outcome", "unknown"),
+            quality_score=body.get("quality_score"),
+            duration_ms=body.get("duration_ms"),
+            agent_used=body.get("agent_used") or "",
+            model_used=body.get("model_used") or "",
+            work_type=body.get("work_type") or "",
+            input_tokens=body.get("input_tokens") or 0,
+            output_tokens=body.get("output_tokens") or 0,
+            strategy_used=body.get("strategy_used") or "",
+            what_worked=body.get("what_worked") or "",
+            what_failed=body.get("what_failed") or "",
+            context_tags=body.get("context_tags") or [],
+        )
+        memory_id = await memory.record(outcome)
+    return APIResponse(data={"id": memory_id})
+
+
 @router.get("/memories/{workspace_id}/stats")
 async def get_memory_stats(
     user: CurrentUser,
@@ -86,7 +118,7 @@ async def list_knowledge(
     """List knowledge entries."""
     async with await _get_session() as db:
         kb = KnowledgeBase(db)
-        results = await kb.query(workspace_id, keywords=[""], kind=kind, limit=100)
+        results = await kb.query(workspace_id, keywords=None, kind=kind, limit=100)
     return APIResponse(data=results)
 
 

@@ -180,8 +180,8 @@ class SelfReflectionEngine:
                 ) VALUES (
                     :id, :workspace_id, :period_start, :period_end,
                     :tasks_analyzed, :new_skills, :new_knowledge,
-                    :avg_quality, :top_patterns::jsonb,
-                    :recommendations::jsonb, :model_performance::jsonb
+                    :avg_quality, CAST(:top_patterns AS jsonb),
+                    CAST(:recommendations AS jsonb), CAST(:model_performance AS jsonb)
                 )
             """),
             {
@@ -280,7 +280,7 @@ class SelfReflectionEngine:
                     trigger_reason, after_state
                 ) VALUES (
                     :id, :workspace_id, :agent_name, :evolution_type,
-                    :trigger_reason, :after_state::jsonb
+                    :trigger_reason, CAST(:after_state AS jsonb)
                 )
             """),
             {

@@ -41,8 +41,7 @@ def upgrade() -> None:
         sa.Column("what_worked", sa.Text(), nullable=True),
         sa.Column("what_failed", sa.Text(), nullable=True),
         sa.Column("context_tags", JSONB(), nullable=True),
-        sa.Column("embedding", sa.Column("embedding",
-                  sa.Text(), nullable=True)),
+        sa.Column("embedding", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True),
                   server_default=sa.func.now()),
     )
@@ -140,6 +139,7 @@ def upgrade() -> None:
         sa.Column("knowledge_entries_added", sa.Integer(), nullable=False,
                   server_default="0"),
         sa.Column("avg_quality_score", sa.Float(), nullable=True),
+        sa.Column("summary", sa.Text(), nullable=True),
         sa.Column("top_patterns", JSONB(), nullable=True),
         sa.Column("recommendations", JSONB(), nullable=True),
         sa.Column("model_performance", JSONB(), nullable=True),

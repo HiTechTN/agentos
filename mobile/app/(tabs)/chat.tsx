@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -44,7 +46,16 @@ const ALLOWED_EXTENSIONS = [
   'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp',
 ];
 
+const SUGGESTIONS = [
+  { text: 'Create a simple REST API in Python', icon: 'code-slash' as const },
+  { text: 'Write a product description for a smart water bottle', icon: 'document-text' as const },
+  { text: 'Plan a marketing campaign for a new app launch', icon: 'megaphone' as const },
+  { text: 'Create an e-commerce product listing', icon: 'cart' as const },
+  { text: 'Analyze this PDF document', icon: 'document-attach' as const },
+];
+
 export default function ChatScreen() {
+  const params = useLocalSearchParams<{ suggest?: string; agent?: string }>();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -56,7 +67,18 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [pickedAttachments, setPickedAttachments] = useState<PickedAttachment[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (params.suggest === 'plan') {
+      setInput('Create a plan to ');
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }
+    if (params.agent) {
+      setInput(`Ask ${params.agent} to `);
+    }
+  }, [params.suggest, params.agent]);
 
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -72,6 +94,7 @@ export default function ChatScreen() {
       size: a.fileSize || undefined,
     }));
     setPickedAttachments((prev) => [...prev, ...newAttachments]);
+    setShowSuggestions(false);
   };
 
   const pickDocuments = async () => {
@@ -106,6 +129,7 @@ export default function ChatScreen() {
       })).filter((a: PickedAttachment) => a.uri);
 
       setPickedAttachments((prev) => [...prev, ...newAttachments]);
+      setShowSuggestions(false);
     } catch (e: any) {
       if (e?.message !== 'User canceled') {
         Alert.alert('Error', 'Could not pick document');
@@ -131,6 +155,7 @@ export default function ChatScreen() {
         size: asset.fileSize || undefined,
       },
     ]);
+    setShowSuggestions(false);
   };
 
   const removeAttachment = (index: number) => {
@@ -139,9 +164,9 @@ export default function ChatScreen() {
 
   const pickFile = () => {
     Alert.alert('Add to message', 'What would you like to attach?', [
-      { text: '📷 Camera', onPress: takePhoto },
-      { text: '🖼 Gallery', onPress: pickImages },
-      { text: '📄 Document (PDF, DOCX, MD...)', onPress: pickDocuments },
+      { text: 'Camera', onPress: takePhoto },
+      { text: 'Gallery', onPress: pickImages },
+      { text: 'Document (PDF, DOCX, MD...)', onPress: pickDocuments },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -176,6 +201,7 @@ export default function ChatScreen() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setPickedAttachments([]);
+    setShowSuggestions(false);
     setLoading(true);
 
     try {
@@ -205,6 +231,11 @@ export default function ChatScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuggestion = (text: string) => {
+    setInput(text);
+    setShowSuggestions(false);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -250,11 +281,25 @@ export default function ChatScreen() {
         onContentSizeChange={() =>
           flatListRef.current?.scrollToEnd({ animated: true })
         }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="chatbubbles-outline" size={48} color={Colors.light.textTertiary} />
-            <Text style={styles.emptyText}>Start a conversation</Text>
-          </View>
+        ListFooterComponent={
+          showSuggestions && messages.length === 1 ? (
+            <View style={styles.suggestions}>
+              <Text style={styles.suggestionsTitle}>Try asking:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {SUGGESTIONS.map((s, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.suggestionChip}
+                    onPress={() => handleSuggestion(s.text)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name={s.icon} size={16} color={Colors.light.primary} />
+                    <Text style={styles.suggestionText}>{s.text}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null
         }
       />
 
@@ -375,15 +420,30 @@ const styles = StyleSheet.create({
   attachPreview: {
     marginTop: Spacing.sm,
   },
-  empty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: Spacing.md,
+  suggestions: {
+    marginTop: Spacing.lg,
+    gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: FontSizes.md,
-    color: Colors.light.textTertiary,
+  suggestionsTitle: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.light.textSecondary,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: Spacing.sm,
+  },
+  suggestionText: {
+    fontSize: FontSizes.xs,
+    color: Colors.light.text,
   },
   attachmentBar: {
     paddingHorizontal: Spacing.md,

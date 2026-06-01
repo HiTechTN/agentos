@@ -6,10 +6,12 @@ import {
   RefreshControl,
   StyleSheet,
   TouchableOpacity,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSizes, Spacing } from '../../src/theme';
-import { getLogs, SessionData } from '../../src/api/client';
+import { getLogs, getSession, SessionData } from '../../src/api/client';
 
 interface LogEntry {
   id: string;
@@ -23,6 +25,9 @@ interface LogEntry {
 export default function SessionsScreen() {
   const [sessions, setSessions] = useState<LogEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<LogEntry | null>(null);
+  const [sessionDetail, setSessionDetail] = useState<SessionData | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -53,6 +58,20 @@ export default function SessionsScreen() {
     setRefreshing(false);
   };
 
+  const handleSessionPress = async (entry: LogEntry) => {
+    setSelectedSession(entry);
+    if (entry.traceId) {
+      setLoadingDetail(true);
+      try {
+        const detail = await getSession(entry.traceId);
+        setSessionDetail(detail);
+      } catch {
+        setSessionDetail(null);
+      }
+      setLoadingDetail(false);
+    }
+  };
+
   const statusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -71,20 +90,29 @@ export default function SessionsScreen() {
   const renderItem = ({ item }: { item: LogEntry }) => {
     const icon = statusIcon(item.status);
     return (
-      <TouchableOpacity style={styles.sessionCard}>
-        <Ionicons name={icon.name} size={22} color={icon.color} />
+      <TouchableOpacity
+        style={styles.sessionCard}
+        onPress={() => handleSessionPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.statusIconWrap, { backgroundColor: icon.color + '15' }]}>
+          <Ionicons name={icon.name} size={18} color={icon.color} />
+        </View>
         <View style={styles.sessionInfo}>
           <Text style={styles.sessionAction} numberOfLines={1}>
             {item.action}
           </Text>
           <Text style={styles.sessionAgent}>{item.agentId}</Text>
         </View>
-        <Text style={styles.sessionTime}>
-          {new Date(item.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </Text>
+        <View style={styles.sessionMeta}>
+          <Text style={styles.sessionTime}>
+            {new Date(item.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.light.textTertiary} />
+        </View>
       </TouchableOpacity>
     );
   };
@@ -92,9 +120,11 @@ export default function SessionsScreen() {
   if (sessions.length === 0 && !refreshing) {
     return (
       <View style={styles.empty}>
-        <Ionicons name="time-outline" size={48} color={Colors.light.textTertiary} />
+        <View style={styles.emptyIcon}>
+          <Ionicons name="time-outline" size={40} color={Colors.light.textTertiary} />
+        </View>
         <Text style={styles.emptyText}>No recent activity</Text>
-        <Text style={styles.emptyHint}>Run a workflow to see sessions here</Text>
+        <Text style={styles.emptyHint}>Run a workflow from the Chat tab to see sessions here</Text>
       </View>
     );
   }
@@ -110,6 +140,63 @@ export default function SessionsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
+
+      <Modal visible={!!selectedSession} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Session Details</Text>
+              <TouchableOpacity onPress={() => { setSelectedSession(null); setSessionDetail(null); }}>
+                <Ionicons name="close" size={24} color={Colors.light.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              {selectedSession && (
+                <>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Action</Text>
+                    <Text style={styles.detailValue}>{selectedSession.action}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Agent</Text>
+                    <Text style={styles.detailValue}>{selectedSession.agentId}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Status</Text>
+                    <View style={styles.detailStatusRow}>
+                      <View style={[styles.detailDot, { backgroundColor: statusIcon(selectedSession.status).color }]} />
+                      <Text style={styles.detailValue}>{selectedSession.status}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Time</Text>
+                    <Text style={styles.detailValue}>
+                      {new Date(selectedSession.timestamp).toLocaleString()}
+                    </Text>
+                  </View>
+                  {selectedSession.traceId && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Trace ID</Text>
+                      <Text style={[styles.detailValue, styles.mono]} numberOfLines={1}>
+                        {selectedSession.traceId}
+                      </Text>
+                    </View>
+                  )}
+                  {loadingDetail && (
+                    <Text style={styles.loadingText}>Loading details...</Text>
+                  )}
+                  {sessionDetail && sessionDetail.result && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailSectionTitle}>Result</Text>
+                      <Text style={styles.detailResult}>{sessionDetail.result}</Text>
+                    </View>
+                  )}
+                </>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -124,7 +211,7 @@ const styles = StyleSheet.create({
   },
   sessionCard: {
     backgroundColor: Colors.light.surface,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
@@ -135,6 +222,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 1,
+  },
+  statusIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sessionInfo: {
     flex: 1,
@@ -149,6 +243,10 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     marginTop: 2,
   },
+  sessionMeta: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
   sessionTime: {
     fontSize: FontSizes.xs,
     color: Colors.light.textTertiary,
@@ -158,7 +256,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.light.background,
-    gap: 8,
+    gap: 12,
+    padding: 32,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.light.surfaceVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyText: {
     fontSize: FontSizes.lg,
@@ -168,5 +276,92 @@ const styles = StyleSheet.create({
   emptyHint: {
     fontSize: FontSizes.sm,
     color: Colors.light.textTertiary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.light.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  modalTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  modalBody: {
+    padding: Spacing.xl,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.borderLight,
+  },
+  detailLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.light.textSecondary,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: FontSizes.sm,
+    color: Colors.light.text,
+    fontWeight: '500',
+    maxWidth: '60%',
+    textAlign: 'right',
+  },
+  detailStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  mono: {
+    fontFamily: 'monospace',
+    fontSize: FontSizes.xs,
+  },
+  loadingText: {
+    fontSize: FontSizes.sm,
+    color: Colors.light.textTertiary,
+    textAlign: 'center',
+    marginTop: Spacing.lg,
+  },
+  detailSection: {
+    marginTop: Spacing.lg,
+  },
+  detailSectionTitle: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: Spacing.sm,
+  },
+  detailResult: {
+    fontSize: FontSizes.sm,
+    color: Colors.light.textSecondary,
+    lineHeight: 20,
+    backgroundColor: Colors.light.surfaceVariant,
+    borderRadius: 8,
+    padding: Spacing.md,
   },
 });

@@ -71,7 +71,7 @@ export default function SettingsScreen() {
           style={styles.input}
           value={url}
           onChangeText={setUrl}
-          placeholder="http://your-server:8003"
+          placeholder="http://192.168.0.100:8081"
           placeholderTextColor={Colors.light.textTertiary}
           autoCapitalize="none"
           autoCorrect={false}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,21 +10,38 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSizes, Spacing } from '../src/theme';
 import { useAuth } from '../src/auth/AuthContext';
-import { healthCheck } from '../src/api/client';
+import { healthCheck, loginWithCredentials } from '../src/api/client';
 
 export default function LoginScreen() {
-  const { serverUrl, updateServerUrl, login } = useAuth();
-  const [url, setUrl] = useState(serverUrl || '');
+  const { serverUrl, updateServerUrl } = useAuth();
+  const [url, setUrl] = useState(serverUrl || 'http://192.168.0.100:8081');
+  const [email, setEmail] = useState('admin@agentos.io');
+  const [password, setPassword] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useState(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  });
 
   const handleConnect = async () => {
-    const targetUrl = url.trim() || (serverUrl || '').trim() || 'http://192.168.0.100:8004';
+    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8081';
+    if (!email.trim()) {
+      Alert.alert('Email required', 'Please enter your email to connect');
+      return;
+    }
     setUrl(targetUrl);
     setConnecting(true);
     try {
@@ -35,7 +52,9 @@ export default function LoginScreen() {
         setConnecting(false);
         return;
       }
-      await login('mobile');
+      const resp = await loginWithCredentials(email.trim(), password);
+      const { setToken } = await import('../src/api/client');
+      await setToken(resp.access_token);
       router.replace('/(tabs)/dashboard');
     } catch (e: any) {
       Alert.alert('Connection Error', e?.message || 'Could not connect to server');
@@ -44,8 +63,39 @@ export default function LoginScreen() {
     }
   };
 
+  const handleQuickConnect = async () => {
+    const targetUrl = url.trim() || 'http://192.168.0.100:8081';
+    setUrl(targetUrl);
+    setConnecting(true);
+    try {
+      await updateServerUrl(targetUrl);
+      const health = await healthCheck();
+      if (health.api !== 'ok') {
+        Alert.alert('Connection Error', 'Server is not responding');
+        setConnecting(false);
+        return;
+      }
+      const { login } = await import('../src/auth/AuthContext');
+      // Use the new /token endpoint for quick dev access
+      const resp = await fetch(`${targetUrl.replace(/\/+$/, '')}/api/v1/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sub: 'quick', workspace: 'default' }),
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      const { setToken: saveToken } = await import('../src/api/client');
+      await saveToken(data.access_token);
+      router.replace('/(tabs)/dashboard');
+    } catch (e: any) {
+      Alert.alert('Connection Error', e?.message || 'Could not connect. Try email login.');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   const handleSocialLogin = async (provider: string) => {
-    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8004';
+    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8081';
     if (!url.trim()) setUrl(targetUrl);
     setConnecting(true);
     try {
@@ -69,18 +119,62 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.heroSection}>
           <View style={styles.heroIcon}>
-            <Ionicons name="sparkles" size={40} color={Colors.light.primary} />
+            <Ionicons name="sparkles" size={36} color={Colors.light.primary} />
           </View>
           <Text style={styles.title}>AgentOS</Text>
           <Text style={styles.subtitle}>Multi-Agent Platform</Text>
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.cardTitle}>Sign in</Text>
+          <Text style={styles.cardSubtitle}>Enter your credentials to continue</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor={Colors.light.textTertiary}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              editable={!connecting}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                placeholderTextColor={Colors.light.textTertiary}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                editable={!connecting}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={Colors.light.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <TouchableOpacity
-            style={styles.quickConnectButton}
+            style={[styles.primaryButton, connecting && styles.buttonDisabled]}
             onPress={handleConnect}
             disabled={connecting}
             activeOpacity={0.8}
@@ -89,54 +183,26 @@ export default function LoginScreen() {
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
-                <Ionicons name="flash" size={20} color="#fff" />
-                <Text style={styles.quickConnectText}>Quick Connect</Text>
+                <Ionicons name="log-in-outline" size={18} color="#fff" />
+                <Text style={styles.primaryButtonText}>Sign In</Text>
               </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.advancedToggle}
-            onPress={() => setShowAdvanced(!showAdvanced)}
+            style={styles.quickConnectRow}
+            onPress={handleQuickConnect}
+            disabled={connecting}
           >
-            <Text style={styles.advancedToggleText}>
-              {showAdvanced ? 'Hide manual URL' : 'Manual server URL'}
+            <Ionicons name="flash-outline" size={16} color={Colors.light.primary} />
+            <Text style={styles.quickConnectText}>
+              Quick Connect (dev mode)
             </Text>
-            <Ionicons
-              name={showAdvanced ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color={Colors.light.textTertiary}
-            />
           </TouchableOpacity>
-
-          {showAdvanced && (
-            <View style={styles.advancedSection}>
-              <Text style={styles.inputLabel}>Server URL</Text>
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={styles.input}
-                  value={url}
-                  onChangeText={setUrl}
-                  placeholder="http://192.168.0.100:8004"
-                  placeholderTextColor={Colors.light.textTertiary}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                />
-                <TouchableOpacity style={styles.connectButton} onPress={handleConnect} disabled={connecting}>
-                  {connecting ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Ionicons name="arrow-forward" size={20} color="#fff" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
+            <Text style={styles.dividerText}>or</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -166,10 +232,47 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.hint}>
-          Connect to your AgentOS server to manage agents, workflows, and chat.
-        </Text>
-      </View>
+        <TouchableOpacity
+          style={styles.advancedToggle}
+          onPress={() => setShowAdvanced(!showAdvanced)}
+        >
+          <Ionicons
+            name={showAdvanced ? 'chevron-up' : 'chevron-down'}
+            size={14}
+            color={Colors.light.textTertiary}
+          />
+          <Text style={styles.advancedToggleText}>
+            {showAdvanced ? 'Hide server settings' : 'Server settings'}
+          </Text>
+        </TouchableOpacity>
+
+        {showAdvanced && (
+          <View style={styles.advancedSection}>
+            <Text style={styles.label}>Server URL</Text>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                value={url}
+                onChangeText={setUrl}
+                placeholder="http://192.168.0.100:8081"
+                placeholderTextColor={Colors.light.textTertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                editable={!connecting}
+              />
+            </View>
+          </View>
+        )}
+
+        <View style={styles.helpCard}>
+          <Ionicons name="help-circle-outline" size={16} color={Colors.light.info} />
+          <Text style={styles.helpText}>
+            New here? Use demo credentials: <Text style={styles.helpHighlight}>admin@agentos.io</Text> / any password. 
+            Or tap "Create account" to register.
+          </Text>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -179,32 +282,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
   },
   heroIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     backgroundColor: Colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   title: {
-    fontSize: FontSizes.title,
+    fontSize: FontSizes.xxl,
     fontWeight: '800',
     color: Colors.light.text,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.light.textSecondary,
     marginTop: 4,
   },
@@ -218,21 +322,67 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 4,
   },
-  quickConnectButton: {
+  cardTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.light.textSecondary,
+    marginBottom: Spacing.xl,
+  },
+  inputGroup: {
+    marginBottom: Spacing.md,
+  },
+  label: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: Spacing.xs,
+  },
+  input: {
+    backgroundColor: Colors.light.surfaceVariant,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: FontSizes.md,
+    color: Colors.light.text,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    padding: 4,
+  },
+  primaryButton: {
     backgroundColor: Colors.light.primary,
     borderRadius: 14,
-    paddingVertical: 16,
+    paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
+    marginTop: Spacing.sm,
   },
-  quickConnectText: {
+  primaryButtonText: {
     color: '#fff',
     fontSize: FontSizes.md,
     fontWeight: '700',
   },
-  advancedToggle: {
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  quickConnectRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -240,47 +390,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     marginTop: Spacing.xs,
   },
-  advancedToggleText: {
+  quickConnectText: {
     fontSize: FontSizes.sm,
-    color: Colors.light.textTertiary,
-  },
-  advancedSection: {
-    marginBottom: Spacing.md,
-  },
-  inputLabel: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.light.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: Colors.light.surfaceVariant,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: FontSizes.sm,
-    color: Colors.light.text,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  connectButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: Colors.light.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: Colors.light.primary,
+    fontWeight: '500',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Spacing.xl,
+    marginVertical: Spacing.lg,
   },
   dividerLine: {
     flex: 1,
@@ -330,12 +448,46 @@ const styles = StyleSheet.create({
     color: Colors.light.primary,
     fontWeight: '600',
   },
-  hint: {
-    textAlign: 'center',
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  advancedToggleText: {
+    fontSize: FontSizes.sm,
     color: Colors.light.textTertiary,
+  },
+  advancedSection: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 14,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  helpCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: Colors.light.infoLight,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  helpText: {
+    flex: 1,
     fontSize: FontSizes.xs,
+    color: Colors.light.textSecondary,
     lineHeight: 18,
-    marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.xl,
+  },
+  helpHighlight: {
+    fontWeight: '600',
+    color: Colors.light.info,
   },
 });

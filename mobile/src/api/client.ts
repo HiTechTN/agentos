@@ -22,7 +22,7 @@ export function setOnlineStatus(online: boolean): void {
   _isOnline = online;
 }
 
-let _baseUrl = 'http://localhost:8003';
+let _baseUrl = 'http://192.168.0.100:8081';
 let _token: string | null = null;
 
 export async function loadConfig(): Promise<void> {

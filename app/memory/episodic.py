@@ -70,7 +70,7 @@ class EpisodicMemory:
                     :prompt_summary, :outcome, :quality_score, :duration_ms,
                     :agent_used, :model_used, :work_type, :input_tokens,
                     :output_tokens, :strategy_used, :what_worked,
-                    :what_failed, :context_tags::jsonb
+                    :what_failed, CAST(:context_tags AS jsonb)
                 )
             """),
             {
@@ -94,8 +94,16 @@ class EpisodicMemory:
             },
         )
         await self._db.commit()
-        logger.info("memory_recorded", memory_id=memory_id,
-                    task_type=outcome.task_type, outcome=outcome.outcome)
+        logger.log_action(
+            agent_id="memory",
+            action="memory_recorded",
+            status="completed",
+            details={
+                "memory_id": memory_id,
+                "task_type": outcome.task_type,
+                "outcome": outcome.outcome,
+            },
+        )
         return memory_id
 
     async def recall_similar(
@@ -116,24 +124,27 @@ class EpisodicMemory:
         Returns:
             List of memory records ordered by quality_score desc.
         """
+        type_clause = "AND task_type = :task_type" if task_type else ""
         query = """
             SELECT id, task_type, prompt_summary, outcome, quality_score,
                    strategy_used, what_worked, what_failed, model_used,
                    work_type, created_at
             FROM episodic_memories
             WHERE workspace_id = :workspace_id
-              AND task_type = :task_type
+              {type_clause}
               {outcome_clause}
             ORDER BY quality_score DESC NULLS LAST, created_at DESC
             LIMIT :limit
         """.format(
-            outcome_clause="AND outcome = :outcome" if outcome_filter else ""
+            type_clause=type_clause,
+            outcome_clause="AND outcome = :outcome" if outcome_filter else "",
         )
         params: dict[str, Any] = {
             "workspace_id": workspace_id,
-            "task_type": task_type,
             "limit": limit,
         }
+        if task_type:
+            params["task_type"] = task_type
         if outcome_filter:
             params["outcome"] = outcome_filter
 
@@ -166,7 +177,7 @@ class EpisodicMemory:
                     AVG(duration_ms) as avg_duration_ms
                 FROM episodic_memories
                 WHERE workspace_id = :workspace_id
-                  AND created_at > NOW() - INTERVAL ':days days'
+                  AND created_at > NOW() - make_interval(days => :days)
                 GROUP BY task_type
                 ORDER BY total DESC
             """),

