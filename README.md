@@ -253,7 +253,7 @@ watch docker compose ps  # Wait until all services are "healthy"
 
 ```bash
 curl http://localhost:8000/health
-# → {"status":"ok","version":"5.1.0","environment":"development"}
+# → {"status":"ok","version":"6.0.0","environment":"development"}
 ```
 
 ### 4️⃣ Run a workflow
@@ -632,12 +632,12 @@ uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll
 
 | Service | Status |
 |---------|--------|
-| CI/CD | [![Build](https://github.com/HiTechTN/agentos/actions/workflows/docker.yml/badge.svg)](https://github.com/HiTechTN/agentos/actions/workflows/docker.yml) |
+| CI/CD | [![Build](https://github.com/HiTechTN/agentos/actions/workflows/ci.yml/badge.svg)](https://github.com/HiTechTN/agentos/actions/workflows/ci.yml) |
 | Docker App | `ghcr.io/hitechtn/agentos:latest` |
 | Docker Web | `ghcr.io/hitechtn/agentos/web:latest` |
 | Landing | [hitechtn.github.io/agentos](https://hitechtn.github.io/agentos/) |
 | License | [MIT](LICENSE) |
-| Latest Release | [v5.1.0](https://github.com/HiTechTN/agentos/releases/tag/v5.1.0) |
+| Latest Release | [v6.0.0](https://github.com/HiTechTN/agentos/releases/tag/v6.0.0) |
 
 ---
 
