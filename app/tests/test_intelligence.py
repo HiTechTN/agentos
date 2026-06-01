@@ -928,10 +928,15 @@ class TestKnowledgeBase:
         from app.memory.knowledge import KnowledgeBase
 
         kb = KnowledgeBase(mock_db)
+
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+        mock_db.execute.return_value = mock_result
+
         results = await kb.query("ws-1", [])
 
         assert results == []
-        mock_db.execute.assert_not_called()
+        mock_db.execute.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_query_with_kind_filter(self, mock_db: MagicMock) -> None:
