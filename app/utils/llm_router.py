@@ -262,7 +262,10 @@ class SmartLLMRouter:
     async def close(self) -> None:
         """Close the HTTP client."""
         if self._client and not self._client.is_closed:
-            await self._client.aclose()
+            try:
+                await self._client.aclose()
+            except RuntimeError:
+                pass
 
 
 smart_router = SmartLLMRouter()

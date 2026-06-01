@@ -43,10 +43,13 @@ async def lifespan(app: FastAPI) -> Any:
     await llm_cache.connect()
     from app.scheduler import get_scheduler
 
+    _scheduler_instance = None
     if settings.scheduler_enabled:
-        scheduler = get_scheduler()
-        await scheduler.start()
+        _scheduler_instance = get_scheduler()
+        await _scheduler_instance.start()
     yield
+    if _scheduler_instance:
+        await _scheduler_instance.stop()
     await llm_cache.close()
     await smart_router.close()
     logger.log_action("api", "shutdown", "stopped")
