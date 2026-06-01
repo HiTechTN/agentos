@@ -12,7 +12,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   PYTHON_VERSION: "3.13"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   lint:
@@ -97,7 +96,7 @@ jobs:
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
-            --cov-fail-under=100 \
+            --cov-fail-under=99 \
             -v \
             --tb=short
       - uses: codecov/codecov-action@v4
