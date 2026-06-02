@@ -292,3 +292,20 @@ module: app.agents.dev
 - Un seul modèle Ollama en VRAM à la fois (VRAMManager s'en charge)
 - Pour tâches FAST : utiliser qwen2.5:7b-instruct-q4_K_M (4.5GB) — libère 7GB
 - Ne jamais lancer Computer Use et Tree of Thoughts simultanément
+
+## RELEASE RULES (POST-FIX / POST-UPGRADE)
+- Après TOUTE modification, mise à jour ou mise à niveau, exécuter AUTOMATIQUEMENT :
+  1. `ruff check app/ --fix && ruff format app/` — lint + format
+  2. `mypy app/ --strict --exclude="tests/"` — type checking prod
+  3. `pytest app/tests/ --cov=app --cov-fail-under=98 -q` — tests + coverage
+  4. `bandit -r app/ -ll -q` — security scan
+  5. `docker compose config --quiet` — compose validation
+  6. `alembic check` — migration check
+- Si validation OK, procéder au commit + push + release :
+  1. `git add -A && git commit -m "type(scope): message" && git push origin main --tags`
+  2. Construire et uploader TOUS les artifacts :
+     - **Web** : `docker build -t ghcr.io/hitechtn/agentos:<version> . && docker push` puis `docker save | gzip` → upload release
+     - **Desktop** : `cd ui && npx tauri build --bundles deb,rpm,appimage` → upload .deb, .rpm, .AppImage
+     - **Mobile** : `cd mobile/android && ./gradlew assembleDebug` → upload .apk
+  3. `gh release create <tag> --title "..." --notes-file release.md`
+  4. Mettre à jour le tag et les assets si release existante
