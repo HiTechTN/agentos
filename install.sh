@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# AgentOS v5.1.0 — Quick Install Script
+# AgentOS v7.0.0 — Quick Install Script
 # Usage: curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash
 # =============================================================================
 set -euo pipefail
 
-VERSION="5.1.0"
+VERSION="7.0.0"                          # App version (pip, mobile)
+DESKTOP_VERSION="6.0.0"                 # Desktop package filenames (unchanged since v6)
 REPO="HiTechTN/agentos"
 BRANCH="main"
 GH_BASE="https://github.com/$REPO/releases/download/v$VERSION"
+GH_BASE_DESKTOP="https://github.com/$REPO/releases/download/v$DESKTOP_VERSION"
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; RED='\033[0;31m'; NC='\033[0m'
 
 # Default ports (same defaults as docker-compose.yml)
@@ -146,8 +148,8 @@ OVERRIDE
 # .deb Package Install
 # =============================================================================
 install_deb() {
-  echo -e "${YELLOW}Downloading AgentOS v${VERSION} .deb package...${NC}"
-  wget -q "$GH_BASE/agentos_${VERSION}_all.deb" -O /tmp/agentos.deb || curl -sL "$GH_BASE/agentos_${VERSION}_all.deb" -o /tmp/agentos.deb
+  echo -e "${YELLOW}Downloading AgentOS v${DESKTOP_VERSION} .deb package...${NC}"
+  wget -q "$GH_BASE_DESKTOP/AgentOS_${DESKTOP_VERSION}_amd64.deb" -O /tmp/agentos.deb || curl -sL "$GH_BASE_DESKTOP/AgentOS_${DESKTOP_VERSION}_amd64.deb" -o /tmp/agentos.deb
   echo -e "${YELLOW}Installing...${NC} (requires sudo)"
   sudo dpkg -i /tmp/agentos.deb && sudo apt-get install -f -y 2>/dev/null || true
   echo -e "${GREEN}Installed! Run: sudo agentos init${NC}"
@@ -157,8 +159,8 @@ install_deb() {
 # .rpm Package Install
 # =============================================================================
 install_rpm() {
-  echo -e "${YELLOW}Downloading AgentOS v${VERSION} .rpm package...${NC}"
-  wget -q "$GH_BASE/agentos-${VERSION}-1.noarch.rpm" -O /tmp/agentos.rpm || curl -sL "$GH_BASE/agentos-${VERSION}-1.noarch.rpm" -o /tmp/agentos.rpm
+  echo -e "${YELLOW}Downloading AgentOS v${DESKTOP_VERSION} .rpm package...${NC}"
+  wget -q "$GH_BASE_DESKTOP/AgentOS-${DESKTOP_VERSION}-1.x86_64.rpm" -O /tmp/agentos.rpm || curl -sL "$GH_BASE_DESKTOP/AgentOS-${DESKTOP_VERSION}-1.x86_64.rpm" -o /tmp/agentos.rpm
   echo -e "${YELLOW}Installing...${NC} (requires sudo)"
   sudo rpm -ivh /tmp/agentos.rpm || sudo dnf install -y /tmp/agentos.rpm 2>/dev/null || true
   echo -e "${GREEN}Installed! Run: sudo agentos init${NC}"
@@ -196,10 +198,10 @@ install_pip() {
 # Desktop App Download (Tauri)
 # =============================================================================
 install_desktop() {
-  echo -e "${YELLOW}AgentOS Desktop v${VERSION} — Tauri builds:${NC}"
+  echo -e "${YELLOW}AgentOS Desktop v${DESKTOP_VERSION} — Tauri builds:${NC}"
   echo ""
-  echo "  Linux:    $GH_BASE/AgentOS_${VERSION}_amd64.AppImage"
-  echo "  Linux:    $GH_BASE/AgentOS_${VERSION}_amd64.deb"
+  echo "  Linux:    $GH_BASE_DESKTOP/AgentOS_${DESKTOP_VERSION}_amd64.AppImage"
+  echo "  Linux:    $GH_BASE_DESKTOP/AgentOS_${DESKTOP_VERSION}_amd64.deb"
   echo ""
   echo -e "${YELLOW}Or build from source:${NC}"
   echo "    git clone https://github.com/$REPO.git"
