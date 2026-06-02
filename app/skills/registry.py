@@ -73,8 +73,7 @@ class SkillsRegistry:
             Skill ID if extracted, None if no extractable skill found.
         """
         prompt = (
-            f"Task: {task_description[:300]}\n\n"
-            f"Successful approach:\n{successful_approach[:600]}"
+            f"Task: {task_description[:300]}\n\nSuccessful approach:\n{successful_approach[:600]}"
         )
         response = await smart_router.complete(
             prompt=prompt,
