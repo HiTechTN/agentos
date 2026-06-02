@@ -301,6 +301,16 @@ module: app.agents.dev
   4. `bandit -r app/ -ll -q` — security scan
   5. `docker compose config --quiet` — compose validation
   6. `alembic check` — migration check
+- **AVANT le commit**, aligner TOUTE la documentation :
+  1. `install.sh` — vérifier `VERSION="x.y.z"` en header, toutes les occurrences version dans le script
+  2. `README.md` — badge version, health response, metrics table, release link, dashboard ASCII art
+  3. `app/web/public/index.html` — landing page : version, stats, liens
+  4. `app/templates/guide.html` — guide page : titre, badge, heading, health response, footer, contenu
+  5. `app/templates/deploy.html` — deploy page : header, badge, script comment
+  6. `mobile/app.json` + `mobile/android/app/build.gradle` — `versionName`
+  7. `mobile/package.json` — `version`
+  8. Tous les liens externes (webfetch chaque URL) : remplacer ceux qui sont morts ou redirigent
+  9. Vérifier le contenu des pages : pas de sections vides, de textes tronqués, de références périmées
 - Si validation OK, procéder au commit + push + release :
   1. `git add -A && git commit -m "type(scope): message" && git push origin main --tags`
   2. Construire et uploader TOUS les artifacts :
