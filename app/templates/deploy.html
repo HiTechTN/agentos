@@ -234,8 +234,8 @@
   <!-- Header -->
   <header>
     <h1>🚀 AgentOS — Déploiement Automatique</h1>
-    <p>Assistant de configuration pour déployer AgentOS v5.1 en production via GitHub Actions</p>
-    <span class="version-badge">v5.1.0 • CI/CD Pipeline</span>
+    <p>Assistant de configuration pour déployer AgentOS v7.0 en production via GitHub Actions</p>
+    <span class="version-badge">v7.0.0 • CI/CD Pipeline</span>
   </header>
 
   <!-- Step 1: Server -->
@@ -343,7 +343,7 @@ MIIEpAIBAAKCAQEA..."></textarea>
       <div class="help-text"><span class="icon">🗄️</span> Nécessite l'extension pgvector. PostgreSQL &ge; 15 recommandé.</div>
       <button class="toggle-help" onclick="toggleHelp('db-help')">📚 Configurer PostgreSQL &rarr;</button>
       <div class="help-links" id="db-help">
-        <a href="https://www.elephantsql.com/" target="_blank">ElephantSQL (PostgreSQL managé)</a>
+        <a href="https://neon.tech/" target="_blank">Neon (PostgreSQL serverless + pgvector)</a>
         <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-22-04" target="_blank">Installer PostgreSQL sur Ubuntu</a>
         <a href="https://supabase.com/" target="_blank">Supabase (PostgreSQL + pgvector)</a>
         <p style="margin-top:8px;font-size:.8rem;color:var(--text-secondary);">
@@ -446,7 +446,7 @@ function generateCommands() {
   const cmds = [];
   const repo = 'HiTechTN/agentos';
 
-  cmds.push(`# === AgentOS v5.1.0 — Configuration GitHub Secrets ===`);
+  cmds.push(`# === AgentOS v7.0.0 — Configuration GitHub Secrets ===`);
   cmds.push(`# Repository: ${repo}`);
   cmds.push(`# Exécutez ces commandes dans votre terminal local\n`);
 

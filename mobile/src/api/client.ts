@@ -26,10 +26,16 @@ let _baseUrl = 'http://192.168.0.100:8081';
 let _token: string | null = null;
 
 export async function loadConfig(): Promise<void> {
-  const storedUrl = await SecureStore.getItemAsync(SERVER_URL_KEY);
-  const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-  if (storedUrl) _baseUrl = storedUrl;
-  if (storedToken) _token = storedToken;
+  try {
+    const [storedUrl, storedToken] = await Promise.all([
+      SecureStore.getItemAsync(SERVER_URL_KEY),
+      SecureStore.getItemAsync(TOKEN_KEY),
+    ]);
+    if (storedUrl) _baseUrl = storedUrl;
+    if (storedToken) _token = storedToken;
+  } catch {
+    // Defaults only — no stored config to load
+  }
 }
 
 export function getBaseUrl(): string {

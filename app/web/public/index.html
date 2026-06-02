@@ -1,1 +1,61 @@
-AgentOS
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentOS v7.0.0 — AI Agent Orchestration System</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --text-secondary: #8b949e;
+    --accent: #58a6ff; --success: #3fb950; --gradient: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 32px 20px; text-align: center;
+  }
+  h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 8px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 32px; max-width: 600px; }
+  .badge { display: inline-block; background: #1f6feb33; color: var(--accent); padding: 4px 14px; border-radius: 20px; font-size: .8rem; font-weight: 600; margin-bottom: 24px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 800px; width: 100%; margin-bottom: 32px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .card .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .card .label { color: var(--text-secondary); font-size: .85rem; margin-top: 4px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 32px; }
+  .btn { padding: 10px 24px; border-radius: 6px; font-weight: 600; text-decoration: none; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #79c0ff; transform: translateY(-1px); }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--text-secondary); }
+  code { background: #1c2333; padding: 2px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: .85rem; color: var(--success); }
+  .code-block { background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 16px 0; text-align: left; max-width: 600px; width: 100%; overflow-x: auto; }
+  .footer { color: var(--text-muted); font-size: .8rem; margin-top: 48px; }
+  .footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+  <span class="badge">v7.0.0 — Intelligence Engine</span>
+  <h1>AgentOS</h1>
+  <p class="subtitle">AI Agent Orchestration System — Transform any intent into an executable AI workflow</p>
+  <div class="cards">
+    <div class="card"><div class="num">8</div><div class="label">AI Agents</div></div>
+    <div class="card"><div class="num">1024+</div><div class="label">Tests</div></div>
+    <div class="card"><div class="num">99%</div><div class="label">Coverage</div></div>
+    <div class="card"><div class="num">50+</div><div class="label">API Endpoints</div></div>
+  </div>
+  <div class="actions">
+    <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary">📦 GitHub</a>
+    <a href="https://hitechtn.github.io/agentos/" class="btn btn-secondary">🌐 Landing</a>
+    <a href="https://hitechtn.github.io/agentos/guide.html" class="btn btn-secondary">📖 Guide</a>
+  </div>
+  <div class="code-block">
+    <code>curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash</code>
+  </div>
+  <div class="footer">
+    <a href="https://github.com/HiTechTN/agentos">GitHub</a> · MIT License · Built with Python 3.13, FastAPI, LangGraph
+  </div>
+</body>
+</html>

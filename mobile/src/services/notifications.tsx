@@ -2,8 +2,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
-import Constants from 'expo-constants';
-
 const PUSH_TOKEN_KEY = 'agentos_push_token';
 const NOTIFICATIONS_ENABLED_KEY = 'agentos_notifications_enabled';
 
@@ -30,7 +28,7 @@ const NotificationContext = createContext<NotificationContextType>({
 });
 
 async function registerForPushNotifications(): Promise<string | null> {
-  if (!Constants.isDevice) {
+  if (Platform.OS === 'web') {
     console.log('Push notifications require a physical device');
     return null;
   }
@@ -58,7 +56,7 @@ async function registerForPushNotifications(): Promise<string | null> {
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    projectId: 'b6900fa8-496a-414c-a929-c9be1b319f57',
   });
   return tokenData.data;
 }
