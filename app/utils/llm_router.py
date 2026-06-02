@@ -28,13 +28,15 @@ class SmartLLMRouter:
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             settings = get_settings()
+            headers: dict[str, str] = {
+                "HTTP-Referer": "https://github.com/HiTechTN/agentos",
+                "X-Title": "AgentOS",
+            }
+            if settings.openrouter_api_key:
+                headers["Authorization"] = f"Bearer {settings.openrouter_api_key}"
             self._client = httpx.AsyncClient(
                 base_url=self.OPENROUTER_BASE,
-                headers={
-                    "Authorization": f"Bearer {settings.openrouter_api_key}",
-                    "HTTP-Referer": "https://github.com/HiTechTN/agentos",
-                    "X-Title": "AgentOS",
-                },
+                headers=headers,
                 timeout=httpx.Timeout(60.0, connect=10.0),
             )
         return self._client

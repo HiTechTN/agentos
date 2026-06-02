@@ -124,12 +124,19 @@ async def health() -> dict[str, str]:
     try:
         import httpx
 
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(f"{settings.ollama_base_url}/api/tags")
-            if resp.status_code == 200:
-                statuses["ollama"] = "ok"
-            else:
-                statuses["ollama"] = "error"
+        ollama_ok = False
+        for base in [settings.ollama_base_url, "http://localhost:11434"]:
+            try:
+                async with httpx.AsyncClient(timeout=5) as client:
+                    resp = await client.get(f"{base}/api/tags")
+                    if resp.status_code == 200:
+                        statuses["ollama"] = "ok"
+                        ollama_ok = True
+                        break
+            except Exception:
+                continue
+        if not ollama_ok:
+            statuses["ollama"] = "error"
     except Exception:
         statuses["ollama"] = "error"
     return statuses

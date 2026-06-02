@@ -158,33 +158,47 @@ async def check_services(user: AdminUser) -> dict[str, Any]:
     except Exception as e:
         results["redis"] = f"error: {e}"
 
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(f"{settings.ollama_base_url}/api/tags")
-            if resp.status_code == 200:
-                models = [m["name"] for m in resp.json().get("models", [])]
-                results["ollama"] = {"status": "ok", "models": models}
-            else:
+    ollama_ok = False
+    for base in [settings.ollama_base_url, "http://localhost:11434"]:
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(f"{base}/api/tags")
+                if resp.status_code == 200:
+                    models = [m["name"] for m in resp.json().get("models", [])]
+                    results["ollama"] = {"status": "ok", "models": models}
+                    ollama_ok = True
+                    break
                 results["ollama"] = {"status": "error", "detail": resp.text[:200]}
-    except Exception as e:
-        results["ollama"] = {"status": "error", "detail": str(e)}
+        except Exception:
+            continue
+    if not ollama_ok:
+        results["ollama"] = {
+            "status": "error",
+            "detail": "Ollama unreachable — check OLLAMA_BASE_URL",
+        }
 
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(
-                f"{settings.openrouter_base_url}/models",
-                headers={"Authorization": f"Bearer {settings.openrouter_api_key}"},
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results["openrouter"] = {
-                    "status": "ok",
-                    "models_count": len(data.get("data", [])),
-                }
-            else:
-                results["openrouter"] = {"status": "error", "detail": resp.text[:200]}
-    except Exception as e:
-        results["openrouter"] = {"status": "error", "detail": str(e)}
+    if not settings.openrouter_api_key:
+        results["openrouter"] = {
+            "status": "error",
+            "detail": "OPENROUTER_API_KEY is not configured",
+        }
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(
+                    f"{settings.openrouter_base_url}/models",
+                    headers={"Authorization": f"Bearer {settings.openrouter_api_key}"},
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    results["openrouter"] = {
+                        "status": "ok",
+                        "models_count": len(data.get("data", [])),
+                    }
+                else:
+                    results["openrouter"] = {"status": "error", "detail": resp.text[:200]}
+        except Exception as e:
+            results["openrouter"] = {"status": "error", "detail": str(e)}
 
     metrics.inc("admin.services.checked")
     return {"services": results}

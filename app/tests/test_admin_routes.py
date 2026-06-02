@@ -264,6 +264,7 @@ class TestServicesEndpoint:
             mock_httpx_cls.return_value.__aenter__.return_value = mock_client
             mock_client.get.side_effect = [
                 Mock(status_code=500, text="Ollama down"),
+                Mock(status_code=500, text="Ollama down fallback"),
                 Mock(status_code=200, json=lambda: {"data": []}),
             ]
 
@@ -521,7 +522,7 @@ class TestCheckServicesDirect:
             ),
             patch("app.routes.admin.httpx.AsyncClient") as mock_cls,
         ):
-            mock_inst = Mock()
+            mock_inst = AsyncMock()
             mock_cls.return_value.__aenter__.return_value = mock_inst
 
             async def _get_side_effect(*a: Any, **kw: Any) -> Mock:
@@ -529,7 +530,7 @@ class TestCheckServicesDirect:
                     return Mock(status_code=429, text="Rate limited")
                 return Mock(status_code=200, json=lambda: {"models": [{"name": "qwen2.5"}]})
 
-            mock_inst.get = Mock(side_effect=_get_side_effect)
+            mock_inst.get.side_effect = _get_side_effect
             result = await check_services(Mock())
             assert result["services"]["openrouter"]["status"] == "error"
             assert "Rate limited" in result["services"]["openrouter"]["detail"]
@@ -556,7 +557,7 @@ class TestCheckServicesDirect:
             ),
             patch("app.routes.admin.httpx.AsyncClient") as mock_cls,
         ):
-            mock_inst = Mock()
+            mock_inst = AsyncMock()
             mock_cls.return_value.__aenter__.return_value = mock_inst
             mock_inst.get.side_effect = [
                 Mock(status_code=200, json=lambda: {"models": [{"name": "qwen2.5"}]}),
