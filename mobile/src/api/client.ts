@@ -318,6 +318,26 @@ export async function getAdminSettings(): Promise<{ settings: AdminSettings }> {
   return api.get<{ settings: AdminSettings }>('/api/v1/admin/settings');
 }
 
+export interface SettingsFieldMeta {
+  category: string;
+  description: string;
+  help_url: string | null;
+  type: string;
+  placeholder: string;
+}
+
+export interface SettingsSchemaResponse {
+  schema: {
+    fields: Record<string, SettingsFieldMeta>;
+    categories: Record<string, string>;
+  };
+  values: AdminSettings;
+}
+
+export async function getAdminSettingsSchema(): Promise<SettingsSchemaResponse> {
+  return api.get<SettingsSchemaResponse>('/api/v1/admin/settings/schema');
+}
+
 export async function updateAdminSettings(updates: Record<string, string>): Promise<{ status: string; keys: string[] }> {
   return api.put<{ status: string; keys: string[] }>('/api/v1/admin/settings', { updates });
 }

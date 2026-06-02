@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.config.settings import get_settings
+from app.config.settings_schema import get_settings_schema
 from app.utils.auth import AdminUser
 from app.utils.llm_models import FREE_MODELS, WorkType
 from app.utils.llm_router import smart_router
@@ -131,6 +132,27 @@ async def update_settings(
     logger.log_action("admin", "settings_update", "Settings updated by admin")
 
     return {"status": "updated", "keys": list(body.updates.keys())}
+
+
+@router.get("/settings/schema")
+async def get_settings_schema_endpoint(user: AdminUser) -> dict[str, Any]:
+    schema = get_settings_schema()
+    raw = settings.model_dump()
+    values = {}
+    for k in schema["fields"]:
+        if k in raw:
+            v = raw[k]
+            if k in SENSITIVE_KEYS and v:
+                if isinstance(v, str) and len(v) > 4:
+                    values[k] = v[:2] + "****" + v[-2:]
+                else:
+                    values[k] = MASKED
+            else:
+                values[k] = v
+    return {
+        "schema": schema,
+        "values": values,
+    }
 
 
 @router.get("/services")

@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   TextInput,
   RefreshControl,
-  SectionList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSizes, Spacing } from '../../src/theme';
@@ -18,6 +17,7 @@ import { getAdminCache, setAdminCache } from '../../src/components/AdminCache';
 import {
   getAdminServices,
   getAdminSettings,
+  getAdminSettingsSchema,
   getAdminLLMProviders,
   getAdminUsers,
   testLLMModel,
@@ -25,6 +25,8 @@ import {
   updateAdminSettings,
   getAdminDataCached,
   AdminSettings,
+  SettingsFieldMeta,
+  SettingsSchemaResponse,
   ServiceStatus,
   AdminLLMProviders,
   AdminUsersResponse,
@@ -38,6 +40,7 @@ export default function AdminScreen() {
   const [section, setSection] = useState<Section>('');
   const [services, setServices] = useState<ServiceStatus | null>(null);
   const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [settingsSchema, setSettingsSchema] = useState<SettingsSchemaResponse | null>(null);
   const [llmData, setLlmData] = useState<AdminLLMProviders | null>(null);
   const [users, setUsers] = useState<AdminUsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,8 +69,12 @@ export default function AdminScreen() {
   }, []);
 
   const fetchSettings = useCallback(async () => {
-    const d = await getAdminSettings();
+    const [d, schema] = await Promise.all([
+      getAdminSettings(),
+      getAdminSettingsSchema().catch(() => null),
+    ]);
     setSettings(d.settings);
+    setSettingsSchema(schema);
     setAdminCache({ settings: d.settings });
   }, []);
 
@@ -168,7 +175,7 @@ export default function AdminScreen() {
           loading ? <SkeletonList count={3} /> : <ServicesSection services={services} />
         )}
         {section === 'settings' && (
-          loading ? <SkeletonList count={3} /> : <SettingsSection settings={settings} onRefresh={fetchSettings} />
+          loading ? <SkeletonList count={3} /> : <SettingsSection settings={settings} schema={settingsSchema} onRefresh={fetchSettings} />
         )}
         {section === 'llm' && (
           loading ? <SkeletonList count={3} /> : <LLMSection llmData={llmData} onRefresh={fetchLLM} />
@@ -212,7 +219,7 @@ function ServicesSection({ services }: { services: ServiceStatus | null }) {
   );
 }
 
-function SettingsSection({ settings, onRefresh }: { settings: AdminSettings | null; onRefresh: () => void }) {
+function SettingsSection({ settings, schema, onRefresh }: { settings: AdminSettings | null; schema: SettingsSchemaResponse | null; onRefresh: () => void }) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [filter, setFilter] = useState('');
@@ -220,66 +227,142 @@ function SettingsSection({ settings, onRefresh }: { settings: AdminSettings | nu
   if (!settings) return <Text style={styles.emptyText}>No settings data</Text>;
 
   const entries = Object.entries(settings).filter(([k]) => !k.startsWith('_') && k !== 'model_config');
+  const meta = schema?.schema?.fields || {};
+  const categories = schema?.schema?.categories || {};
+
   const filtered = filter
     ? entries.filter(([k, v]) =>
         k.toLowerCase().includes(filter.toLowerCase()) ||
-        String(v).toLowerCase().includes(filter.toLowerCase())
+        String(v).toLowerCase().includes(filter.toLowerCase()) ||
+        (meta[k]?.description || '').toLowerCase().includes(filter.toLowerCase()) ||
+        (meta[k]?.category || '').toLowerCase().includes(filter.toLowerCase())
       )
     : entries;
+
+  // Group by category
+  const grouped: Record<string, [string, string | number | boolean | null][]> = {};
+  const uncategorized: [string, string | number | boolean | null][] = [];
+  const seenCategories = new Set<string>();
+  for (const [key, value] of filtered) {
+    const cat = meta[key]?.category || '';
+    if (cat) {
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push([key, value]);
+      seenCategories.add(cat);
+    } else {
+      uncategorized.push([key, value]);
+    }
+  }
+  const categoryOrder = Object.keys(categories).filter(c => seenCategories.has(c));
+
+  // Open external links
+  const openLink = async (url: string) => {
+    try {
+      const { Linking } = await import('react-native');
+      await Linking.openURL(url);
+    } catch { /* ignore */ }
+  };
 
   return (
     <View style={{ gap: Spacing.sm }}>
       <TextInput
         style={styles.searchInput}
-        placeholder="Search settings..."
+        placeholder="Rechercher un paramètre..."
         placeholderTextColor={Colors.light.textTertiary}
         value={filter}
         onChangeText={setFilter}
       />
-      {filtered.slice(0, 50).map(([key, value]) => (
-        <Card key={key} variant="outlined">
-          {editingKey === key ? (
-            <View>
-              <Text style={styles.cardTitle}>{key}</Text>
-              <TextInput
-                style={styles.editInput}
-                value={editValue}
-                onChangeText={setEditValue}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <View style={styles.editActions}>
-                <TouchableOpacity
-                  style={styles.saveBtn}
-                  onPress={async () => {
-                    try {
-                      await updateAdminSettings({ [key]: editValue });
-                      Alert.alert('Saved', `${key} updated`);
-                      setEditingKey(null);
-                      onRefresh();
-                    } catch (e: any) {
-                      Alert.alert('Error', e.message);
-                    }
-                  }}
-                >
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditingKey(null)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
+      {categoryOrder.map((category) => {
+        const catDesc = categories[category] || '';
+        const catEntries = grouped[category] || [];
+        return (
+          <View key={category} style={{ marginBottom: Spacing.sm }}>
+            <View style={styles.categoryHeader}>
+              <Text style={styles.categoryTitle}>{category}</Text>
+              {catDesc ? <Text style={styles.categoryDesc}>{catDesc}</Text> : null}
             </View>
-          ) : (
-            <TouchableOpacity onPress={() => { setEditingKey(key); setEditValue(String(value)); }}>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardTitle} numberOfLines={1}>{key}</Text>
-                <Ionicons name="create-outline" size={16} color={Colors.light.textTertiary} />
-              </View>
-              <Text style={styles.cardValue} numberOfLines={3}>{String(value)}</Text>
-            </TouchableOpacity>
-          )}
-        </Card>
-      ))}
+            {catEntries.slice(0, 20).map(([key, value]) => {
+              const fieldMeta = meta[key] as SettingsFieldMeta | undefined;
+              return (
+                <Card key={key} variant="outlined" style={{ marginBottom: Spacing.xs }}>
+                  {editingKey === key ? (
+                    <View>
+                      <View style={styles.cardRow}>
+                        <Text style={styles.cardTitle}>{key}</Text>
+                        <Ionicons name="create-outline" size={16} color={Colors.light.primary} />
+                      </View>
+                      {fieldMeta?.description ? (
+                        <Text style={styles.fieldDesc}>{fieldMeta.description}</Text>
+                      ) : null}
+                      <TextInput
+                        style={styles.editInput}
+                        value={editValue}
+                        onChangeText={setEditValue}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        placeholder={fieldMeta?.placeholder || ''}
+                        placeholderTextColor={Colors.light.textTertiary}
+                      />
+                      <View style={styles.editActions}>
+                        <TouchableOpacity
+                          style={styles.saveBtn}
+                          onPress={async () => {
+                            try {
+                              await updateAdminSettings({ [key]: editValue });
+                              Alert.alert('Saved', `${key} updated`);
+                              setEditingKey(null);
+                              onRefresh();
+                            } catch (e: any) {
+                              Alert.alert('Error', e.message);
+                            }
+                          }}
+                        >
+                          <Text style={styles.saveBtnText}>Save</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditingKey(null)}>
+                          <Text style={styles.cancelBtnText}>Cancel</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <TouchableOpacity onPress={() => { setEditingKey(key); setEditValue(String(value)); }}>
+                      <View style={styles.cardRow}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>{key}</Text>
+                        {fieldMeta?.help_url ? (
+                          <TouchableOpacity onPress={() => openLink(fieldMeta.help_url!)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                            <Ionicons name="information-circle-outline" size={18} color={Colors.light.primary} />
+                          </TouchableOpacity>
+                        ) : null}
+                        <Ionicons name="create-outline" size={16} color={Colors.light.textTertiary} />
+                      </View>
+                      {fieldMeta?.description ? (
+                        <Text style={styles.fieldDesc}>{fieldMeta.description}</Text>
+                      ) : null}
+                      <Text style={styles.cardValue} numberOfLines={2}>{String(value)}</Text>
+                    </TouchableOpacity>
+                  )}
+                </Card>
+              );
+            })}
+          </View>
+        );
+      })}
+      {uncategorized.length > 0 && (
+        <View style={{ marginBottom: Spacing.sm }}>
+          <Text style={styles.categoryTitle}>Autres</Text>
+          {uncategorized.slice(0, 20).map(([key, value]) => (
+            <Card key={key} variant="outlined" style={{ marginBottom: Spacing.xs }}>
+              <TouchableOpacity onPress={() => { setEditingKey(key); setEditValue(String(value)); }}>
+                <View style={styles.cardRow}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>{key}</Text>
+                  <Ionicons name="create-outline" size={16} color={Colors.light.textTertiary} />
+                </View>
+                <Text style={styles.cardValue} numberOfLines={2}>{String(value)}</Text>
+              </TouchableOpacity>
+            </Card>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -531,6 +614,10 @@ const styles = StyleSheet.create({
   successCard: { borderLeftWidth: 4, borderLeftColor: Colors.light.success },
   errorCard: { borderLeftWidth: 4, borderLeftColor: Colors.light.error },
   totalText: { fontSize: FontSizes.sm, color: Colors.light.textSecondary, marginBottom: Spacing.sm },
+  categoryHeader: { marginBottom: Spacing.sm, marginTop: Spacing.md },
+  categoryTitle: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.light.text },
+  categoryDesc: { fontSize: FontSizes.xs, color: Colors.light.textTertiary, marginTop: 2 },
+  fieldDesc: { fontSize: FontSizes.xs, color: Colors.light.textSecondary, marginTop: 2, lineHeight: 16 },
   userAvatar: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.light.surfaceVariant,
     alignItems: 'center', justifyContent: 'center',
