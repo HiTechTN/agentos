@@ -3,24 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentOS v6.0 - AI Agent Orchestration System</title>
-<meta name="description" content="AgentOS v6.0 orchestrates 8 AI agents (4 domain + 4 sub-agents) with Plan-Code-Verify workflow, Kanban boards, Pulse dashboards, MCP integration, cross-platform UI (Web + Desktop + PWA + Mobile), and Intelligence Engine with episodic memory, skills registry, knowledge base, self-reflection, and context enrichment. Self-hosted, MIT licensed.">
+<title>AgentOS v7.0 — AI Agent Orchestration System</title>
+<meta name="description" content="AgentOS v7.0 orchestrates 8 AI agents with Intelligence Engine, TreeOfThoughts, GraphRAG, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, MCP. Self-hosted, MIT licensed.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234c6ef5'/><text x='16' y='22' text-anchor='middle' font-size='18' font-weight='bold' fill='white'>A</text></svg>">
 <style>
 :root {
-  --primary: #4c6ef5;
-  --primary-dark: #3b5bdb;
-  --primary-light: #dbe4ff;
-  --bg: #ffffff;
-  --bg-alt: #f8f9fa;
-  --text: #212529;
-  --text-secondary: #6c757d;
-  --border: #dee2e6;
-  --success: #40c057;
-  --warning: #fab005;
-  --radius: 12px;
+  --primary: #4c6ef5; --primary-dark: #3b5bdb; --primary-light: #dbe4ff;
+  --bg: #ffffff; --bg-alt: #f8f9fa; --text: #212529; --text-secondary: #6c757d;
+  --border: #dee2e6; --success: #40c057; --warning: #fab005; --danger: #fa5252;
+  --purple: #7950f2; --pink: #e64980; --radius: 12px;
   --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
-  --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,.12); --shadow-glow: 0 0 30px rgba(76,110,245,.15);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -29,82 +22,113 @@ a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
-/* Nav */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(76,110,245,.1); }
+  50% { box-shadow: 0 0 40px rgba(76,110,245,.25); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
 nav .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; color: var(--text); text-decoration: none !important; }
-.logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; }
+.logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--purple)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; }
 .nav-links { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
 .nav-links a { font-size: .9rem; color: var(--text-secondary); font-weight: 500; text-decoration: none; }
 .nav-links a:hover { color: var(--primary); }
-.nav-badge { font-size: .75rem; background: var(--primary-light); color: var(--primary); padding: 2px 10px; border-radius: 20px; font-weight: 600; }
+.nav-badge { font-size: .75rem; background: linear-gradient(135deg, var(--primary-light), #e5dbff); color: var(--primary); padding: 2px 10px; border-radius: 20px; font-weight: 700; position: relative; }
+.nav-badge::after { content: 'NEW'; position: absolute; top: -6px; right: -18px; font-size: .55rem; background: var(--danger); color: #fff; padding: 0 4px; border-radius: 4px; font-weight: 700; }
 .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: .9rem; font-weight: 600; text-decoration: none !important; transition: all .2s; cursor: pointer; border: none; }
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--purple)); color: #fff; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
 .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
 .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
 .btn-lg { padding: 14px 32px; font-size: 1rem; }
-.btn-success { background: var(--success); color: #fff; }
-.btn-success:hover { background: #2f9e44; transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.btn-success { background: linear-gradient(135deg, var(--success), #2f9e44); color: #fff; }
+.btn-success:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(64,192,87,.2); }
 
-/* Hero */
-.hero { padding: 140px 0 80px; text-align: center; background: linear-gradient(180deg, var(--bg-alt) 0%, var(--bg) 100%); }
-.hero h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.15; margin-bottom: 16px; }
-.hero h1 span { background: linear-gradient(135deg, var(--primary), #748ffc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.hero .subtitle { font-size: 1.1rem; color: var(--text-secondary); max-width: 680px; margin: 0 auto 12px; }
+.hero { padding: 140px 0 80px; text-align: center; background: linear-gradient(180deg, var(--bg-alt) 0%, var(--bg) 100%); position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 30% 40%, rgba(76,110,245,.03) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(121,80,242,.03) 0%, transparent 50%); pointer-events: none; }
+.hero h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.15; margin-bottom: 16px; animation: slide-up 0.6s ease; }
+.hero h1 span { background: linear-gradient(135deg, var(--primary), var(--purple), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero .subtitle { font-size: 1.1rem; color: var(--text-secondary); max-width: 720px; margin: 0 auto 12px; }
 .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
 .hero-stats { display: flex; justify-content: center; gap: 40px; margin-top: 50px; flex-wrap: wrap; }
-.hero-stats div { text-align: center; }
-.hero-stats strong { display: block; font-size: 1.8rem; color: var(--text); }
+.hero-stats div { text-align: center; animation: float 3s ease-in-out infinite; }
+.hero-stats div:nth-child(2) { animation-delay: 0.3s; }
+.hero-stats div:nth-child(3) { animation-delay: 0.6s; }
+.hero-stats div:nth-child(4) { animation-delay: 0.9s; }
+.hero-stats div:nth-child(5) { animation-delay: 1.2s; }
+.hero-stats strong { display: block; font-size: 1.8rem; background: linear-gradient(135deg, var(--text), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .hero-stats span { font-size: .82rem; color: var(--text-secondary); }
 
-/* Pipeline */
+.section-label { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--primary); margin-bottom: 8px; }
+.section-title { text-align: center; font-size: 1.8rem; margin-bottom: 12px; }
+.section-desc { text-align: center; color: var(--text-secondary); margin-bottom: 40px; max-width: 640px; margin-left: auto; margin-right: auto; }
+
 .pipeline { padding: 80px 0; background: var(--bg-alt); }
-.pipeline h2 { text-align: center; font-size: 1.8rem; margin-bottom: 12px; }
-.pipeline > .container > p { text-align: center; color: var(--text-secondary); margin-bottom: 40px; }
 .pipeline-flow { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
-.pipeline-step { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; text-align: center; flex: 1; min-width: 140px; max-width: 190px; transition: all .2s; }
-.pipeline-step:hover { border-color: var(--primary); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.pipeline-step { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; text-align: center; flex: 1; min-width: 120px; max-width: 170px; transition: all .3s; position: relative; overflow: hidden; }
+.pipeline-step::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--purple)); opacity: 0; transition: opacity .3s; }
+.pipeline-step:hover { border-color: var(--primary); box-shadow: var(--shadow-glow); transform: translateY(-3px); }
+.pipeline-step:hover::before { opacity: 1; }
 .pipeline-step .icon { font-size: 1.6rem; margin-bottom: 6px; }
 .pipeline-step h3 { font-size: .85rem; margin-bottom: 2px; }
 .pipeline-step p { font-size: .72rem; color: var(--text-secondary); }
 .pipeline-arrow { font-size: 1.3rem; color: var(--primary); font-weight: 300; }
 .pipeline-sub { margin-top: 24px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
-.pipeline-sub .tag { padding: 6px 16px; border-radius: 20px; font-size: .8rem; font-weight: 600; }
+.pipeline-sub .tag { padding: 6px 16px; border-radius: 20px; font-size: .8rem; font-weight: 600; cursor: default; transition: all .2s; }
+.pipeline-sub .tag:hover { transform: translateY(-1px); }
 .tag-plan { background: #e7f5ff; color: #1971c2; }
 .tag-verify { background: #ebfbee; color: #2b8a3e; }
 .tag-explore { background: #f3f0ff; color: #7048e8; }
 .tag-review { background: #fff0f6; color: #c2255c; }
+.tag-intel { background: #fff5f5; color: #e64980; }
 
-/* Features */
 .features { padding: 80px 0; }
-.features h2 { text-align: center; font-size: 1.8rem; margin-bottom: 8px; }
-.features > .container > p { text-align: center; color: var(--text-secondary); margin-bottom: 40px; }
-.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px; }
-.feature-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; transition: all .2s; }
-.feature-card:hover { border-color: var(--primary); box-shadow: var(--shadow-lg); }
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.feature-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; transition: all .3s; position: relative; overflow: hidden; animation: slide-up 0.5s ease both; }
+.feature-card:nth-child(1) { animation-delay: 0.05s; }
+.feature-card:nth-child(2) { animation-delay: 0.1s; }
+.feature-card:nth-child(3) { animation-delay: 0.15s; }
+.feature-card:nth-child(4) { animation-delay: 0.2s; }
+.feature-card:nth-child(5) { animation-delay: 0.25s; }
+.feature-card:nth-child(6) { animation-delay: 0.3s; }
+.feature-card:nth-child(7) { animation-delay: 0.35s; }
+.feature-card:nth-child(8) { animation-delay: 0.4s; }
+.feature-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--purple), var(--pink)); opacity: 0; transition: opacity .3s; }
+.feature-card:hover { border-color: var(--primary); box-shadow: var(--shadow-glow); transform: translateY(-3px); }
+.feature-card:hover::before { opacity: 1; }
 .feature-card .icon { font-size: 1.8rem; margin-bottom: 10px; }
 .feature-card h3 { font-size: 1rem; margin-bottom: 6px; }
+.feature-card h3 small { font-size: .65rem; font-weight: 400; color: var(--text-secondary); margin-left: 6px; }
 .feature-card p { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
-.feature-card .tag-new { font-size: .65rem; background: var(--primary-light); color: var(--primary); padding: 1px 8px; border-radius: 10px; font-weight: 700; vertical-align: middle; margin-left: 6px; }
+.feature-card .tag-new { font-size: .6rem; background: linear-gradient(135deg, var(--primary), var(--purple)); color: #fff; padding: 1px 8px; border-radius: 10px; font-weight: 700; vertical-align: middle; margin-left: 6px; }
+.feature-card .tag-beta { font-size: .6rem; background: var(--warning); color: #000; padding: 1px 8px; border-radius: 10px; font-weight: 700; vertical-align: middle; margin-left: 6px; }
 
-/* Sub-agents */
 .subagents { padding: 80px 0; background: var(--bg-alt); }
-.subagents h2 { text-align: center; font-size: 1.8rem; margin-bottom: 36px; }
-.subagents-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-.subagent-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; transition: all .2s; }
-.subagent-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.subagents-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.subagent-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; transition: all .3s; animation: slide-up 0.5s ease both; }
+.subagent-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-glow); }
 .subagent-card .tag { display: inline-block; font-size: .7rem; font-weight: 600; padding: 2px 12px; border-radius: 20px; margin-bottom: 10px; }
 .subagent-card h3 { font-size: 1rem; margin-bottom: 4px; }
-.subagent-card .mention { font-size: .75rem; color: var(--text-secondary); margin-bottom: 8px; }
+.subagent-card .mention { font-size: .72rem; color: var(--text-secondary); margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
 .subagent-card p { font-size: .8rem; color: var(--text-secondary); line-height: 1.5; }
 
-/* Domain Agents */
+/* V7.0 badge row */
+.v7-badge-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
+.v7-badge-row .pill { font-size: .65rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+
 .agents { padding: 80px 0; }
-.agents h2 { text-align: center; font-size: 1.8rem; margin-bottom: 36px; }
 .agents-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-.agent-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; transition: all .2s; }
-.agent-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.agent-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; transition: all .3s; }
+.agent-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-glow); }
 .agent-card .emoji { font-size: 2.2rem; margin-bottom: 8px; }
 .agent-card h3 { font-size: .95rem; margin-bottom: 4px; }
 .agent-card .tag { display: inline-block; font-size: .7rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; margin-bottom: 8px; }
@@ -114,32 +138,28 @@ nav .container { display: flex; align-items: center; justify-content: space-betw
 .tag-commerce { background: #ebfbee; color: #2b8a3e; }
 .agent-card p { font-size: .8rem; color: var(--text-secondary); line-height: 1.5; }
 
-/* How it works */
 .how { padding: 80px 0; background: var(--bg-alt); }
-.how h2 { text-align: center; font-size: 1.8rem; margin-bottom: 36px; }
 .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; counter-reset: step; }
-.step { text-align: center; padding: 28px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); position: relative; transition: all .2s; }
-.step:hover { border-color: var(--primary); box-shadow: var(--shadow-lg); }
-.step::before { counter-increment: step; content: counter(step); position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; background: var(--primary); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.step { text-align: center; padding: 28px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); position: relative; transition: all .3s; }
+.step:hover { border-color: var(--primary); box-shadow: var(--shadow-glow); transform: translateY(-2px); }
+.step::before { counter-increment: step; content: counter(step); position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; background: linear-gradient(135deg, var(--primary), var(--purple)); color: #fff; border-radius: 50%; font-size: .8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .step h3 { font-size: .95rem; margin: 12px 0 6px; }
 .step p { font-size: .82rem; color: var(--text-secondary); }
 
-/* Stack */
 .stack { padding: 80px 0; text-align: center; }
-.stack h2 { font-size: 1.8rem; margin-bottom: 32px; }
-.stack-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 700px; margin: 0 auto; }
+.stack-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 750px; margin: 0 auto; }
 .stack-tag { background: var(--bg-alt); border: 1px solid var(--border); border-radius: 8px; padding: 8px 18px; font-size: .82rem; font-weight: 500; transition: all .2s; }
-.stack-tag:hover { border-color: var(--primary); color: var(--primary); }
+.stack-tag:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+.stack-tag.highlight { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 
-/* CTA */
-.cta { padding: 80px 0; text-align: center; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: #fff; }
-.cta h2 { font-size: 2rem; margin-bottom: 10px; }
-.cta p { opacity: .9; margin-bottom: 28px; font-size: 1.05rem; }
-.cta .btn-primary { background: #fff; color: var(--primary); }
-.cta .btn-primary:hover { background: var(--bg-alt); }
-.cta code { display: inline-block; background: rgba(0,0,0,.2); padding: 10px 22px; border-radius: 8px; font-size: .85rem; margin-top: 20px; }
+.cta { padding: 80px 0; text-align: center; background: linear-gradient(135deg, var(--primary-dark), var(--purple)); color: #fff; position: relative; overflow: hidden; }
+.cta::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 20% 50%, rgba(255,255,255,.05) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(255,255,255,.05) 0%, transparent 50%); }
+.cta h2 { font-size: 2rem; margin-bottom: 10px; position: relative; }
+.cta p { opacity: .9; margin-bottom: 28px; font-size: 1.05rem; position: relative; }
+.cta .btn-ghost { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+.cta .btn-ghost:hover { background: rgba(255,255,255,.25); }
+.cta code { display: inline-block; background: rgba(0,0,0,.2); padding: 10px 22px; border-radius: 8px; font-size: .85rem; margin-top: 20px; position: relative; }
 
-/* Footer */
 footer { padding: 28px 0; text-align: center; font-size: .82rem; color: var(--text-secondary); border-top: 1px solid var(--border); }
 footer a { color: var(--text-secondary); }
 footer a:hover { color: var(--primary); }
@@ -156,14 +176,15 @@ footer a:hover { color: var(--primary); }
 
 <nav>
   <div class="container">
-    <a href="/" class="logo"><span class="logo-icon">A</span> AgentOS</a>
+    <a href="/agentos/" class="logo"><span class="logo-icon">A</span> AgentOS <span class="nav-badge">v7.0</span></a>
     <div class="nav-links">
       <a href="#features">Features</a>
+      <a href="#intelligence">Intelligence</a>
       <a href="#subagents">Sub-Agents</a>
       <a href="#agents">Agents</a>
       <a href="#how">How it works</a>
       <a href="https://github.com/HiTechTN/agentos" target="_blank">GitHub</a>
-      <span class="nav-badge">v6.0.0</span>
+      <a href="guide.html" class="btn btn-outline">📖 Guide</a>
     </div>
   </div>
 </nav>
@@ -171,51 +192,128 @@ footer a:hover { color: var(--primary); }
 <section class="hero">
   <div class="container">
     <h1>From one sentence to<br><span>working software</span> in minutes</h1>
-    <p class="subtitle">AgentOS orchestrates 8 AI agents — 4 domain specialists + 4 sub-agents — with Plan &#x2192; Code &#x2192; Verify workflow. Cross-platform: Web (Next.js 16), Desktop (Tauri v2), Mobile (React Native), PWA. Kanban, Pulse, MCP, git worktree isolation, auth system, admin panel, multi-modal chat, 28+ free LLM models. Self-hosted, MIT licensed.</p>
+    <p class="subtitle">AgentOS v7.0 orchestrates 8 AI agents with Intelligence Engine, TreeOfThoughts reasoning, GraphRAG knowledge graphs, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, and MCP. Cross-platform: Web, Desktop (Tauri v2), Mobile (React Native), PWA. Self-hosted, MIT licensed.</p>
     <div class="hero-btns">
-      <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">&#x1F680; Deploy with Docker</a>
+      <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">🚀 Deploy with Docker</a>
       <a href="#how" class="btn btn-outline btn-lg">How it works</a>
-      <a href="guide.html" class="btn btn-outline btn-lg">&#x1F4D6; Guide</a>
+      <a href="guide.html" class="btn btn-outline btn-lg">📖 Guide</a>
     </div>
     <div class="hero-stats">
       <div><strong>8</strong><span>AI agents</span></div>
-      <div><strong>716+</strong><span>automated tests</span></div>
-      <div><strong>50+</strong><span>API endpoints</span></div>
+      <div><strong>955+</strong><span>automated tests</span></div>
+      <div><strong>60+</strong><span>API endpoints</span></div>
       <div><strong>4</strong><span>platform targets</span></div>
-      <div><strong>100%</strong><span>test coverage</span></div>
+      <div><strong>99%</strong><span>test coverage</span></div>
+      <div><strong>v7.0</strong><span>Intelligence Engine</span></div>
     </div>
   </div>
 </section>
 
 <section class="pipeline">
   <div class="container">
-    <h2>&#x1F3ED; Plan &#x2192; Code &#x2192; Verify</h2>
-    <p>From intent to production in one workflow</p>
+    <span class="section-label">Workflow</span>
+    <h2 class="section-title">🏗️ Plan → Execute → Verify → Learn</h2>
+    <p class="section-desc">From intent to production with continuous learning via the Intelligence Engine</p>
     <div class="pipeline-flow">
-      <div class="pipeline-step"><div class="icon">&#x1F4EC;</div><h3>Prompt</h3><p>Describe your goal</p></div>
-      <span class="pipeline-arrow">&#x2192;</span>
-      <div class="pipeline-step" style="border-color:var(--primary)"><div class="icon">&#x1F4CB;</div><h3>Plan</h3><p>@Planner structures</p></div>
-      <span class="pipeline-arrow">&#x2192;</span>
-      <div class="pipeline-step"><div class="icon">&#x2699;&#xFE0F;</div><h3>Execute</h3><p>8 agents in parallel</p></div>
-      <span class="pipeline-arrow">&#x2192;</span>
-      <div class="pipeline-step"><div class="icon">&#x2705;</div><h3>Verify</h3><p>@Verifier validates</p></div>
-      <span class="pipeline-arrow">&#x2192;</span>
-      <div class="pipeline-step"><div class="icon">&#x1F4AD;</div><h3>Review</h3><p>Kanban + HITL</p></div>
-      <span class="pipeline-arrow">&#x2192;</span>
-      <div class="pipeline-step"><div class="icon">&#x1F680;</div><h3>Deploy</h3><p>Ship to production</p></div>
+      <div class="pipeline-step"><div class="icon">📬</div><h3>Prompt</h3><p>Describe your goal</p></div>
+      <span class="pipeline-arrow">→</span>
+      <div class="pipeline-step" style="border-color:var(--primary)"><div class="icon">📋</div><h3>Plan</h3><p>@Planner structures</p></div>
+      <span class="pipeline-arrow">→</span>
+      <div class="pipeline-step"><div class="icon">⚙️</div><h3>Execute</h3><p>8 agents in parallel</p></div>
+      <span class="pipeline-arrow">→</span>
+      <div class="pipeline-step"><div class="icon">✅</div><h3>Verify</h3><p>@Verifier validates</p></div>
+      <span class="pipeline-arrow">→</span>
+      <div class="pipeline-step"><div class="icon">🧠</div><h3>Learn</h3><p>Intelligence Engine</p></div>
+      <span class="pipeline-arrow">→</span>
+      <div class="pipeline-step"><div class="icon">🚀</div><h3>Deploy</h3><p>Ship to production</p></div>
     </div>
     <div class="pipeline-sub">
-      <span class="tag tag-plan">@Planner &#x2014; Architecture design</span>
-      <span class="tag tag-verify">@Verifier &#x2014; Validation</span>
-      <span class="tag tag-explore">@Explorer &#x2014; Code search</span>
-      <span class="tag tag-review">@CodeReviewer &#x2014; Security audit</span>
+      <span class="tag tag-plan">@Planner — Architecture design</span>
+      <span class="tag tag-verify">@Verifier — Validation</span>
+      <span class="tag tag-explore">@Explorer — Code search</span>
+      <span class="tag tag-review">@CodeReviewer — Security audit</span>
+      <span class="tag tag-intel">🧠 Intelligence Engine — v7.0</span>
     </div>
   </div>
 </section>
 
-<section class="subagents" id="subagents">
+<section class="features" id="features">
   <div class="container">
-    <h2>&#x1F916; Sub-Agent System</h2>
+    <span class="section-label">Features</span>
+    <h2 class="section-title">✨ What's New in v7.0</h2>
+    <p class="section-desc">The Intelligence Engine and 7 new modules transform AgentOS from an orchestrator into an autonomous learning system.</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="icon">🧠</div><h3>Intelligence Engine <span class="tag-new">v6.0</span></h3><p>Episodic memory, skills registry, knowledge base, self-reflection engine, and context enricher. The system learns from every execution and improves over time.</p></div>
+      <div class="feature-card"><div class="icon">🌳</div><h3>TreeOfThoughts <span class="tag-new">v7.0</span></h3><p>Multi-branch reasoning with up to 2 parallel thought paths. Activated automatically when task complexity > 0.7. Smarter decision-making for hard problems.</p></div>
+      <div class="feature-card"><div class="icon">🔗</div><h3>GraphRAG <span class="tag-new">v7.0</span></h3><p>Knowledge graph extraction and storage after every session. Entities and relationships are persisted to PostgreSQL for cross-session context retrieval.</p></div>
+      <div class="feature-card"><div class="icon">🎮</div><h3>VRAM Manager <span class="tag-new">v7.0</span></h3><p>Intelligent GPU memory manager for Ollama models. Ensures only one model in VRAM at a time (12GB budget). Auto-switches models based on work_type.</p></div>
+      <div class="feature-card"><div class="icon">🔧</div><h3>AutoCorrector <span class="tag-new">v7.0</span></h3><p>Wraps all sandbox DevAgent calls with automatic error correction. Detects failures, analyzes root cause, and retries with corrected code — zero manual intervention.</p></div>
+      <div class="feature-card"><div class="icon">🚌</div><h3>AgentBus <span class="tag-new">v7.0</span></h3><p>Event bus for spawning specialized sub-agents on demand. Enables dynamic agent composition — spawn, communicate, and retire agents at runtime.</p></div>
+      <div class="feature-card"><div class="icon">⚡</div><h3>WasmRunner <span class="tag-new">v7.0</span></h3><p>WebAssembly sandbox for lightweight tools (<5ms). Run untrusted code safely with near-native performance. Perfect for sandboxed DevAgent actions.</p></div>
+      <div class="feature-card"><div class="icon">🖥️</div><h3>ComputerUseTools <span class="tag-new">v7.0</span></h3><p>Desktop automation: mouse, keyboard, screenshot, clipboard. Disabled by default, activated via <code>COMPUTER_USE_ENABLED=true</code>. Requires 12GB GPU free.</p></div>
+      <div class="feature-card"><div class="icon">🔗</div><h3>MCP Integration</h3><p>Model Context Protocol for extending AgentOS with any external tool server. Register databases, APIs, cloud services as MCP tools.</p></div>
+      <div class="feature-card"><div class="icon">🔄</div><h3>Episodic Memory</h3><p>Records every task outcome with quality scoring. Recall similar past tasks to reuse successful strategies. Continuous improvement across sessions.</p></div>
+      <div class="feature-card"><div class="icon">📚</div><h3>Skills Registry</h3><p>Auto-extracts reusable skills from successful task outcomes via LLM analysis. Reinforcement learning adjusts confidence. Skills auto-disable after 4 failures.</p></div>
+      <div class="feature-card"><div class="icon">💡</div><h3>Self-Reflection</h3><p>Nightly cron job analyzes all task outcomes, detects patterns, generates recommendations, and evolves agent behavior. Configurable via <code>nightly_reflection_cron</code>.</p></div>
+      <div class="feature-card"><div class="icon">🔄</div><h3>Smart LLM Router</h3><p>28+ free OpenRouter models across 8 work types. Auto-detection, rate-limiting (1 req/min sliding), 4-level fallback (OpenRouter → Ollama → degraded).</p></div>
+      <div class="feature-card"><div class="icon">📊</div><h3>Kanban + Pulse</h3><p>6-column Kanban with WebSocket real-time updates. Pulse dashboards with latency charts, agent activity, task completion metrics.</p></div>
+      <div class="feature-card"><div class="icon">🔐</div><h3>Auth + Admin</h3><p>Email/password + OAuth (Google/GitHub). JWT auth with role-based access. Admin panel: settings, services, LLM providers, user management.</p></div>
+      <div class="feature-card"><div class="icon">📱</div><h3>Cross-Platform UI</h3><p>Next.js 16 web app + Tauri v2 desktop (deb/rpm/AppImage) + React Native mobile (APK) + PWA. Single React codebase, 4 platform targets.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="subagents" id="intelligence">
+  <div class="container">
+    <span class="section-label">Intelligence Engine</span>
+    <h2 class="section-title">🧠 Learn. Adapt. Evolve.</h2>
+    <p class="section-desc">The Intelligence Engine records every execution, extracts patterns, builds a knowledge graph, and reflects nightly — making AgentOS smarter over time.</p>
+    <div class="subagents-grid">
+      <div class="subagent-card">
+        <span class="tag" style="background:#e7f5ff;color:#1971c2">Memory</span>
+        <h3>Episodic Memory</h3>
+        <div class="mention">app/memory/episodic.py</div>
+        <p>Records TaskOutcome with quality_score. Recall similar tasks by type, filter by outcome. Get best strategy for any task type.</p>
+      </div>
+      <div class="subagent-card">
+        <span class="tag" style="background:#ebfbee;color:#2b8a3e">Skills</span>
+        <h3>Skills Registry</h3>
+        <div class="mention">app/skills/registry.py</div>
+        <p>LLM auto-extracts skills from successes. Reinforcement learning (+0.05 success, -0.1 failure). Auto-disables after 4 consecutive failures.</p>
+      </div>
+      <div class="subagent-card">
+        <span class="tag" style="background:#f3f0ff;color:#7048e8">Knowledge</span>
+        <h3>Knowledge Base</h3>
+        <div class="mention">app/memory/knowledge.py</div>
+        <p>6 knowledge kinds: api_pattern, code_pattern, constraint, best_practice, domain_fact, failure_mode. ILIKE search with confidence scoring.</p>
+      </div>
+      <div class="subagent-card">
+        <span class="tag" style="background:#fff0f6;color:#c2255c">Reflection</span>
+        <h3>Self-Reflection</h3>
+        <div class="mention">app/learning/reflection.py</div>
+        <p>Nightly analysis of all task outcomes. Detects patterns, generates recommendations, evolves agent behavior. Threshold: 10 tasks between reports.</p>
+      </div>
+      <div class="subagent-card">
+        <span class="tag" style="background:#fff5f5;color:#e64980">Enricher</span>
+        <h3>Context Enricher</h3>
+        <div class="mention">app/learning/context_enricher.py</div>
+        <p>Augments system prompts with memories, skills, and knowledge before each execution. 3 optional blocks, capped at 2000 chars.</p>
+      </div>
+      <div class="subagent-card">
+        <span class="tag" style="background:#fffbe6;color:#d29922">Graph</span>
+        <h3>GraphRAG</h3>
+        <div class="mention">app/memory/graph_rag.py</div>
+        <p>Entity-relation extraction after every session. Stores knowledge graph in PostgreSQL. Enables cross-session context retrieval.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="subagents" id="subagents" style="background: var(--bg);">
+  <div class="container">
+    <span class="section-label">Sub-Agent System</span>
+    <h2 class="section-title">🤖 5 Specialized Sub-Agents</h2>
+    <p class="section-desc">Auto-routed based on prompt content. Each sub-agent is an LLM-powered specialist with its own expertise and output format.</p>
     <div class="subagents-grid">
       <div class="subagent-card">
         <span class="tag" style="background:#e7f5ff;color:#1971c2">Planner</span>
@@ -227,76 +325,58 @@ footer a:hover { color: var(--primary); }
         <span class="tag" style="background:#ebfbee;color:#2b8a3e">Verifier</span>
         <h3>@Verifier</h3>
         <div class="mention">auto-route: verify, validate, test</div>
-        <p>Validates code quality: lint, type safety, test coverage, security, edge cases. Returns JSON issue reports.</p>
+        <p>Validates code quality: lint, type safety, test coverage, security, edge cases. Returns JSON issue reports with severity levels.</p>
       </div>
       <div class="subagent-card">
         <span class="tag" style="background:#f3f0ff;color:#7048e8">Explorer</span>
         <h3>@Explorer</h3>
         <div class="mention">auto-route: find, search, where is</div>
-        <p>Searches and analyzes codebases, traces dependencies, identifies relevant files, summarizes architecture.</p>
+        <p>Searches and analyzes codebases, traces dependencies, identifies relevant files, summarizes architecture patterns.</p>
       </div>
       <div class="subagent-card">
         <span class="tag" style="background:#fff0f6;color:#c2255c">Reviewer</span>
         <h3>@CodeReviewer</h3>
         <div class="mention">auto-route: review, audit, security</div>
-        <p>Senior engineer-level review: security analysis, performance, architecture, style, edge cases, error handling.</p>
+        <p>Senior engineer-level review: security (CRITICAL/HIGH/MEDIUM/LOW), performance, architecture, style, edge cases, error handling.</p>
       </div>
-    </div>
-  </div>
-</section>
-
-<section class="features" id="features">
-  <div class="container">
-    <h2>&#x2728; Why AgentOS?</h2>
-    <p>Everything you need to ship AI-powered workflows, self-hosted and MIT licensed.</p>
-    <div class="features-grid">
-      <div class="feature-card"><div class="icon">&#x1F916;</div><h3>8 AI agents <span class="tag-new">v5.0</span></h3><p>4 domain agents (Dev, Content, Marketing, Commerce) + 4 sub-agents (Planner, Verifier, Explorer, CodeReviewer) with auto-routing.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F5A5;&#xFE0F;</div><h3>Cross-Platform UI <span class="tag-new">v5.1</span></h3><p>Next.js 16 web app + Tauri v2 desktop (deb/rpm/AppImage) + React Native mobile (APK/IPA) + installable PWA. Single React codebase.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F510;</div><h3>Auth System <span class="tag-new">v5.1</span></h3><p>Email/password registration, JWT authentication, OAuth (Google/GitHub). Role-based access control (user/admin). Admin auto-promotion via env var.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F6E1;&#xFE0F;</div><h3>Admin Panel <span class="tag-new">v5.1</span></h3><p>Full admin dashboard: system settings editor, service health checks, LLM provider browser, model selection, user management, usage reports.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4F1;</div><h3>Mobile App <span class="tag-new">v5.1</span></h3><p>React Native (Expo) companion app. Chat with agents, manage sessions, admin controls, offline queue, push notifications. Android APK available.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F5BC;&#xFE0F;</div><h3>Multi-Modal Chat <span class="tag-new">v5.1</span></h3><p>Upload images from camera/gallery in chat. Base64 image transfer. Vision-analysis skill for image understanding.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4CB;</div><h3>Plan Mode</h3><p>@Planner sub-agent produces structured plans with phases, tasks, risks, dependencies, and architecture summaries.</p></div>
-      <div class="feature-card"><div class="icon">&#x2705;</div><h3>Verify Mode</h3><p>@Verifier validates code changes: lint, type safety, coverage, security. Returns JSON-format issue reports.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4CA;</div><h3>Kanban Board</h3><p>6 columns (backlog &#x2192; done), full CRUD API, WebSocket real-time updates. Track every task.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4C8;</div><h3>Pulse Dashboards</h3><p>Real-time metrics: agent activity, task completion, cards by column, historical timeline.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F517;</div><h3>MCP Integration</h3><p>Register and call any MCP-compatible tool server. Extend AgentOS with databases, APIs, cloud services.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F504;</div><h3>Smart LLM Router <span class="tag-new">v5.0</span></h3><p>28+ free OpenRouter models across 8 work types. Auto-detection, rate-limiting, 4-level fallback (OpenRouter → Ollama → degraded).</p></div>
-      <div class="feature-card"><div class="icon">&#x1F504;</div><h3>LLM fallback</h3><p>OpenRouter primary, Ollama local fallback, degraded response as last resort.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F9F0;</div><h3>Vector memory</h3><p>PostgreSQL + pgvector 768d stores project embeddings for cross-session context retention.</p></div>
-      <div class="feature-card"><div class="icon">&#x26A1;</div><h3>Circuit breaker</h3><p>Auto-disables agents after 3 consecutive failures. No runaway costs.</p></div>
-      <div class="feature-card"><div class="icon">&#x1F4E6;</div><h3>Linux Packages <span class="tag-new">v5.1</span></h3><p>Pre-built .deb (Debian/Ubuntu) and .rpm (Fedora/RHEL). One-command install via apt/dnf. Docker Compose stack with 10 services.</p></div>
+      <div class="subagent-card">
+        <span class="tag" style="background:#fff5f5;color:#e64980">Debugger</span>
+        <h3>@Debugger</h3>
+        <div class="mention">auto-route: error, exception, debug, crash</div>
+        <p>Error analysis with root cause, explanation, fix suggestion, and confidence score. Integrates with AutoCorrector for automatic fix.</p>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="agents" id="agents">
   <div class="container">
-    <h2>Domain Agents</h2>
+    <h2 class="section-title">Domain Agents</h2>
+    <p class="section-desc">4 specialized domain agents with parallel execution, retry (×3), and circuit breaker (3 failures → auto-disable).</p>
     <div class="agents-grid">
       <div class="agent-card">
-        <div class="emoji">&#x1F4BB;</div>
+        <div class="emoji">💻</div>
         <h3>DevAgent</h3>
         <span class="tag tag-dev">code</span>
-        <p>Scaffolds repos, configures CI/CD (GitHub Actions + GitLab CI), runs tests, deploys to staging.</p>
+        <p>Scaffolds repos, configures CI/CD (GitHub Actions + GitLab CI), runs tests, deploys to staging. AutoCorrector wrapper for sandbox calls.</p>
       </div>
       <div class="agent-card">
-        <div class="emoji">&#x1F4DD;</div>
+        <div class="emoji">📝</div>
         <h3>ContentAgent</h3>
         <span class="tag tag-content">content</span>
-        <p>Writes SEO content, generates images via Replicate, manages Strapi CMS editorial calendar.</p>
+        <p>Writes SEO content, generates images via Replicate, manages editorial calendar. Multi-modal with vision-analysis skill.</p>
       </div>
       <div class="agent-card">
-        <div class="emoji">&#x1F4CA;</div>
+        <div class="emoji">📈</div>
         <h3>MarketingAgent</h3>
         <span class="tag tag-marketing">growth</span>
-        <p>Segments audiences, sends email campaigns (MailHog/SMTP), configures ads, generates reports.</p>
+        <p>Segments audiences, sends email campaigns (MailHog/SMTP), configures ads, generates performance reports with Pulse data.</p>
       </div>
       <div class="agent-card">
-        <div class="emoji">&#x1F4B0;</div>
+        <div class="emoji">💰</div>
         <h3>CommerceAgent</h3>
         <span class="tag tag-commerce">sales</span>
-        <p>Manages product catalogs, creates Stripe checkout sessions, tracks inventory, generates FAQ.</p>
+        <p>Manages product catalogs, creates Stripe checkout sessions, tracks inventory, generates FAQ. Skills Registry optimizes strategies.</p>
       </div>
     </div>
   </div>
@@ -304,26 +384,30 @@ footer a:hover { color: var(--primary); }
 
 <section class="how" id="how">
   <div class="container">
-    <h2>How it works</h2>
+    <h2 class="section-title">How it works</h2>
     <div class="steps">
       <div class="step">
-        <h3>Clone &amp; configure</h3>
+        <h3>Clone & configure</h3>
         <p><code>git clone</code> + <code>cp .env.example .env</code> — fill in your API keys.</p>
       </div>
       <div class="step">
         <h3>Start the stack</h3>
-        <p><code>docker compose up -d</code> — 10 services spin up in seconds.</p>
+        <p><code>docker compose up -d</code> — 12 services spin up in seconds.</p>
       </div>
       <div class="step">
         <h3>Create a plan</h3>
         <p><code>POST /api/v1/plan</code> — @Planner produces structured plan with phases and tasks.</p>
       </div>
       <div class="step">
-        <h3>Execute &amp; verify</h3>
-        <p>Agents execute in parallel. @Verifier validates output. Kanban updates in real time.</p>
+        <h3>Execute & verify</h3>
+        <p>Agents execute in parallel with AutoCorrector. @Verifier validates output. GraphRAG extracts knowledge.</p>
       </div>
       <div class="step">
-        <h3>Review &amp; deploy</h3>
+        <h3>Learn & evolve</h3>
+        <p>Intelligence Engine records outcomes, updates skills, enriches context. Nightly self-reflection improves performance.</p>
+      </div>
+      <div class="step">
+        <h3>Review & deploy</h3>
         <p>Approve HITL requests. Check Pulse dashboards. Deploy to production.</p>
       </div>
     </div>
@@ -332,17 +416,19 @@ footer a:hover { color: var(--primary); }
 
 <section class="stack">
   <div class="container">
-    <h2>Powered by</h2>
+    <h2 class="section-title">Powered by</h2>
     <div class="stack-grid">
-      <span class="stack-tag">Python 3.13</span>
-      <span class="stack-tag">FastAPI</span>
+      <span class="stack-tag highlight">Python 3.13</span>
+      <span class="stack-tag highlight">FastAPI</span>
       <span class="stack-tag">LangGraph</span>
       <span class="stack-tag">Pydantic</span>
       <span class="stack-tag">PostgreSQL 17</span>
-      <span class="stack-tag">pgvector</span>
+      <span class="stack-tag highlight">pgvector</span>
       <span class="stack-tag">Redis 7</span>
       <span class="stack-tag">OpenRouter</span>
       <span class="stack-tag">Ollama</span>
+      <span class="stack-tag">MCP</span>
+      <span class="stack-tag highlight">WebAssembly</span>
       <span class="stack-tag">Jaeger</span>
       <span class="stack-tag">MinIO</span>
       <span class="stack-tag">Caddy</span>
@@ -354,6 +440,8 @@ footer a:hover { color: var(--primary); }
       <span class="stack-tag">Stripe</span>
       <span class="stack-tag">Replicate</span>
       <span class="stack-tag">Prometheus</span>
+      <span class="stack-tag">Alembic</span>
+      <span class="stack-tag">GraphRAG</span>
     </div>
   </div>
 </section>
@@ -361,8 +449,9 @@ footer a:hover { color: var(--primary); }
 <section class="cta">
   <div class="container">
     <h2>Ready to ship?</h2>
-    <p>Self-hosted AI agent orchestration. Free. Open-source. MIT licensed.</p>
-    <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">&#x1F680; Deploy on GitHub</a>
+    <p>Self-hosted AI agent orchestration with Intelligence Engine. Free. Open-source. MIT licensed.</p>
+    <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg" style="background:#fff;color:var(--primary)">🚀 Deploy on GitHub</a>
+    <a href="guide.html" class="btn btn-ghost btn-lg">📖 Read the Guide</a>
     <br>
     <code>curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash</code>
   </div>
@@ -370,7 +459,7 @@ footer a:hover { color: var(--primary); }
 
 <footer>
   <div class="container">
-    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v6.0.0 &mdash; MIT License &mdash; <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> &mdash; Built with Python 3.13 &amp; Next.js 16 &amp; Tauri v2 &amp; React Native</p>
+    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v7.0.0 — MIT License — <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> — Built with Python 3.13 &amp; Next.js 16 &amp; Tauri v2 &amp; React Native — <a href="guide.html">📖 Guide</a> — <a href="deploy.html">🚀 Deploy</a></p>
   </div>
 </footer>
 
