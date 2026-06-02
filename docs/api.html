@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentOS v7.0 — API Reference</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+<style>
+  :root {
+    --bg: #0d1117; --bg-alt: #151b23; --surface: #161b22; --surface-hover: #1c2333;
+    --border: #30363d; --text: #e6edf3; --text-secondary: #8b949e; --text-muted: #6e7681;
+    --accent: #58a6ff; --accent-hover: #79c0ff; --accent-glow: #58a6ff33;
+    --success: #3fb950; --warning: #d29922; --danger: #f85149;
+    --purple: #bc8cff; --orange: #f0883e; --pink: #f778ba;
+    --gradient: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba);
+    --radius: 8px; --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .85em; }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: #0d1117ee; backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 60px;
+  }
+  header .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.05rem; }
+  header .logo span { color: var(--accent); }
+  header .logo .badge { font-size: .65rem; padding: 2px 8px; background: var(--accent-glow); color: var(--accent); border-radius: 10px; }
+  header nav { display: flex; align-items: center; gap: 12px; }
+  header nav a { color: var(--text-secondary); font-size: .85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all .2s; }
+  header nav a:hover { color: var(--text); background: var(--surface-hover); text-decoration: none; }
+
+  .layout { display: flex; min-height: calc(100vh - 60px); }
+
+  .sidebar {
+    position: sticky; top: 60px; width: 260px; height: calc(100vh - 60px);
+    overflow-y: auto; background: var(--bg-alt); border-right: 1px solid var(--border);
+    padding: 16px 0; flex-shrink: 0;
+  }
+  .sidebar-section { margin-bottom: 4px; }
+  .sidebar-section .section-title {
+    padding: 8px 16px; font-size: .75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--text-muted);
+  }
+  .sidebar-item {
+    display: block; padding: 5px 16px 5px 24px; font-size: .8rem; color: var(--text-secondary);
+    border-left: 2px solid transparent; transition: all .15s;
+  }
+  .sidebar-item:hover { color: var(--text); background: var(--surface-hover); text-decoration: none; }
+  .sidebar-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-glow); }
+
+  .main { flex: 1; padding: 40px 48px 80px; max-width: 960px; }
+  .main h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .main h1 .hl { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .main .subtitle { color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 32px; }
+  .main h2 { font-size: 1.4rem; font-weight: 700; margin: 40px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); scroll-margin-top: 80px; }
+  .main h2::after { content: ''; display: block; width: 60px; height: 3px; background: var(--gradient); border-radius: 2px; margin-top: 8px; }
+  .main h3 { font-size: 1.1rem; font-weight: 600; margin: 28px 0 12px; scroll-margin-top: 80px; }
+  .main p { margin-bottom: 16px; color: var(--text-secondary); }
+  .main ul { margin: 0 0 16px 24px; color: var(--text-secondary); }
+  .main li { margin-bottom: 4px; }
+
+  .endpoint { margin: 12px 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .endpoint-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    background: var(--surface); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .2s;
+  }
+  .endpoint-row:hover { background: var(--surface-hover); }
+  .method { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: .03em; min-width: 52px; text-align: center; }
+  .method.get { background: #1f6feb33; color: #58a6ff; }
+  .method.post { background: #3fb95033; color: #3fb950; }
+  .method.put { background: #d2992233; color: #d29922; }
+  .method.delete { background: #f8514933; color: #f85149; }
+  .endpoint-path { font-family: var(--mono); font-size: .82rem; color: var(--text); flex: 1; }
+  .endpoint-desc { font-size: .8rem; color: var(--text-secondary); }
+  .endpoint-auth { font-size: .7rem; padding: 2px 6px; border-radius: 4px; background: var(--accent-glow); color: var(--accent); }
+  .endpoint-detail { display: none; padding: 16px; background: var(--bg); border-top: 1px solid var(--border); }
+  .endpoint-detail.open { display: block; }
+  .endpoint-detail h4 { font-size: .85rem; font-weight: 600; margin: 12px 0 6px; color: var(--text); }
+  .endpoint-detail h4:first-child { margin-top: 0; }
+  .endpoint-detail .field { display: flex; gap: 8px; padding: 4px 0; font-size: .82rem; }
+  .endpoint-detail .field .name { font-family: var(--mono); color: var(--accent); min-width: 140px; }
+  .endpoint-detail .field .type { color: var(--purple); min-width: 80px; }
+  .endpoint-detail .field .req { color: var(--danger); font-size: .75rem; min-width: 50px; }
+  .endpoint-detail .field .desc { color: var(--text-secondary); }
+
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface); font-weight: 600; color: var(--text); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  td { color: var(--text-secondary); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-hover); }
+
+  .status-code { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: .78rem; font-weight: 600; font-family: var(--mono); }
+  .sc-2xx { background: #3fb95022; color: var(--success); }
+  .sc-4xx { background: #d2992222; color: var(--warning); }
+  .sc-5xx { background: #f8514922; color: var(--danger); }
+
+  .code-block { margin: 12px 0; background: #0d1117; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .code-block .code-header { display: flex; justify-content: space-between; padding: 6px 12px; background: var(--surface-hover); border-bottom: 1px solid var(--border); font-size: .75rem; color: var(--text-muted); }
+  .code-block pre { padding: 16px; overflow-x: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.6; }
+
+  footer { padding: 28px 0; text-align: center; font-size: .82rem; color: var(--text-secondary); border-top: 1px solid var(--border); margin-top: 40px; }
+  footer a { color: var(--text-secondary); }
+  footer a:hover { color: var(--primary); }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 24px 20px 80px; }
+    header nav a span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📡 <span>AgentOS</span> <span class="badge">API v7.0</span></div>
+  <nav>
+    <a href="index.html">🏠 <span>Landing</span></a>
+    <a href="guide.html">📖 <span>Guide</span></a>
+    <a href="deploy.html">🚀 <span>Deploy</span></a>
+    <a href="https://github.com/HiTechTN/agentos" target="_blank">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="section-title">Core</div>
+      <a class="sidebar-item active" href="#health">Health & Metrics</a>
+      <a class="sidebar-item" href="#run">Run & Plan</a>
+      <a class="sidebar-item" href="#auth">Auth</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="section-title">Intelligence</div>
+      <a class="sidebar-item" href="#memories">Memories</a>
+      <a class="sidebar-item" href="#skills">Skills</a>
+      <a class="sidebar-item" href="#knowledge">Knowledge</a>
+      <a class="sidebar-item" href="#reflection">Reflection</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="section-title">Management</div>
+      <a class="sidebar-item" href="#admin">Admin</a>
+      <a class="sidebar-item" href="#scheduler">Scheduler</a>
+      <a class="sidebar-item" href="#llm-router">LLM Router</a>
+      <a class="sidebar-item" href="#mcp">MCP</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="section-title">Realtime</div>
+      <a class="sidebar-item" href="#websocket">WebSocket</a>
+      <a class="sidebar-item" href="#kanban">Kanban</a>
+      <a class="sidebar-item" href="#pulse">Pulse</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <h1>API Reference <span class="hl">v7.0</span></h1>
+    <p class="subtitle">Complete REST API for AgentOS — 60+ endpoints across 12 resource groups</p>
+
+    <p>Base URL: <code>https://your-host:8000</code> — All endpoints return <code>APIResponse[T]</code> envelope: <code>{"data": ..., "meta": {...}, "errors": []}</code></p>
+
+    <div class="table-wrap">
+      <table>
+        <tr><th>Code</th><th>Meaning</th></tr>
+        <tr><td><span class="status-code sc-2xx">200</span></td><td>OK — Success</td></tr>
+        <tr><td><span class="status-code sc-2xx">201</span></td><td>Created — Resource created</td></tr>
+        <tr><td><span class="status-code sc-2xx">202</span></td><td>Accepted — Async operation started</td></tr>
+        <tr><td><span class="status-code sc-4xx">400</span></td><td>Bad Request — Validation error</td></tr>
+        <tr><td><span class="status-code sc-4xx">401</span></td><td>Unauthorized — Missing/invalid JWT</td></tr>
+        <tr><td><span class="status-code sc-4xx">422</span></td><td>Validation Error — Pydantic schema</td></tr>
+        <tr><td><span class="status-code sc-4xx">429</span></td><td>Rate Limit Exceeded — Too many requests</td></tr>
+        <tr><td><span class="status-code sc-5xx">500</span></td><td>Internal Server Error</td></tr>
+      </table>
+    </div>
+
+    <!-- ═══════ Health & Metrics ═══════ -->
+    <h2 id="health">🏥 Health & Metrics</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/health</span>
+        <span class="endpoint-desc">Service health status</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Response <span class="status-code sc-2xx">200</span></h4>
+        <div class="code-block">
+          <div class="code-header"><span class="lang">json</span></div>
+          <pre><code>{
+  "api": "ok",
+  "database": "ok",
+  "redis": "ok",
+  "version": "7.0.0"
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/metrics</span>
+        <span class="endpoint-desc">Prometheus metrics</span>
+      </div>
+      <div class="endpoint-detail">
+        <p>Returns Prometheus-formatted metrics for monitoring and alerting.</p>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/docs</span>
+        <span class="endpoint-desc">Swagger UI</span>
+      </div>
+      <div class="endpoint-detail">
+        <p>Interactive OpenAPI documentation (Swagger UI) for exploring all endpoints.</p>
+      </div>
+    </div>
+
+    <!-- ═══════ Run & Plan ═══════ -->
+    <h2 id="run">🚀 Run & Plan</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/run</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Execute an AI prompt</span>
+      </div>
+      <div class="endpoint-detail">
+        <p>Main entry point. Routes the prompt to the appropriate agent(s) and executes the workflow with Intelligence Engine enrichment.</p>
+        <h4>Request Body</h4>
+        <div class="field"><span class="name">prompt</span><span class="type">string</span><span class="req">required</span><span class="desc">Natural language task description</span></div>
+        <div class="field"><span class="name">project_id</span><span class="type">string</span><span class="req">optional</span><span class="desc">Project/workspace identifier</span></div>
+        <div class="field"><span class="name">agent</span><span class="type">string</span><span class="req">optional</span><span class="desc">Force specific agent (dev, content, marketing, commerce)</span></div>
+        <h4>Rate Limit</h4>
+        <p>10 requests per minute</p>
+        <div class="code-block">
+          <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+          <pre><code>curl -X POST https://your-host:8000/api/v1/run \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Create a REST API with FastAPI", "project_id": "my-project"}'</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/plan</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Generate a structured plan</span>
+      </div>
+      <div class="endpoint-detail">
+        <p>Uses @Planner sub-agent to produce a structured plan with phases, tasks, risks, and architecture.</p>
+        <h4>Rate Limit</h4>
+        <p>20 requests per minute</p>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/verify</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Validate code/output</span>
+      </div>
+      <div class="endpoint-detail">
+        <p>Uses @Verifier sub-agent to validate code quality, security, and correctness. Returns JSON issue report.</p>
+        <h4>Rate Limit</h4>
+        <p>15 requests per minute</p>
+      </div>
+    </div>
+
+    <!-- ═══════ Auth ═══════ -->
+    <h2 id="auth">🔐 Auth</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/auth/register</span>
+        <span class="endpoint-desc">Register new user</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Request Body</h4>
+        <div class="field"><span class="name">email</span><span class="type">string</span><span class="req">required</span><span class="desc">Valid email address</span></div>
+        <div class="field"><span class="name">password</span><span class="type">string</span><span class="req">required</span><span class="desc">Min 8 characters</span></div>
+        <h4>Rate Limit</h4>
+        <p>5 requests per minute</p>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/auth/login</span>
+        <span class="endpoint-desc">Login (JWT)</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Response</h4>
+        <div class="code-block">
+          <div class="code-header"><span class="lang">json</span></div>
+          <pre><code>{ "access_token": "eyJ...", "user": { "email": "...", "role": "admin" } }</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/auth/me</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Current user profile</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/auth/oauth/{provider}</span>
+        <span class="endpoint-desc">OAuth login (Google/GitHub)</span>
+      </div>
+    </div>
+
+    <!-- ═══════ Intelligence Engine ═══════ -->
+    <h2 id="memories">🧠 Intelligence Engine</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/intelligence/memories</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Record episodic memory</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Request Body</h4>
+        <div class="field"><span class="name">workspace_id</span><span class="type">string</span><span class="req">required</span><span class="desc">Workspace identifier</span></div>
+        <div class="field"><span class="name">task_type</span><span class="type">string</span><span class="req">required</span><span class="desc">e.g. code_gen, content_write</span></div>
+        <div class="field"><span class="name">prompt_summary</span><span class="type">string</span><span class="req">required</span><span class="desc">Short description</span></div>
+        <div class="field"><span class="name">outcome</span><span class="type">string</span><span class="req">required</span><span class="desc">success | failure | partial</span></div>
+        <div class="field"><span class="name">quality_score</span><span class="type">float</span><span class="req">optional</span><span class="desc">0.0 - 1.0</span></div>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/intelligence/memories</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Recall similar memories</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Query Parameters</h4>
+        <div class="field"><span class="name">task_type</span><span class="type">string</span><span class="req">optional</span><span class="desc">Filter by task type</span></div>
+        <div class="field"><span class="name">workspace_id</span><span class="type">string</span><span class="req">optional</span><span class="desc">Filter by workspace</span></div>
+        <div class="field"><span class="name">limit</span><span class="type">int</span><span class="req">optional</span><span class="desc">Max results (default 10)</span></div>
+        <div class="field"><span class="name">outcome_filter</span><span class="type">string</span><span class="req">optional</span><span class="desc">success | failure</span></div>
+      </div>
+    </div>
+
+    <h3 id="skills">📚 Skills</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/intelligence/skills</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">List all skills</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/intelligence/skills</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Extract skill from outcome</span>
+      </div>
+    </div>
+
+    <h3 id="knowledge">💡 Knowledge</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/intelligence/knowledge</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Query knowledge base</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/intelligence/knowledge</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Add knowledge entry</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Knowledge Kinds</h4>
+        <div class="field"><span class="name">api_pattern</span><span class="type">API usage patterns</span></div>
+        <div class="field"><span class="name">code_pattern</span><span class="type">Code implementation patterns</span></div>
+        <div class="field"><span class="name">constraint</span><span class="type">System constraints</span></div>
+        <div class="field"><span class="name">best_practice</span><span class="type">Best practices</span></div>
+        <div class="field"><span class="name">domain_fact</span><span class="type">Domain knowledge</span></div>
+        <div class="field"><span class="name">failure_mode</span><span class="type">Known failure modes</span></div>
+      </div>
+    </div>
+
+    <h3 id="reflection">🔄 Reflection</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/intelligence/reflection</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Trigger self-reflection</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/intelligence/reports</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Get reflection reports</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/intelligence/evolutions</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Agent evolution history</span>
+      </div>
+    </div>
+
+    <!-- ═══════ Admin ═══════ -->
+    <h2 id="admin">⚙️ Admin</h2>
+    <p><em>All admin endpoints require <code>AdminUser</code> role.</em></p>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/admin/services</span>
+        <span class="endpoint-auth">Admin</span>
+        <span class="endpoint-desc">Service health dashboard</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/admin/settings</span>
+        <span class="endpoint-auth">Admin</span>
+        <span class="endpoint-desc">Get system settings</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method put">PUT</span>
+        <span class="endpoint-path">/api/v1/admin/settings</span>
+        <span class="endpoint-auth">Admin</span>
+        <span class="endpoint-desc">Update settings</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/admin/llm/providers</span>
+        <span class="endpoint-auth">Admin</span>
+        <span class="endpoint-desc">List LLM providers</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/admin/llm/models</span>
+        <span class="endpoint-auth">Admin</span>
+        <span class="endpoint-desc">List available models</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/admin/llm/select</span>
+        <span class="endpoint-auth">Admin</span>
+        <span class="endpoint-desc">Select model for work type</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/admin/users</span>
+        <span class="endpoint-auth">Admin</span>
+        <span class="endpoint-desc">List all users</span>
+      </div>
+    </div>
+
+    <!-- ═══════ Scheduler ═══════ -->
+    <h2 id="scheduler">⏰ Scheduler</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/scheduler/tasks</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Create scheduled task</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Request Body</h4>
+        <div class="field"><span class="name">name</span><span class="type">string</span><span class="req">required</span><span class="desc">Task name</span></div>
+        <div class="field"><span class="name">cron</span><span class="type">string</span><span class="req">required</span><span class="desc">Cron expression</span></div>
+        <div class="field"><span class="name">prompt</span><span class="type">string</span><span class="req">required</span><span class="desc">Prompt to execute</span></div>
+        <div class="field"><span class="name">channel</span><span class="type">string</span><span class="req">optional</span><span class="desc">Output channel</span></div>
+      </div>
+    </div>
+
+    <!-- ═══════ LLM Router ═══════ -->
+    <h2 id="llm-router">🤖 LLM Router</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/llm/router/status</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Router status & metrics</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/llm/router/models</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Available models by work type</span>
+      </div>
+    </div>
+
+    <!-- ═══════ MCP ═══════ -->
+    <h2 id="mcp">🔗 MCP</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/mcp/register</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Register MCP tool server</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/mcp/tools</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">List registered tools</span>
+      </div>
+    </div>
+
+    <!-- ═══════ Sub-agent ═══════ -->
+    <h2 id="subagent">🎯 Sub-Agent</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/sub-agent/debug</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Analyze error with @Debugger</span>
+      </div>
+      <div class="endpoint-detail">
+        <h4>Request Body</h4>
+        <div class="field"><span class="name">error</span><span class="type">string</span><span class="req">required</span><span class="desc">Error message</span></div>
+        <div class="field"><span class="name">traceback</span><span class="type">string</span><span class="req">optional</span><span class="desc">Full traceback</span></div>
+        <div class="field"><span class="name">context</span><span class="type">object</span><span class="req">optional</span><span class="desc">File, line, additional context</span></div>
+      </div>
+    </div>
+
+    <!-- ═══════ WebSocket ═══════ -->
+    <h2 id="websocket">🔌 WebSocket</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">WS</span>
+        <span class="endpoint-path">/ws/logs</span>
+        <span class="endpoint-desc">Real-time agent logs</span>
+      </div>
+      <div class="endpoint-detail">
+        <div class="code-block">
+          <div class="code-header"><span class="lang">javascript</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
+          <pre><code>const ws = new WebSocket("ws://localhost:8000/ws/logs");
+ws.onmessage = (event) => {
+  const log = JSON.parse(event.data);
+  console.log(`[${log.level}] ${log.agent_id}: ${log.action}`);
+};</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ Kanban ═══════ -->
+    <h2 id="kanban">📋 Kanban</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/kanban/cards</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">List kanban cards</span>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/api/v1/kanban/cards</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Create card</span>
+      </div>
+    </div>
+
+    <!-- ═══════ Pulse ═══════ -->
+    <h2 id="pulse">📊 Pulse</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-row" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/v1/pulse/metrics</span>
+        <span class="endpoint-auth">JWT</span>
+        <span class="endpoint-desc">Real-time metrics</span>
+      </div>
+    </div>
+
+    <footer>
+      <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v7.0.0 — MIT License — <a href="index.html">🏠 Landing</a> — <a href="guide.html">📖 Guide</a> — <a href="deploy.html">🚀 Deploy</a></p>
+    </footer>
+  </main>
+</div>
+
+<script>
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('pre code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '✅ Copié';
+    setTimeout(() => btn.textContent = '📋 Copier', 2000);
+  });
+}
+// Active sidebar item on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.sidebar-item').forEach(a => a.classList.remove('active'));
+      const id = entry.target.id;
+      document.querySelector(`.sidebar-item[href="#${id}"]`)?.classList.add('active');
+    }
+  });
+}, { rootMargin: '-80px 0px -70% 0px' });
+document.querySelectorAll('h2[id], h3[id]').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
