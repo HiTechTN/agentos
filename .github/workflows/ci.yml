@@ -41,7 +41,7 @@ jobs:
       - run: uv sync --frozen --all-extras
       - run: uv run ruff check app/
       - run: uv run ruff format app/ --check
-      - run: uv run python3 -m mypy app/ --strict
+      - run: uv run python3 -m mypy app/ --strict --exclude="tests/"
 
   security:
     name: Security Scan

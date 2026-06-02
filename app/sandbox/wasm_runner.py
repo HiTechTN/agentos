@@ -7,7 +7,7 @@ import typing as t
 from dataclasses import dataclass
 
 if t.TYPE_CHECKING:
-    import types
+    import types  # pragma: no cover
 
 
 @dataclass
@@ -76,7 +76,7 @@ class WasmRunner:
                 contextlib.redirect_stderr(stderr_buf),
             ):
                 exec(compiled, exec_globals)  # noqa: S102  # nosec
-        except SyntaxError as exc:
+        except SyntaxError as exc:  # pragma: no cover — compile() catches syntax errors first
             elapsed = (time.monotonic() - start) * 1000
             return WasmResult(
                 success=False,

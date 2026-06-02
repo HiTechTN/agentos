@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -338,3 +338,58 @@ class TestRequireHITL:
         with pytest.raises(HITLPendingError) as exc:
             await agent._require_hitl("s1", "deploy", {})
         assert exc.value.approval_id == "aid-99"
+
+
+class TestEnricherIntegration:
+    @pytest.mark.asyncio
+    async def test_enricher_updates_system_prompt(self, agent: Any) -> None:
+        mock_engine = AsyncMock()
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory = Mock(return_value=mock_session)
+
+        mock_enricher_instance = AsyncMock()
+        mock_enricher_instance.enrich = AsyncMock(return_value="Enriched system prompt content")
+        mock_enricher_cls = Mock(return_value=mock_enricher_instance)
+
+        with (
+            patch("sqlalchemy.ext.asyncio.create_async_engine", return_value=mock_engine),
+            patch("sqlalchemy.ext.asyncio.async_sessionmaker", return_value=mock_session_factory),
+            patch("app.learning.context_enricher.ContextEnricher", mock_enricher_cls),
+        ):
+            await agent.execute({"params": {"prompt": "test"}}, session_id="s1", trace_id="t1")
+
+        assert agent.system_prompt == "Enriched system prompt content"
+
+    @pytest.mark.asyncio
+    async def test_enricher_empty_keeps_original_prompt(self, agent: Any) -> None:
+        orig_prompt = agent.system_prompt
+        mock_engine = AsyncMock()
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory = Mock(return_value=mock_session)
+
+        mock_enricher_instance = AsyncMock()
+        mock_enricher_instance.enrich = AsyncMock(return_value="")
+        mock_enricher_cls = Mock(return_value=mock_enricher_instance)
+
+        with (
+            patch("sqlalchemy.ext.asyncio.create_async_engine", return_value=mock_engine),
+            patch("sqlalchemy.ext.asyncio.async_sessionmaker", return_value=mock_session_factory),
+            patch("app.learning.context_enricher.ContextEnricher", mock_enricher_cls),
+        ):
+            await agent.execute({"params": {"prompt": "test"}}, session_id="s1", trace_id="t1")
+
+        assert agent.system_prompt == orig_prompt
+
+    @pytest.mark.asyncio
+    async def test_enricher_exception_silently_caught(self, agent: Any) -> None:
+        orig_prompt = agent.system_prompt
+
+        with patch(
+            "sqlalchemy.ext.asyncio.create_async_engine",
+            side_effect=RuntimeError("db fail"),
+        ):
+            await agent.execute({"params": {"prompt": "test"}}, session_id="s1", trace_id="t1")
+
+        assert agent.system_prompt == orig_prompt

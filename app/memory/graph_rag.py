@@ -290,7 +290,7 @@ class GraphRAG:
                 if verb not in lower_sent:
                     continue
                 parts = lower_sent.split(verb, 1)
-                if len(parts) < 2:
+                if len(parts) < 2:  # pragma: no cover — verb always found at this point
                     continue
                 before = parts[0].strip()
                 after = parts[1].strip()

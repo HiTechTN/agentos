@@ -35,6 +35,46 @@ def user_token() -> str:
 # ── Settings ─────────────────────────────────────────────────────────────────
 
 
+class TestSettingsSchemaEndpoint:
+    """GET /api/v1/admin/settings/schema"""
+
+    @pytest.mark.asyncio
+    async def test_get_schema_returns_fields_and_values(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        resp = await async_client.get(
+            "/api/v1/admin/settings/schema",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "schema" in data
+        assert "fields" in data["schema"]
+        assert "categories" in data["schema"]
+        assert "values" in data
+        assert "log_level" in data["values"]
+
+    @pytest.mark.asyncio
+    async def test_get_schema_masks_sensitive_keys(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        resp = await async_client.get(
+            "/api/v1/admin/settings/schema",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        values = resp.json()["values"]
+        assert "****" in values.get("openrouter_api_key", "")
+        assert "***MASKED***" in values.get("jwt_secret", "")
+
+    @pytest.mark.asyncio
+    async def test_get_schema_non_admin_returns_403(self, async_client: AsyncClient) -> None:
+        token = user_token()
+        resp = await async_client.get(
+            "/api/v1/admin/settings/schema",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 403
+
+
 class TestSettingsEndpoint:
     @pytest.mark.asyncio
     async def test_get_settings(self, async_client: AsyncClient) -> None:
@@ -309,6 +349,26 @@ class TestServicesEndpoint:
             )
         assert resp.status_code == 200
         assert resp.json()["services"]["openrouter"]["status"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_services_openrouter_not_configured(self, async_client: AsyncClient) -> None:
+        token = admin_token()
+        with (
+            patch("app.routes.admin.settings.openrouter_api_key", ""),
+            patch("app.memory.session.get_session_manager") as mock_sm_getter,
+        ):
+            mock_sm = Mock()
+            mock_sm._init_db = AsyncMock()
+            mock_sm_getter.return_value = mock_sm
+
+            resp = await async_client.get(
+                "/api/v1/admin/services",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["services"]["openrouter"]["status"] == "error"
+        assert "not configured" in data["services"]["openrouter"]["detail"].lower()
 
 
 # ── LLM Providers ────────────────────────────────────────────────────────────

@@ -159,3 +159,61 @@ class TestGraphRAG:
             n for n, a in graph._graph.nodes(data=True) if a.get("workspace_id") == _WORKSPACE_ID
         ]
         assert sum(1 for n in nodes if n == "The AuthService") == 1
+
+
+class TestGraphRAGEdgeCases:
+    @pytest.mark.asyncio
+    async def test_extract_relations_empty_entities(self) -> None:
+        graph = GraphRAG()
+        relations = graph._extract_relations("Some text here.", [])
+        assert relations == []
+
+    @pytest.mark.asyncio
+    async def test_add_duplicate_edge_increments_count(self) -> None:
+        graph = GraphRAG()
+        text = "The ApiGateway routes requests to The DatabaseEngine."
+        await graph.extract_and_store(_WORKSPACE_ID, _SESSION_ID, text)
+        await graph.extract_and_store(_WORKSPACE_ID, _SESSION_ID, text)
+        # Second store should increment count on the existing edge
+        edge_data = graph._graph.get_edge_data("The ApiGateway", "The DatabaseEngine")
+        assert edge_data is not None
+        assert edge_data.get("count", 0) > 1
+
+    @pytest.mark.asyncio
+    async def test_find_closest_entity_tie_prefers_longer(self) -> None:
+        graph = GraphRAG()
+        segment = "SystemManager handles requests."
+        result = graph._find_closest_entity(segment, ["System", "SystemManager"])
+        assert result == "SystemManager"
+
+    @pytest.mark.asyncio
+    async def test_bfs_from_leaf_hits_predecessors(self) -> None:
+        graph = GraphRAG()
+        graph._graph.add_node("ServiceA", workspace_id=_WORKSPACE_ID)
+        graph._graph.add_node("ServiceB", workspace_id=_WORKSPACE_ID)
+        graph._graph.add_edge(
+            "ServiceA", "ServiceB", relation="calls", workspace_id=_WORKSPACE_ID, count=1
+        )
+        entities, relations, subgraph = graph._bfs_traverse(["ServiceB"])
+        assert "ServiceA" in entities
+        assert any("ServiceA" in str(r) for r in relations)
+
+    @pytest.mark.asyncio
+    async def test_bfs_with_cycle_skips_visited(self) -> None:
+        graph = GraphRAG()
+        graph._graph.add_node("NodeA", workspace_id=_WORKSPACE_ID)
+        graph._graph.add_node("NodeB", workspace_id=_WORKSPACE_ID)
+        graph._graph.add_node("NodeC", workspace_id=_WORKSPACE_ID)
+        graph._graph.add_edge(
+            "NodeA", "NodeB", relation="calls", workspace_id=_WORKSPACE_ID, count=1
+        )
+        graph._graph.add_edge(
+            "NodeB", "NodeC", relation="calls", workspace_id=_WORKSPACE_ID, count=1
+        )
+        graph._graph.add_edge(
+            "NodeC", "NodeA", relation="calls", workspace_id=_WORKSPACE_ID, count=1
+        )
+        entities, relations, subgraph = graph._bfs_traverse(["NodeA"])
+        assert "NodeA" in entities
+        assert "NodeB" in entities
+        assert "NodeC" in entities
