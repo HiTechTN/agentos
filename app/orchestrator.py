@@ -406,6 +406,48 @@ class AgentOSOrchestrator:
             },
         )
         self.metrics.timing("execution_duration", elapsed)
+
+        try:
+            from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+            from app.config.settings import get_settings
+            from app.memory.episodic import EpisodicMemory, TaskOutcome
+
+            _settings = get_settings()
+            _engine = create_async_engine(_settings.resolved_database_url, echo=False)
+            _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
+            async with _session_factory() as _db:
+                outcome = TaskOutcome(
+                    workspace_id=state["project_id"],
+                    session_id=state["session_id"],
+                    task_type=(
+                        state["tasks"][0].get("type", "general") if state["tasks"] else "general"
+                    ),
+                    prompt_summary=state["prompt"][:500],
+                    outcome="success" if not state.get("errors") else "failure",
+                    quality_score=None,
+                    duration_ms=int(elapsed * 1000),
+                    agent_used="",
+                    model_used="",
+                    work_type="",
+                    input_tokens=0,
+                    output_tokens=0,
+                    strategy_used="",
+                    what_worked="",
+                    what_failed=str(state.get("errors", []))[:500] if state.get("errors") else "",
+                    context_tags=[],
+                )
+                await EpisodicMemory(db_session=_db).record(outcome)
+        except Exception:
+            self.logger.log_action(
+                "orchestrator",
+                "memory_record_failed",
+                "error",
+                state["trace_id"],
+                state["project_id"],
+                {},
+            )
+
         return {"status": status, "elapsed_seconds": round(elapsed, 2)}
 
     async def route_tasks(self, state: AgentOSState) -> dict[str, Any]:

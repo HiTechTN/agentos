@@ -43,6 +43,7 @@ dependencies = [
     "authlib==1.4.1",
     "bcrypt==4.2.1",
     "replicate==0.34.2",
+    "networkx>=3.6.1",
 ]
 
 [project.optional-dependencies]

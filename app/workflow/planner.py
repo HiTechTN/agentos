@@ -6,6 +6,8 @@ from typing import Any
 
 from app.agents.rules import get_rules
 from app.agents.sub_agent import BUILTIN_SUB_AGENTS, SubAgent
+from app.config.settings import get_settings
+from app.reasoning.tot_engine import TreeOfThoughts
 from app.utils.api_clients import LLMClient
 from app.utils.logging import get_logger
 
@@ -84,6 +86,20 @@ class Planner:
     async def create_plan(self, goal: str, context: dict[str, Any] | None = None) -> Plan:
         self.logger.log_action("planner", "create_plan", "started", details={"goal": goal[:100]})
         plan = Plan(goal)
+
+        settings = get_settings()
+        complex_keywords = ["complex", "difficult", "multi-step", "architecture"]
+        is_complex = len(goal.split()) > 20 or any(w in goal.lower() for w in complex_keywords)
+        if settings.tot_enabled and is_complex:
+            try:
+                tot = TreeOfThoughts(
+                    max_branches=settings.tot_max_branches,
+                    max_depth=settings.tot_max_depth,
+                )
+                tot_result = await tot.solve(goal)
+                plan.architecture_summary = f"[Tree of Thoughts] {tot_result.best_thought}"
+            except Exception:
+                pass
 
         sub_agent = SubAgent(BUILTIN_SUB_AGENTS["planner"])
         rules_text = self.rules.get_all_rules()

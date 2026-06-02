@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     project_id: str = "demo-project"
     environment: str = "development"
-    version: str = "6.0.0"
+    version: str = "7.0.0"
 
     # LLM - OpenRouter
     openrouter_api_key: str = ""
@@ -137,6 +137,29 @@ class Settings(BaseSettings):
     # Scheduler
     scheduler_enabled: bool = True
     scheduler_check_interval: int = 60
+    nightly_reflection_cron: str = "0 2 * * *"
+
+    # VRAM Manager
+    vram_total_gb: float = 12.0
+    computer_use_enabled: bool = False
+    tot_enabled: bool = True
+    tot_max_branches: int = 2
+    tot_max_depth: int = 3
+    tot_complexity_threshold: float = 0.7
+
+    # AutoCorrector
+    auto_corrector_enabled: bool = True
+    auto_corrector_max_retries: int = 3
+
+    # WasmRunner
+    wasm_runner_enabled: bool = True
+    wasm_runner_timeout_ms: int = 5
+
+    # EphemeralFS
+    ephemeral_fs_enabled: bool = True
+
+    # AgentBus
+    agent_bus_enabled: bool = True
 
     model_config = {
         "env_file": ".env",

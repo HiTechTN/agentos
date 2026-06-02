@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 from app.agents.base import AgentError, BaseAgent, ToolResult
+from app.utils.auto_corrector import AutoCorrector
 from app.utils.hitl_gateway import HITLPendingError
 
 
@@ -10,6 +11,10 @@ class DevAgent(BaseAgent):
     model = "anthropic/claude-sonnet-20241022"
 
     HITL_ACTIONS = {"deploy"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.auto_corrector = AutoCorrector(max_retries=3)
 
     async def _run(
         self, action: str, params: dict[str, Any], session_id: str, trace_id: str
@@ -113,3 +118,15 @@ Provide architecture analysis, tech stack recommendations, and potential issues.
         ]
         content = await self._llm_call(messages)
         return ToolResult(success=True, data={"analysis": content})
+
+    async def _correct_code(self, code: str) -> str:
+        """Fix Python code using the auto-corrector's syntax check + LLM repair loop.
+
+        Args:
+            code: The Python code to check and fix.
+
+        Returns:
+            The corrected code (or original if no fix needed).
+        """
+        result = await self.auto_corrector.execute(code)
+        return result.code

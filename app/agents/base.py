@@ -70,6 +70,32 @@ class BaseAgent(ABC):
         )
 
         try:
+            from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+            from app.learning.context_enricher import ContextEnricher
+
+            engine = create_async_engine(self.settings.resolved_database_url, echo=False)
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            async with session_factory() as db:
+                task_description = task_params.get("prompt", task_params.get("description", action))
+                task_type = task.get("type", action)
+                workspace_id = session_id or "default"
+                enricher = ContextEnricher(db)
+                enriched = await enricher.enrich(
+                    base_system=self.system_prompt,
+                    task_description=task_description,
+                    task_type=task_type,
+                    workspace_id=workspace_id,
+                    include_memories=True,
+                    include_skills=True,
+                    include_knowledge=True,
+                )
+                if enriched:
+                    self.system_prompt = enriched
+        except Exception:
+            pass
+
+        try:
             rag_context = await self._retrieve_context(session_id, task)
             if rag_context:
                 task_params["rag_context"] = rag_context

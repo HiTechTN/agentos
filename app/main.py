@@ -24,6 +24,7 @@ from app.routes.mcp import router as mcp_router
 from app.routes.workflow import router as workflow_router
 from app.routes.worktree import router as worktree_router
 from app.utils.auth import get_current_user
+from app.utils.config_validator import validate_and_block
 from app.utils.llm_cache import llm_cache
 from app.utils.llm_router import smart_router
 from app.utils.logging import get_logger
@@ -39,6 +40,9 @@ metrics = get_metrics()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Any:
     logger.log_action("api", "startup", "started", details={"version": settings.version})
+
+    await validate_and_block()
+
     app.state.limiter = limiter
     await llm_cache.connect()
     from app.scheduler import get_scheduler

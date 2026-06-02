@@ -1,5 +1,36 @@
 # Changelog
 
+## [7.0.0] — 2026-06-02
+
+### Added
+- Tree of Thoughts (ToT) reasoning engine with MCTS scoring for complex tasks
+- GraphRAG knowledge graph (NetworkX + PostgreSQL) for entity-relation extraction
+- VRAM Manager with 12GB GPU budget tracking and automatic model selection
+- AutoCorrector — automatic stderr→fix retry loop for sandbox code execution  
+- WasmRunner — lightweight code execution with compile cache and 5ms timeout
+- EphemeralFS — per-workspace temp directories with auto-cleanup
+- AgentBus — Redis Pub/Sub messaging for agent-to-agent communication
+- ComputerUseTools — screen interaction tools (disabled by default, feature flag)
+- Production config validator — blocks startup on unsafe settings
+- Alembic migration 003 for GraphRAG tables (graph_entities, graph_edges)
+- ContextEnricher integration into BaseAgent system prompt injection
+- EpisodicMemory recording in orchestrator workflow finalization
+- TreeOfThoughts integration in planner for complex goals
+- New settings: VRAM, ToT, AutoCorrector, WasmRunner, EphemeralFS, AgentBus, ComputerUse config
+
+### Changed
+- Version bumped to 7.0.0
+- .env.example updated to v7.0 with all new settings documented
+- BaseAgent.execute() enriches system prompt with ContextEnricher (memories, skills, knowledge)
+- Orchestrator._finalize() records task outcome in EpisodicMemory
+- DevAgent includes AutoCorrector for future sandbox code correction
+- Planner.create_plan() runs TreeOfThoughts for complex goals
+- CI pipeline updated to run on push to main/develop, includes new modules in coverage
+
+### Fixed
+- All new modules pass ruff strict, mypy strict, and bandit HIGH/MEDIUM
+- ConfigValidator catches default JWT secrets before production deployment
+
 ## v6.0.0 (2026-06-01)
 
 ### Added

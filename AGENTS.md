@@ -275,3 +275,20 @@ module: app.agents.dev
 - Crée 5 tables: `episodic_memories`, `skills`, `knowledge_entries`, `agent_evolutions`, `reflection_reports`
 - Active pgvector extension
 - UUID PKs, JSONB pour données flexibles, unique constraint sur skills(workspace_id, slug)
+
+---
+
+## NOUVEAUX MODULES v7.0
+- VRAMManager : toujours passer work_type pour le bon modèle Ollama
+- TreeOfThoughts : activer seulement si task.complexity > 0.7
+- GraphRAG : extract_and_store() après chaque session
+- AutoCorrector : wrap TOUS les appels sandbox DevAgent
+- WasmRunner : pour outils légers (<5ms) uniquement
+- AgentBus : pour spawn de sous-agents spécialisés
+- ComputerUseTools : désactivé par défaut, activer via COMPUTER_USE_ENABLED=true
+
+## VRAM BUDGET RULES (12GB GPU)
+- TOT_MAX_BRANCHES = 2 (jamais 3 sans vérification GPU libre)
+- Un seul modèle Ollama en VRAM à la fois (VRAMManager s'en charge)
+- Pour tâches FAST : utiliser qwen2.5:7b-instruct-q4_K_M (4.5GB) — libère 7GB
+- Ne jamais lancer Computer Use et Tree of Thoughts simultanément
