@@ -6,7 +6,7 @@
 set -euo pipefail
 
 VERSION="7.0.0"                          # App version (pip, mobile)
-DESKTOP_VERSION="6.0.0"                 # Desktop package filenames (unchanged since v6)
+DESKTOP_VERSION="7.0.0"                 # Desktop package filenames
 REPO="HiTechTN/agentos"
 BRANCH="main"
 GH_BASE="https://github.com/$REPO/releases/download/v$VERSION"
