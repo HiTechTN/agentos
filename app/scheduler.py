@@ -3,14 +3,19 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
 from app.config.settings import get_settings
 from app.orchestrator import get_orchestrator
+from app.utils.llm_router import smart_router
 from app.utils.logging import get_logger
 from app.utils.notifications import get_notifications
 
 logger = get_logger("scheduler")
 
 _NIGHTLY_REFLECTION_MARKER = "__nightly_reflection__"
+_DAILY_DISCOVERY_MARKER = "__daily_model_discovery__"
+_HEALTH_CHECK_MARKER = "__model_health_check__"
 
 
 class ScheduledTask:
@@ -78,6 +83,19 @@ class Scheduler:
             task = ScheduledTask("nightly_reflection", cron, _NIGHTLY_REFLECTION_MARKER)
             task.id = "__nightly__"
             self._tasks[task.id] = task
+
+        discovery_cron = getattr(self.settings, "daily_discovery_cron", "0 3 * * *")
+        if "__discovery__" not in self._tasks:
+            task = ScheduledTask("daily_model_discovery", discovery_cron, _DAILY_DISCOVERY_MARKER)
+            task.id = "__discovery__"
+            self._tasks[task.id] = task
+
+        health_cron = "*/30 * * * *"
+        if "__health__" not in self._tasks:
+            task = ScheduledTask("model_health_check", health_cron, _HEALTH_CHECK_MARKER)
+            task.id = "__health__"
+            self._tasks[task.id] = task
+
         logger.log_action("scheduler", "started", "completed")
         asyncio.create_task(self._run_loop())
 
@@ -136,6 +154,12 @@ class Scheduler:
             if task.prompt == _NIGHTLY_REFLECTION_MARKER:
                 await self._run_nightly_reflection()
                 return
+            if task.prompt == _DAILY_DISCOVERY_MARKER:
+                await self._run_daily_model_discovery()
+                return
+            if task.prompt == _HEALTH_CHECK_MARKER:
+                await self._run_model_health_check()
+                return
             orchestrator = get_orchestrator()
             result = await orchestrator.run(prompt=task.prompt, project_id=task.project_id)
             await get_notifications().send(
@@ -185,6 +209,69 @@ class Scheduler:
                         )
         except Exception as e:
             logger.log_error("scheduler", "nightly_reflection", str(e))
+
+    async def _run_daily_model_discovery(self) -> None:
+        """Sync model catalog from OpenRouter API."""
+        try:
+            from app.utils.model_discovery import ModelDiscoveryEngine
+
+            settings = get_settings()
+            db_engine = create_async_engine(settings.resolved_database_url, echo=False)
+            session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
+            async with session_factory() as db:
+                disc = ModelDiscoveryEngine(db_session=db, run_benchmark=True)
+                snapshot = await disc.sync(source="scheduler_daily")
+                logger.log_action(
+                    "scheduler",
+                    "daily_model_discovery",
+                    "completed",
+                    details={
+                        "models_found": snapshot.models_found,
+                        "models_new": snapshot.models_new,
+                        "models_removed": snapshot.models_removed,
+                        "duration_ms": snapshot.duration_ms,
+                    },
+                )
+            await db_engine.dispose()
+            await smart_router._reload_dynamic_models()
+        except Exception as e:
+            logger.log_error("scheduler", "daily_model_discovery", str(e))
+
+    async def _run_model_health_check(self) -> None:
+        """Quick health check of active models."""
+        try:
+            from app.utils.model_discovery import ModelBenchmark
+            from app.utils.rotation_engine import RotationEngine
+
+            settings = get_settings()
+            db_engine = create_async_engine(settings.resolved_database_url, echo=False)
+            session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
+            bench = ModelBenchmark()
+            failures: list[str] = []
+            async with session_factory() as db:
+                engine = RotationEngine(db_session=db)
+                for wt in ["code_gen", "code_agent", "reasoning", "content", "fast", "debug"]:
+                    model = await engine.select_model(wt)
+                    if not model:
+                        continue
+                    ok, _ = await bench.test(model["id"])
+                    if not ok:
+                        failures.append(model["id"])
+                        await engine.disable_model(model["id"], reason="health_check_failure")
+            await bench.close()
+            await db_engine.dispose()
+            if failures:
+                details = {"models": failures}
+                logger.log_action(
+                    "scheduler",
+                    "model_health_failures",
+                    "warning",
+                    details=details,
+                )
+            else:
+                logger.log_action("scheduler", "model_health_check", "ok")
+        except Exception as e:
+            logger.log_error("scheduler", "model_health_check", str(e))
 
 
 _scheduler: Scheduler | None = None

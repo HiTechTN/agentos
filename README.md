@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentOS-v7.0.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/AgentOS-v7.1.0-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
   <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Desktop-Tauri_v2-FFC131?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/Mobile-React%20Native-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React Native">
-  <img src="https://img.shields.io/badge/1024%20tests-99%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/1054%20tests-99%25_coverage-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/Smart%20Router-28_models-4c6ef5?style=for-the-badge&logo=openai&logoColor=white" alt="Smart Router">
   <img src="https://img.shields.io/badge/Intelligence%20Engine-Self--Improving-7950f2?style=for-the-badge&logo=deepnote&logoColor=white" alt="Intelligence Engine">
   <img src="https://img.shields.io/badge/Observability-Jaeger-29BEB0?style=for-the-badge&logo=grafana&logoColor=white" alt="Jaeger">
@@ -253,7 +253,7 @@ watch docker compose ps  # Wait until all services are "healthy"
 
 ```bash
 curl http://localhost:8000/health
-# → {"status":"ok","version":"7.0.0","environment":"development"}
+# → {"status":"ok","version":"7.1.0","environment":"development"}
 ```
 
 ### 4️⃣ Run a workflow
@@ -639,7 +639,7 @@ uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll
 | Docker Web | `ghcr.io/hitechtn/agentos/web:latest` |
 | Landing | [hitechtn.github.io/agentos](https://hitechtn.github.io/agentos/) |
 | License | [MIT](LICENSE) |
-| Latest Release | [v7.0.0](https://github.com/HiTechTN/agentos/releases/tag/v7.0.0) |
+| Latest Release | [v7.1.0](https://github.com/HiTechTN/agentos/releases/tag/v7.1.0) |
 
 ---
 

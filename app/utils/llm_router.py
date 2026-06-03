@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from typing import Any
 
@@ -24,6 +25,86 @@ class SmartLLMRouter:
 
     def __init__(self) -> None:
         self._client: httpx.AsyncClient | None = None
+        self._dynamic_models: dict[WorkType, list[FreeModel]] | None = None
+
+    async def _reload_dynamic_models(self) -> None:
+        """Reload model catalog from discovered_models table.
+
+        Queries active models from the database and populates
+        ``_dynamic_models`` cache. Falls back silently to hardcoded
+        ``FREE_MODELS`` on any DB error.
+        """
+        from sqlalchemy import text
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+        settings = get_settings()
+        db_url = settings.resolved_database_url
+        if not db_url:
+            self._dynamic_models = {}
+            return
+
+        try:
+            engine = create_async_engine(db_url, echo=False)
+            factory = async_sessionmaker(engine, expire_on_commit=False)
+            async with factory() as db:
+                result = await db.execute(
+                    text("""
+                        SELECT id, name, context_window,
+                               supports_tools, supports_vision, supports_reasoning,
+                               req_per_min, req_per_day,
+                               primary_work_type, work_types
+                        FROM discovered_models
+                        WHERE is_active = true
+                        ORDER BY quality_score DESC, success_rate DESC
+                    """)
+                )
+                rows = result.fetchall()
+
+            dynamic: dict[WorkType, list[FreeModel]] = {wt: [] for wt in WorkType}
+            for row in rows:
+                model = FreeModel(
+                    id=str(row[0]),
+                    name=str(row[1]),
+                    context_window=int(row[2]) if row[2] else 128_000,
+                    supports_tools=bool(row[3]) if row[3] is not None else False,
+                    supports_vision=bool(row[4]) if row[4] is not None else False,
+                    supports_reasoning=bool(row[5]) if row[5] is not None else False,
+                    req_per_min=int(row[6]) if row[6] else 20,
+                    req_per_day=int(row[7]) if row[7] else 200,
+                )
+                # Register under primary work type
+                primary = str(row[8]) if row[8] else "general"
+                try:
+                    wt = WorkType(primary)
+                    if model not in dynamic[wt]:
+                        dynamic[wt].append(model)
+                except ValueError:
+                    pass
+                # Register under all classified work types
+                work_types_raw = row[9]
+                if work_types_raw:
+                    for wt_str in json.loads(work_types_raw):
+                        try:
+                            wt = WorkType(wt_str)
+                            if model not in dynamic[wt]:
+                                dynamic[wt].append(model)
+                        except ValueError:
+                            pass
+
+            self._dynamic_models = dynamic
+            await engine.dispose()
+        except Exception as exc:
+            logger.log_warn("llm_router", "dynamic_models_reload_failed", str(exc))
+            self._dynamic_models = {}
+
+    def _get_candidates(self, work_type: WorkType) -> list[FreeModel]:
+        """Return merged candidates — dynamic first, hardcoded fallback."""
+        dynamic = (
+            self._dynamic_models.get(work_type, []) if self._dynamic_models is not None else []
+        )
+        hardcoded = FREE_MODELS.get(work_type, FREE_MODELS[WorkType.GENERAL])
+        seen = {m.id for m in dynamic}
+        return dynamic + [m for m in hardcoded if m.id not in seen]
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -49,7 +130,7 @@ class SmartLLMRouter:
         min_context: int = 0,
     ) -> FreeModel | None:
         """Select the best available model for the given requirements."""
-        candidates = FREE_MODELS.get(work_type, FREE_MODELS[WorkType.GENERAL])
+        candidates = self._get_candidates(work_type)
 
         for model in candidates:
             if requires_tools and not model.supports_tools:
@@ -88,7 +169,7 @@ class SmartLLMRouter:
     ) -> dict[str, Any]:
         """Route a prompt through the best available free model with automatic fallback."""
         detected_type = work_type or detect_work_type(prompt, agent_name)
-        candidates = FREE_MODELS.get(detected_type, FREE_MODELS[WorkType.GENERAL])
+        candidates = self._get_candidates(detected_type)
 
         msg_list: list[dict[str, str]] = []
         if system:

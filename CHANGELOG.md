@@ -1,5 +1,31 @@
 # Changelog
 
+## [7.1.0] — 2026-06-03
+
+### Added
+- **Model Auto-Discovery** (`app/utils/model_discovery.py`) — `ModelDiscoveryEngine` fetches free OpenRouter models, auto-classifies by WorkType (code_gen, code_agent, reasoning, content, fast, multimodal, debug, general) using regex scoring, benchmarks latency, upserts `discovered_models` table
+- **Rotation Engine** (`app/utils/rotation_engine.py`) — `RotationEngine` selects top model by rotated weight (weighted random from top 3), tracks success/error/rate-limit events, dynamic weight updates (+0.05 success, -0.20 error, -0.15 rate-limit), 429 auto-ban
+- **SmartRouter DB Integration** (`app/utils/llm_router.py`) — `_reload_dynamic_models()` queries DB for active models, `_get_candidates()` merges dynamic (priority) + hardcoded FREE_MODELS (fallback), wired in sync route and scheduler
+- **Migration 004** (`app/migrations/versions/004_model_registry.py`) — 3 tables: `discovered_models`, `model_rotation_log`, `discovery_snapshots` (applied)
+- **Model API** (`app/routes/models.py`) — 5 endpoints under `/api/v1/llm/models/`: catalog, sync, health, disable, rotation status
+- **CLI** (`scripts/discover_models.py`) — `sync`, `--bench`, `--report`, `--health`, `--reset`, `--disable` commands
+- **Scheduler Jobs** — Daily model discovery (`0 3 * * *`), health check every 30 minutes
+
+### Changed
+- Version bumped to 7.1.0
+- Test count: 955 → 1054 (99% coverage)
+- `SmartLLMRouter.select_model()` / `complete()` now check DB-discovered models before hardcoded FREE_MODELS
+- Sync endpoint and scheduler call `smart_router._reload_dynamic_models()` after discovery
+
+### Infrastructure
+- OpenRouter API key configured in production `.env`
+- `scripts/discover_models.py` — standalone CLI for manual sync + diagnostics
+- 21 free models live-synced from OpenRouter to PostgreSQL
+
+### Fixed
+- `::jsonb` → `CAST(... AS jsonb)` for asyncpg compatibility
+- `str()` → `json.dumps()` for JSONB serialization (single-quote vs double-quote)
+
 ## [7.0.0] — 2026-06-02
 
 ### Added

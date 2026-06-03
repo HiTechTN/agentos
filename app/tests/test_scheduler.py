@@ -129,3 +129,96 @@ class TestSchedulerCore:
         assert mock_reflection_cls.call_count == 2
         mock_reflection_cls.assert_any_call(db_session=mock_session, workspace_id="ws-1")
         mock_reflection_cls.assert_any_call(db_session=mock_session, workspace_id="ws-2")
+
+
+class TestSchedulerDiscovery:
+    @pytest.mark.asyncio
+    async def test_daily_discovery_success(self) -> None:
+        scheduler = Scheduler()
+        snapshot = Mock()
+        snapshot.models_found = 5
+        snapshot.models_new = 2
+        snapshot.models_removed = 1
+        snapshot.duration_ms = 1000
+
+        disc = Mock()
+        disc.sync = AsyncMock(return_value=snapshot)
+
+        mock_engine = AsyncMock()
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory = Mock(return_value=mock_session)
+
+        with (
+            patch("app.scheduler.create_async_engine", return_value=mock_engine),
+            patch("app.scheduler.async_sessionmaker", return_value=mock_session_factory),
+            patch("app.utils.model_discovery.ModelDiscoveryEngine", return_value=disc),
+        ):
+            await scheduler._run_daily_model_discovery()
+
+        disc.sync.assert_awaited_once_with(source="scheduler_daily")
+
+    @pytest.mark.asyncio
+    async def test_daily_discovery_exception(self) -> None:
+        scheduler = Scheduler()
+        with (
+            patch("app.scheduler.create_async_engine", side_effect=RuntimeError("engine fail")),
+        ):
+            await scheduler._run_daily_model_discovery()  # Should not raise
+
+    @pytest.mark.asyncio
+    async def test_health_check_no_failures(self) -> None:
+        scheduler = Scheduler()
+        model = {"id": "test/model:free"}
+
+        rot = Mock()
+        rot.select_model = AsyncMock(return_value=model)
+
+        bench = Mock()
+        bench.test = AsyncMock(return_value=(True, 500.0))
+        bench.close = AsyncMock()
+
+        mock_engine = AsyncMock()
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory = Mock(return_value=mock_session)
+
+        with (
+            patch("app.scheduler.create_async_engine", return_value=mock_engine),
+            patch("app.scheduler.async_sessionmaker", return_value=mock_session_factory),
+            patch("app.utils.rotation_engine.RotationEngine", return_value=rot),
+            patch("app.utils.model_discovery.ModelBenchmark", return_value=bench),
+        ):
+            await scheduler._run_model_health_check()
+
+        bench.test.assert_awaited()
+        bench.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_health_check_with_failures(self) -> None:
+        scheduler = Scheduler()
+        model = {"id": "test/model:free"}
+
+        rot = Mock()
+        rot.select_model = AsyncMock(return_value=model)
+        rot.disable_model = AsyncMock()
+
+        bench = Mock()
+        bench.test = AsyncMock(return_value=(False, 60000.0))
+        bench.close = AsyncMock()
+
+        mock_engine = AsyncMock()
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory = Mock(return_value=mock_session)
+
+        with (
+            patch("app.scheduler.create_async_engine", return_value=mock_engine),
+            patch("app.scheduler.async_sessionmaker", return_value=mock_session_factory),
+            patch("app.utils.rotation_engine.RotationEngine", return_value=rot),
+            patch("app.utils.model_discovery.ModelBenchmark", return_value=bench),
+        ):
+            await scheduler._run_model_health_check()
+
+        assert rot.disable_model.await_count == 6
+        rot.disable_model.assert_awaited_with("test/model:free", reason="health_check_failure")

@@ -75,7 +75,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="h-2 w-2 rounded-full bg-green-500" />
-            <span>v5.0.0</span>
+            <span>v7.1.0</span>
           </div>
         </div>
       </aside>

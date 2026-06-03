@@ -604,3 +604,140 @@ class TestGetUsageReportAfterError:
             )
         report = await router.get_usage_report()
         assert report["banned:free"]["is_banned"] is True
+
+
+class TestDynamicModels:
+    @pytest.fixture()
+    def router(self) -> SmartLLMRouter:
+        return SmartLLMRouter()
+
+    def test_get_candidates_returns_hardcoded_when_no_dynamic(self, router: SmartLLMRouter) -> None:
+        router._dynamic_models = None
+        candidates = router._get_candidates(WorkType.CODE_GEN)
+        assert len(candidates) >= 2
+        assert all(isinstance(m, FreeModel) for m in candidates)
+
+    def test_get_candidates_uses_dynamic_first(self, router: SmartLLMRouter) -> None:
+        dyn_model = FreeModel(id="dyn/test:free", name="Dynamic", context_window=128_000)
+        router._dynamic_models = {WorkType.CODE_GEN: [dyn_model]}
+        candidates = router._get_candidates(WorkType.CODE_GEN)
+        assert candidates[0].id == "dyn/test:free"
+        assert len(candidates) > 1
+
+    def test_get_candidates_deduplicates(self, router: SmartLLMRouter) -> None:
+        # Same id as a hardcoded model
+        hardcoded_id = FREE_MODELS[WorkType.FAST][0].id
+        dyn_model = FreeModel(id=hardcoded_id, name="Dynamic", context_window=128_000)
+        router._dynamic_models = {WorkType.FAST: [dyn_model]}
+        candidates = router._get_candidates(WorkType.FAST)
+        ids = [m.id for m in candidates]
+        assert ids.count(hardcoded_id) == 1
+
+    def test_get_candidates_empty_dict_falls_back(self, router: SmartLLMRouter) -> None:
+        router._dynamic_models = {}
+        candidates = router._get_candidates(WorkType.FAST)
+        assert len(candidates) >= 2
+
+    def test_get_candidates_fallback_work_type(self, router: SmartLLMRouter) -> None:
+        candidates = router._get_candidates(WorkType.GENERAL)
+        assert len(candidates) >= 1
+
+    @pytest.mark.asyncio
+    async def test_reload_dynamic_models_success(self, router: SmartLLMRouter) -> None:
+        mock_row = (
+            "test/model-a:free",
+            "Model A",
+            128_000,
+            True,
+            False,
+            False,
+            20,
+            200,
+            "code_gen",
+            '["code_gen","debug"]',
+        )
+
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = [mock_row]
+
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+
+        mock_engine = AsyncMock()
+        mock_engine.dispose = AsyncMock()
+
+        with (
+            patch("sqlalchemy.ext.asyncio.create_async_engine", return_value=mock_engine),
+            patch("sqlalchemy.ext.asyncio.async_sessionmaker", return_value=lambda: mock_session),
+        ):
+            await router._reload_dynamic_models()
+
+        assert router._dynamic_models is not None
+        assert len(router._dynamic_models[WorkType.CODE_GEN]) == 1
+        assert router._dynamic_models[WorkType.CODE_GEN][0].id == "test/model-a:free"
+        # Also registered under debug
+        assert router._dynamic_models[WorkType.DEBUG][0].id == "test/model-a:free"
+
+    @pytest.mark.asyncio
+    async def test_reload_dynamic_models_db_error(self, router: SmartLLMRouter) -> None:
+        router._dynamic_models = None
+        with (
+            patch(
+                "sqlalchemy.ext.asyncio.create_async_engine",
+                side_effect=RuntimeError("db down"),
+            ),
+        ):
+            await router._reload_dynamic_models()
+        # Falls back to empty dict, not None
+        assert router._dynamic_models == {}
+
+    @pytest.mark.asyncio
+    async def test_reload_dynamic_models_empty(self, router: SmartLLMRouter) -> None:
+        mock_result = MagicMock()
+        mock_result.fetchall.return_value = []
+
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+
+        mock_engine = AsyncMock()
+        mock_engine.dispose = AsyncMock()
+
+        with (
+            patch("sqlalchemy.ext.asyncio.create_async_engine", return_value=mock_engine),
+            patch("sqlalchemy.ext.asyncio.async_sessionmaker", return_value=lambda: mock_session),
+        ):
+            await router._reload_dynamic_models()
+
+        assert router._dynamic_models is not None
+        # All work types should have empty lists
+        for wt in WorkType:
+            assert router._dynamic_models[wt] == []
+
+    @pytest.mark.asyncio
+    async def test_select_model_uses_dynamic_first(self, router: SmartLLMRouter) -> None:
+        dyn_model = FreeModel(id="dyn/first:free", name="Dynamic First", context_window=128_000)
+        router._dynamic_models = {WorkType.FAST: [dyn_model]}
+        model = await router.select_model(WorkType.FAST)
+        assert model is not None
+        assert model.id == "dyn/first:free"
+
+    @pytest.mark.asyncio
+    async def test_complete_uses_dynamic_models(self, router: SmartLLMRouter) -> None:
+        dyn_model = FreeModel(id="dyn/test:free", name="Dynamic Test", context_window=128_000)
+        router._dynamic_models = {WorkType.DEBUG: [dyn_model]}
+        with patch.object(router, "_call_openrouter", new_callable=AsyncMock) as mock_call:
+            mock_call.return_value = {
+                "choices": [{"message": {"content": "ok"}}],
+                "usage": {},
+            }
+            result = await router.complete(
+                prompt="debug this",
+                work_type=WorkType.DEBUG,
+            )
+        assert result["_router"]["source"] == "openrouter_free"
+        # Should have called with the dynamic model
+        mock_call.assert_called_once()
+        args = mock_call.call_args[1]
+        assert args["model_id"] == "dyn/test:free"

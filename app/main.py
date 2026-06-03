@@ -21,6 +21,7 @@ from app.routes.kanban import router as kanban_router
 from app.routes.llm import router as llm_router
 from app.routes.management import router as management_router
 from app.routes.mcp import router as mcp_router
+from app.routes.models import router as models_router
 from app.routes.workflow import router as workflow_router
 from app.routes.worktree import router as worktree_router
 from app.utils.auth import get_current_user
@@ -291,3 +292,4 @@ app.include_router(kanban_router)
 app.include_router(mcp_router)
 app.include_router(worktree_router)
 app.include_router(intelligence_router)
+app.include_router(models_router)
