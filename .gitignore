@@ -43,6 +43,12 @@ docker-compose.override.yml
 # Rust / Tauri
 src-tauri/target/
 
+# Binaries
+*.apk
+*.ipa
+*.appimage
+*.AppImage
+
 # PRD/Planning documents (internal)
 AgentOS-PRD-v1.0.md
 AGENTOS_*.md

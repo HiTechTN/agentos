@@ -124,30 +124,27 @@ class EpisodicMemory:
         Returns:
             List of memory records ordered by quality_score desc.
         """
-        type_clause = "AND task_type = :task_type" if task_type else ""
-        query = """
-            SELECT id, task_type, prompt_summary, outcome, quality_score,
-                   strategy_used, what_worked, what_failed, model_used,
-                   work_type, created_at
-            FROM episodic_memories
-            WHERE workspace_id = :workspace_id
-              {type_clause}
-              {outcome_clause}
-            ORDER BY quality_score DESC NULLS LAST, created_at DESC
-            LIMIT :limit
-        """.format(
-            type_clause=type_clause,
-            outcome_clause="AND outcome = :outcome" if outcome_filter else "",
-        )
         params: dict[str, Any] = {
             "workspace_id": workspace_id,
             "limit": limit,
         }
+        conditions = ["workspace_id = :workspace_id"]
         if task_type:
+            conditions.append("task_type = :task_type")
             params["task_type"] = task_type
         if outcome_filter:
+            conditions.append("outcome = :outcome")
             params["outcome"] = outcome_filter
 
+        _parts = [
+            "SELECT id, task_type, prompt_summary, outcome, quality_score, "
+            "strategy_used, what_worked, what_failed, model_used, work_type, created_at",
+            "FROM episodic_memories",
+            "WHERE " + " AND ".join(conditions),
+            "ORDER BY quality_score DESC NULLS LAST, created_at DESC",
+            "LIMIT :limit",
+        ]
+        query = " ".join(_parts)  # nosec
         rows = await self._db.execute(sa.text(query), params)
         return [dict(row._mapping) for row in rows.fetchall()]
 

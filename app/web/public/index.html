@@ -6,56 +6,444 @@
 <title>AgentOS v7.1.0 — AI Agent Orchestration System</title>
 <style>
   :root {
-    --bg: #0d1117; --surface: #161b22; --border: #30363d;
-    --text: #e6edf3; --text-secondary: #8b949e;
-    --accent: #58a6ff; --success: #3fb950; --gradient: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba);
+    --bg: #0a0e17; --surface: rgba(22, 27, 38, 0.85); --border: rgba(48, 54, 61, 0.6);
+    --text: #e6edf3; --text-secondary: #8b949e; --text-muted: #484f58;
+    --accent: #58a6ff; --accent2: #bc8cff; --accent3: #f778ba;
+    --success: #3fb950; --warning: #d29922; --gradient: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba);
+    --radius: 12px; --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
   }
+  [data-lang="fr"] .lang-en { display: none; }
+  [data-lang="en"] .lang-fr { display: none; }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg); color: var(--text); line-height: 1.6;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 32px 20px; text-align: center;
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.6; overflow-x: hidden;
   }
-  h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 8px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .subtitle { color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 32px; max-width: 600px; }
-  .badge { display: inline-block; background: #1f6feb33; color: var(--accent); padding: 4px 14px; border-radius: 20px; font-size: .8rem; font-weight: 600; margin-bottom: 24px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 800px; width: 100%; margin-bottom: 32px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
-  .card .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
-  .card .label { color: var(--text-secondary); font-size: .85rem; margin-top: 4px; }
-  .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 32px; }
-  .btn { padding: 10px 24px; border-radius: 6px; font-weight: 600; text-decoration: none; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
-  .btn-primary { background: var(--accent); color: #000; }
-  .btn-primary:hover { background: #79c0ff; transform: translateY(-1px); }
-  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--text-secondary); }
-  code { background: #1c2333; padding: 2px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: .85rem; color: var(--success); }
-  .code-block { background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 16px 0; text-align: left; max-width: 600px; width: 100%; overflow-x: auto; }
-  .footer { color: var(--text-muted); font-size: .8rem; margin-top: 48px; }
-  .footer a { color: var(--accent); text-decoration: none; }
+
+  /* Animated background */
+  #particles {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 50%, rgba(88,166,255,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(188,140,255,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(247,120,186,0.04) 0%, transparent 50%);
+  }
+
+  /* Navbar */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+    background: rgba(10, 14, 23, 0.8); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border);
+  }
+  nav .logo { font-weight: 800; font-size: 1.2rem; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  nav .nav-links { display: flex; gap: 20px; align-items: center; }
+  nav .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: .9rem; font-weight: 500; transition: color .2s; }
+  nav .nav-links a:hover { color: var(--text); }
+  .lang-toggle {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: .8rem;
+    font-weight: 600; transition: all .2s; font-family: var(--font);
+  }
+  .lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Sections */
+  section { position: relative; z-index: 1; padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
+
+  /* Hero */
+  #hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding-top: 100px; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(31, 111, 235, 0.15); border: 1px solid rgba(88,166,255,0.3);
+    color: var(--accent); padding: 6px 16px; border-radius: 20px;
+    font-size: .8rem; font-weight: 600; margin-bottom: 24px; animation: fadeInDown .6s ease;
+  }
+  .hero-badge .dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+  #hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; line-height: 1.1; margin-bottom: 16px;
+    background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: fadeInUp .6s ease .1s both;
+  }
+  #hero p {
+    font-size: clamp(1rem, 2vw, 1.2rem); color: var(--text-secondary);
+    max-width: 600px; margin-bottom: 36px; animation: fadeInUp .6s ease .2s both;
+  }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; animation: fadeInUp .6s ease .3s both; }
+  .btn {
+    padding: 12px 28px; border-radius: 8px; font-weight: 600; text-decoration: none;
+    transition: all .25s; display: inline-flex; align-items: center; gap: 8px;
+    font-size: .95rem; font-family: var(--font); cursor: pointer; border: none;
+  }
+  .btn-primary {
+    background: var(--accent); color: #000; box-shadow: 0 4px 20px rgba(88,166,255,0.3);
+  }
+  .btn-primary:hover { background: #79c0ff; transform: translateY(-2px); box-shadow: 0 6px 28px rgba(88,166,255,0.4); }
+  .btn-secondary {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+  .btn-secondary:hover { border-color: var(--text-secondary); transform: translateY(-2px); }
+  .btn-glow {
+    background: linear-gradient(135deg, rgba(88,166,255,0.15), rgba(188,140,255,0.15));
+    border: 1px solid rgba(88,166,255,0.3); color: var(--accent);
+  }
+  .btn-glow:hover { border-color: var(--accent); box-shadow: 0 0 30px rgba(88,166,255,0.2); transform: translateY(-2px); }
+
+  /* Stats */
+  #stats { padding: 60px 24px; }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px; max-width: 800px; margin: 0 auto;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px 20px; text-align: center; backdrop-filter: blur(12px);
+    transition: all .3s; position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--gradient); opacity: 0; transition: opacity .3s;
+  }
+  .stat-card:hover { transform: translateY(-4px); border-color: rgba(88,166,255,0.3); box-shadow: var(--shadow); }
+  .stat-card:hover::before { opacity: 1; }
+  .stat-card .num { font-size: 2rem; font-weight: 800; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .stat-card .label { color: var(--text-secondary); font-size: .85rem; margin-top: 4px; font-weight: 500; }
+
+  /* Features */
+  #features h2 { text-align: center; font-size: 2rem; margin-bottom: 40px; }
+  .features-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+  }
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; backdrop-filter: blur(12px); transition: all .3s;
+    position: relative; overflow: hidden;
+  }
+  .feature-card::after {
+    content: ''; position: absolute; top: -50%; right: -50%; width: 100%; height: 100%;
+    background: radial-gradient(circle, rgba(88,166,255,0.06), transparent 70%);
+    opacity: 0; transition: opacity .4s;
+  }
+  .feature-card:hover { transform: translateY(-4px); border-color: rgba(88,166,255,0.25); box-shadow: var(--shadow); }
+  .feature-card:hover::after { opacity: 1; }
+  .feature-icon { font-size: 1.8rem; margin-bottom: 12px; }
+  .feature-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .feature-card p { color: var(--text-secondary); font-size: .9rem; line-height: 1.6; }
+
+  /* Terminal / Install */
+  #install { text-align: center; }
+  #install h2 { font-size: 2rem; margin-bottom: 12px; }
+  #install p { color: var(--text-secondary); margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto; }
+  .terminal {
+    background: #0d1117; border: 1px solid var(--border); border-radius: var(--radius);
+    max-width: 650px; margin: 0 auto; text-align: left; overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .terminal-bar {
+    background: #161b22; padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .terminal-dot.red { background: #ff5f56; }
+  .terminal-dot.yellow { background: #ffbd2e; }
+  .terminal-dot.green { background: #27c93f; }
+  .terminal-title { color: var(--text-muted); font-size: .8rem; margin-left: 8px; font-family: var(--mono); }
+  .terminal-body { padding: 20px; font-family: var(--mono); font-size: .85rem; line-height: 1.8; color: var(--text-secondary); }
+  .terminal-body .prompt { color: var(--success); }
+  .terminal-body .cmd { color: var(--text); }
+  .terminal-body .cursor { display: inline-block; width: 8px; height: 1.1em; background: var(--accent); animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 2px; }
+  .terminal-body .output { color: var(--text-secondary); }
+  .terminal-body .output .highlight { color: var(--accent); }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 16px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary);
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: .8rem;
+    font-family: var(--font); transition: all .2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+  /* Footer */
+  footer {
+    position: relative; z-index: 1; text-align: center;
+    padding: 40px 24px; border-top: 1px solid var(--border);
+    color: var(--text-muted); font-size: .85rem;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  .footer-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: .85rem; }
+  .footer-links a:hover { color: var(--text); }
+
+  /* Animations */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(30px); transition: all .6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    section { padding: 60px 16px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .features-grid { grid-template-columns: 1fr; }
+    nav .nav-links a { font-size: .8rem; }
+  }
+
+  /* Floating particles (CSS only) */
+  .particle {
+    position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+    animation: float linear infinite;
+  }
 </style>
 </head>
 <body>
-  <span class="badge">v7.1.0 — Intelligence Engine</span>
+
+<div id="particles"></div>
+
+<nav>
+  <span class="logo">AgentOS</span>
+  <div class="nav-links">
+    <a href="#features" class="lang-en">Features</a>
+    <a href="#features" class="lang-fr">Fonctionnalités</a>
+    <a href="#install" class="lang-en">Install</a>
+    <a href="#install" class="lang-fr">Installation</a>
+    <a href="https://github.com/HiTechTN/agentos" target="_blank">GitHub</a>
+    <a href="https://hitechtn.github.io/agentos/guide.html" class="lang-en">Guide</a>
+    <a href="https://hitechtn.github.io/agentos/guide.html" class="lang-fr">Guide</a>
+    <button class="lang-toggle" id="langToggle" onclick="toggleLang()">FR</button>
+  </div>
+</nav>
+
+<section id="hero">
+  <span class="hero-badge"><span class="dot"></span> <span class="lang-en">v7.1.0 — Intelligence Engine</span><span class="lang-fr">v7.1.0 — Moteur d'Intelligence</span></span>
   <h1>AgentOS</h1>
-  <p class="subtitle">AI Agent Orchestration System — Transform any intent into an executable AI workflow</p>
-  <div class="cards">
-    <div class="card"><div class="num">8</div><div class="label">AI Agents</div></div>
-    <div class="card"><div class="num">1054+</div><div class="label">Tests</div></div>
-    <div class="card"><div class="num">99%</div><div class="label">Coverage</div></div>
-    <div class="card"><div class="num">50+</div><div class="label">API Endpoints</div></div>
+  <p class="lang-en">AI Agent Orchestration System — Transform any intent into an executable AI workflow</p>
+  <p class="lang-fr">Système d'orchestration d'agents IA — Transformez toute intention en workflow IA exécutable</p>
+  <div class="hero-actions">
+    <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      <span class="lang-en">GitHub</span><span class="lang-fr">GitHub</span>
+    </a>
+    <a href="https://hitechtn.github.io/agentos/" class="btn btn-glow">
+      <span class="lang-en">Documentation</span><span class="lang-fr">Documentation</span>
+    </a>
+    <a href="#install" class="btn btn-secondary">
+      <span class="lang-en">Quick Install</span><span class="lang-fr">Installation rapide</span>
+    </a>
   </div>
-  <div class="actions">
-    <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary">📦 GitHub</a>
-    <a href="https://hitechtn.github.io/agentos/" class="btn btn-secondary">🌐 Landing</a>
-    <a href="https://hitechtn.github.io/agentos/guide.html" class="btn btn-secondary">📖 Guide</a>
+</section>
+
+<section id="stats">
+  <div class="stats-grid">
+    <div class="stat-card reveal"><div class="num" data-target="8">0</div><div class="label lang-en">AI Agents</div><div class="label lang-fr">Agents IA</div></div>
+    <div class="stat-card reveal"><div class="num" data-target="1054">0<span>+</span></div><div class="label lang-en">Tests Passing</div><div class="label lang-fr">Tests réussis</div></div>
+    <div class="stat-card reveal"><div class="num" data-target="99">0<span>%</span></div><div class="label lang-en">Code Coverage</div><div class="label lang-fr">Couverture code</div></div>
+    <div class="stat-card reveal"><div class="num" data-target="50">0<span>+</span></div><div class="label lang-en">API Endpoints</div><div class="label lang-fr">Endpoints API</div></div>
   </div>
-  <div class="code-block">
-    <code>curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash</code>
+</section>
+
+<section id="features">
+  <h2 class="reveal lang-en">Intelligence Engine Capabilities</h2>
+  <h2 class="reveal lang-fr">Capacités du Moteur d'Intelligence</h2>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">🧠</div>
+      <h3 class="lang-en">Multi-Agent Orchestration</h3>
+      <h3 class="lang-fr">Orchestration Multi-Agent</h3>
+      <p class="lang-en">8 specialized agents collaborating through an intelligent bus — Dev, Content, Commerce, Marketing, Debugger & more.</p>
+      <p class="lang-fr">8 agents spécialisés collaborant via un bus intelligent — Dev, Content, Commerce, Marketing, Débogueur & plus.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🔄</div>
+      <h3 class="lang-en">Smart LLM Router</h3>
+      <h3 class="lang-fr">Routeur LLM Intelligent</h3>
+      <p class="lang-en">Auto-discovery of 21+ free models with weighted rotation, rate limiting, and reinforcement learning for optimal selection.</p>
+      <p class="lang-fr">Auto-découverte de 21+ modèles gratuits avec rotation pondérée, limite de débit et apprentissage par renforcement.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">💾</div>
+      <h3 class="lang-en">Episodic Memory</h3>
+      <h3 class="lang-fr">Mémoire Épisodique</h3>
+      <p class="lang-en">Records outcomes, stores best strategies, and recalls past experiences to improve future task execution.</p>
+      <p class="lang-fr">Enregistre les résultats, stocke les meilleures stratégies et rappelle les expériences passées.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">📚</div>
+      <h3 class="lang-en">Knowledge Base</h3>
+      <h3 class="lang-fr">Base de Connaissances</h3>
+      <p class="lang-en">Cumulative domain knowledge automatically injected into agent contexts — API patterns, constraints, best practices.</p>
+      <p class="lang-fr">Connaissances cumulatives injectées automatiquement — patterns API, contraintes, bonnes pratiques.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🔍</div>
+      <h3 class="lang-en">Self-Reflection Engine</h3>
+      <h3 class="lang-fr">Moteur d'Auto-Réflexion</h3>
+      <p class="lang-en">Daily nightly reflection analyzes patterns, extracts skills, and evolves agent behavior through reinforcement learning.</p>
+      <p class="lang-fr">Réflexion nocturne analyse les patterns, extrait les compétences et fait évoluer les agents.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🛡️</div>
+      <h3 class="lang-en">Auto-Correction & Sandbox</h3>
+      <h3 class="lang-fr">Auto-Correction & Sandbox</h3>
+      <p class="lang-en">Self-healing code execution with Wasm sandbox, ephemeral filesystem, and automatic error recovery.</p>
+      <p class="lang-fr">Exécution auto-réparatrice avec sandbox Wasm, système de fichiers éphémère et récupération d'erreurs.</p>
+    </div>
   </div>
-  <div class="footer">
-    <a href="https://github.com/HiTechTN/agentos">GitHub</a> · MIT License · Built with Python 3.13, FastAPI, LangGraph
+</section>
+
+<section id="install">
+  <h2 class="reveal lang-en">Get Started in Seconds</h2>
+  <h2 class="reveal lang-fr">Commencez en quelques secondes</h2>
+  <p class="reveal lang-en">One command to deploy AgentOS on your infrastructure</p>
+  <p class="reveal lang-fr">Une commande pour déployer AgentOS sur votre infrastructure</p>
+  <div class="terminal reveal">
+    <div class="terminal-bar">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">agentos@install:~</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="prompt">$</span> <span class="cmd">curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash</span><span class="cursor"></span></div>
+      <div class="output" style="margin-top: 12px;">
+        <span class="lang-en">✓ AgentOS <span class="highlight">v7.1.0</span> installed in 12s</span>
+        <span class="lang-fr">✓ AgentOS <span class="highlight">v7.1.0</span> installé en 12s</span><br>
+        <span class="lang-en">✓ Docker Compose stack ready</span>
+        <span class="lang-fr">✓ Stack Docker Compose prêt</span><br>
+        <span class="lang-en">→ Open <span class="highlight">http://localhost:8000</span> in your browser</span>
+        <span class="lang-fr">→ Ouvrez <span class="highlight">http://localhost:8000</span> dans votre navigateur</span>
+      </div>
+    </div>
   </div>
+  <button class="copy-btn" onclick="copyCommand()">
+    <span class="lang-en">📋 Copy command</span>
+    <span class="lang-fr">📋 Copier la commande</span>
+  </button>
+</section>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/HiTechTN/agentos">GitHub</a>
+    <a href="https://hitechtn.github.io/agentos/">Docs</a>
+    <a href="https://hitechtn.github.io/agentos/guide.html" class="lang-en">Guide</a>
+    <a href="https://hitechtn.github.io/agentos/guide.html" class="lang-fr">Guide</a>
+    <a href="https://github.com/HiTechTN/agentos/releases" class="lang-en">Releases</a>
+    <a href="https://github.com/HiTechTN/agentos/releases" class="lang-fr">Versions</a>
+  </div>
+  <p>MIT License · Built with Python 3.13, FastAPI, LangGraph · <span class="lang-en">Version</span><span class="lang-fr">Version</span> 7.1.0</p>
+</footer>
+
+<script>
+// Language toggle
+function toggleLang() {
+  const html = document.documentElement;
+  const btn = document.getElementById('langToggle');
+  const current = html.getAttribute('data-lang') || 'en';
+  const next = current === 'en' ? 'fr' : 'en';
+  html.setAttribute('data-lang', next);
+  btn.textContent = next === 'en' ? 'FR' : 'EN';
+  localStorage.setItem('agentos-lang', next);
+}
+
+(function() {
+  const saved = localStorage.getItem('agentos-lang');
+  if (saved) {
+    document.documentElement.setAttribute('data-lang', saved);
+    document.getElementById('langToggle').textContent = saved === 'en' ? 'FR' : 'EN';
+  }
+})();
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Animated counters
+function animateCounter(el) {
+  const target = parseInt(el.dataset.target);
+  if (!target) return;
+  const suffix = el.querySelector('span')?.outerHTML || '';
+  const duration = 1500;
+  const start = performance.now();
+
+  function update(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(eased * target);
+    el.innerHTML = current + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const numEl = entry.target.querySelector('.num') || entry.target;
+      animateCounter(numEl);
+      counterObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.stat-card').forEach(el => counterObserver.observe(el));
+
+// Copy command
+function copyCommand() {
+  const cmd = 'curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash';
+  navigator.clipboard.writeText(cmd).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.classList.add('copied');
+    btn.innerHTML = '✅ Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      const lang = document.documentElement.getAttribute('data-lang') || 'en';
+      btn.innerHTML = lang === 'en' ? '📋 Copy command' : '📋 Copier la commande';
+    }, 2000);
+  });
+}
+
+// Terminal typing effect
+(function() {
+  const cmdEl = document.querySelector('.terminal-body .cmd');
+  const cursorEl = document.querySelector('.terminal-body .cursor');
+  if (!cmdEl || !cursorEl) return;
+  const fullText = cmdEl.textContent || '';
+  cmdEl.textContent = '';
+  let i = 0;
+  function type() {
+    if (i < fullText.length) {
+      cmdEl.textContent += fullText[i];
+      i++;
+      setTimeout(type, 20 + Math.random() * 30);
+    } else {
+      cursorEl.style.display = 'inline-block';
+    }
+  }
+  setTimeout(type, 600);
+})();
+</script>
 </body>
 </html>

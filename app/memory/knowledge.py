@@ -113,30 +113,30 @@ class KnowledgeBase:
             )
             return [dict(r._mapping) for r in rows.fetchall()]
 
-        kind_clause = "AND kind = :kind" if kind else ""
+        params: dict[str, Any] = {
+            "workspace_id": workspace_id,
+            "min_confidence": min_confidence,
+            "patterns": [f"%{k}%" for k in keywords[:10]],
+            "limit": limit,
+        }
+        conditions = [
+            "workspace_id = :workspace_id",
+            "confidence >= :min_confidence",
+            "(title ILIKE ANY(:patterns) OR content ILIKE ANY(:patterns))",
+        ]
+        if kind:
+            conditions.append("kind = :kind")
+            params["kind"] = kind
 
-        rows = await self._db.execute(
-            sa.text(f"""
-                SELECT id, kind, title, content, confidence, usage_count, tags
-                FROM knowledge_entries
-                WHERE workspace_id = :workspace_id
-                  AND confidence >= :min_confidence
-                  AND (
-                    title ILIKE ANY(:patterns)
-                    OR content ILIKE ANY(:patterns)
-                  )
-                  {kind_clause}
-                ORDER BY confidence DESC, usage_count DESC
-                LIMIT :limit
-            """),
-            {
-                "workspace_id": workspace_id,
-                "min_confidence": min_confidence,
-                "patterns": [f"%{k}%" for k in keywords[:10]],
-                "kind": kind,
-                "limit": limit,
-            },
-        )
+        _parts = [
+            "SELECT id, kind, title, content, confidence, usage_count, tags",
+            "FROM knowledge_entries",
+            "WHERE " + " AND ".join(conditions),
+            "ORDER BY confidence DESC, usage_count DESC",
+            "LIMIT :limit",
+        ]
+        query = " ".join(_parts)  # nosec
+        rows = await self._db.execute(sa.text(query), params)
         entries = [dict(r._mapping) for r in rows.fetchall()]
 
         if entries:

@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column("supports_reasoning", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("supports_json_mode", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("max_output_tokens", sa.Integer(), nullable=True),
-        sa.Column("work_types", JSONB(), nullable=False, server_default="[]"),
+        sa.Column("work_types", JSONB(), nullable=False, server_default="[]"),  # type: ignore[no-untyped-call]
         sa.Column(
             "primary_work_type", sa.String(64), nullable=False, server_default="general", index=True
         ),
@@ -47,7 +47,7 @@ def upgrade() -> None:
         sa.Column("rotation_weight", sa.Float(), nullable=False, server_default="1.0"),
         sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("is_rate_limited_until", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("raw_metadata", JSONB(), nullable=True),
+        sa.Column("raw_metadata", JSONB(), nullable=True),  # type: ignore[no-untyped-call]
         sa.Column("first_seen_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("last_checked_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), onupdate=sa.func.now()),
