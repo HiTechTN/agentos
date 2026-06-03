@@ -316,6 +316,6 @@ module: app.agents.dev
   2. Construire et uploader TOUS les artifacts :
      - **Web** : `docker build -t ghcr.io/hitechtn/agentos:<version> . && docker push` puis `docker save | gzip` → upload release
      - **Desktop** : `cd ui && npx tauri build --bundles deb,rpm,appimage` → upload .deb, .rpm, .AppImage
-      - **Mobile** : `cd mobile && npx expo run:android --variant debug` → upload .apk (NE PAS utiliser `./gradlew` directement — le JS bundle serait manquant)
+      - **Mobile** : `cd mobile && npm run bundle:android && cd android && ./gradlew assembleDebug` → upload .apk (`npx expo run:android` nécessite un émulateur connecté ; utiliser la séquence `bundle:android` + `./gradlew` pour un build headless)
   3. `gh release create <tag> --title "..." --notes-file release.md`
   4. Mettre à jour le tag et les assets si release existante
