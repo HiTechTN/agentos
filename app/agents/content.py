@@ -63,7 +63,7 @@ readability score target > 60. Return as structured markdown.""",
             import replicate
 
             if self.settings.replicate_api_token:
-                client: Any = replicate.Client(api_token=self.settings.replicate_api_token)  # type: ignore[attr-defined]
+                client: Any = replicate.Client(api_token=self.settings.replicate_api_token)
                 output = client.run(
                     "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
                     input={"prompt": prompt},
