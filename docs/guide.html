@@ -458,7 +458,7 @@
           <a class="sidebar-item" href="#orchestrateur">Orchestrateur</a>
           <a class="sidebar-item" href="#scheduler">Scheduler</a>
           <a class="sidebar-item" href="#intelligence">Intelligence Engine</a>
-          <a class="sidebar-item" href="#v7-modules">Modules v7.0</a>
+          <a class="sidebar-item" href="#v7-modules">Modules v7.1.0</a>
           <a class="sidebar-item" href="#mcp">MCP</a>
         </div>
       </div>
@@ -537,16 +537,16 @@
 
     <h3 id="composants">1.2 Composants clés</h3>
     <div class="cards">
-      <div class="card"><div class="icon">🌐</div><h4>API FastAPI <span class="tag" style="margin-left:6px;">v7.0</span></h4><p>60+ endpoints REST + WebSocket avec middleware JWT, rate limiting, et traçage distribué Jaeger.</p><div class="tags"><span class="tag">Python</span><span class="tag">FastAPI</span></div></div>
+      <div class="card"><div class="icon">🌐</div><h4>API FastAPI <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>60+ endpoints REST + WebSocket avec middleware JWT, rate limiting, et traçage distribué Jaeger.</p><div class="tags"><span class="tag">Python</span><span class="tag">FastAPI</span></div></div>
       <div class="card"><div class="icon">🔀</div><h4>Orchestrator</h4><p>Workflow multi-agent LangGraph avec circuit breaker, retry (×3), exécution parallèle, et TreeOfThoughts pour tâches complexes.</p><div class="tags"><span class="tag purple">LangGraph</span><span class="tag">StateGraph</span></div></div>
       <div class="card"><div class="icon">🤖</div><h4>Agents</h4><p>4 agents spécialisés (Dev, Content, Marketing, Commerce) avec AutoCorrector, WasmRunner sandbox, et AgentBus pour sous-agents dynamiques.</p><div class="tags"><span class="tag green">Strategy Pattern</span></div></div>
       <div class="card"><div class="icon">🎯</div><h4>Sub-Agents</h4><p>5 sous-agents LLM spécialisés : Planner, Verifier, Explorer, CodeReviewer, Debugger + AgentBus pour spawn dynamique.</p><div class="tags"><span class="tag purple">LLM Prompting</span></div></div>
-      <div class="card"><div class="icon">🧠</div><h4>Intelligence Engine <span class="tag green" style="margin-left:6px;">v6.0</span></h4><p>Mémoire épisodique, registre de compétences, base de connaissances, auto-réflexion nocturne, enrichissement de contexte.</p><div class="tags"><span class="tag">pgvector</span><span class="tag orange">LLM</span></div></div>
-      <div class="card"><div class="icon">🔗</div><h4>GraphRAG <span class="tag" style="margin-left:6px;">v7.0</span></h4><p>Extraction et stockage de graphes de connaissances après chaque session. Requêtes cross-session avec contexte enrichi.</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag purple">Knowledge Graph</span></div></div>
+      <div class="card"><div class="icon">🧠</div><h4>Intelligence Engine <span class="tag green" style="margin-left:6px;">v7.1.0</span></h4><p>Mémoire épisodique, registre de compétences, base de connaissances, auto-réflexion nocturne, enrichissement de contexte.</p><div class="tags"><span class="tag">pgvector</span><span class="tag orange">LLM</span></div></div>
+      <div class="card"><div class="icon">🔗</div><h4>GraphRAG <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>Extraction et stockage de graphes de connaissances après chaque session. Requêtes cross-session avec contexte enrichi.</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag purple">Knowledge Graph</span></div></div>
       <div class="card"><div class="icon">🗄️</div><h4>Memory</h4><p>Persistance + RAG vectoriel (pgvector) + cache distribué + graphe de connaissances (GraphRAG).</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag orange">pgvector</span></div></div>
       <div class="card"><div class="icon">⚡</div><h4>LLM Cache</h4><p>Cache distribué SHA256 à 2 niveaux (L1 local + Redis) avec TTL de 7 jours.</p><div class="tags"><span class="tag">Redis</span><span class="tag green">SHA256</span></div></div>
-      <div class="card"><div class="icon">🎮</div><h4>VRAM Manager <span class="tag" style="margin-left:6px;">v7.0</span></h4><p>Gestionnaire mémoire GPU 12GB pour Ollama. Bascule automatique selon work_type. Un seul modèle en VRAM à la fois.</p><div class="tags"><span class="tag">Ollama</span><span class="tag danger">GPU</span></div></div>
-      <div class="card"><div class="icon">⚡</div><h4>WasmRunner <span class="tag" style="margin-left:6px;">v7.0</span></h4><p>Sandbox WebAssembly pour outils légers (&lt;5ms). Exécution sécurisée de code avec performances natives.</p><div class="tags"><span class="tag">WebAssembly</span><span class="tag green">Sandbox</span></div></div>
+      <div class="card"><div class="icon">🎮</div><h4>VRAM Manager <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>Gestionnaire mémoire GPU 12GB pour Ollama. Bascule automatique selon work_type. Un seul modèle en VRAM à la fois.</p><div class="tags"><span class="tag">Ollama</span><span class="tag danger">GPU</span></div></div>
+      <div class="card"><div class="icon">⚡</div><h4>WasmRunner <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>Sandbox WebAssembly pour outils légers (&lt;5ms). Exécution sécurisée de code avec performances natives.</p><div class="tags"><span class="tag">WebAssembly</span><span class="tag green">Sandbox</span></div></div>
     </div>
 
     <h3 id="flux">1.3 Flux de travail typique</h3>
@@ -604,7 +604,7 @@
 ├── <span class="hljs-built_in">memory/</span>           ← Session, Vector Store, GraphRAG
 │   ├── episodic.py   ← Mémoire épisodique
 │   ├── knowledge.py  ← Base de connaissances
-│   └── graph_rag.py  ← Graphe de connaissances v7.0
+│   └── graph_rag.py  ← Graphe de connaissances v7.1.0
 ├── <span class="hljs-built_in">config/</span>           ← Pydantic Settings
 ├── <span class="hljs-built_in">migrations/</span>       ← Alembic
 ├── <span class="hljs-built_in">mcp/</span>              ← Model Context Protocol
@@ -995,7 +995,7 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
 { <span class="hljs-string">"name"</span>: <span class="hljs-string">"github-analyzer"</span>, <span class="hljs-string">"url"</span>: <span class="hljs-string">"https://mcp.myapp.com/tools"</span> }</code></pre>
     </div>
 
-    <h3 id="intelligence">5.11 Intelligence Engine v6.0</h3>
+    <h3 id="intelligence">5.11 Intelligence Engine v7.1.0</h3>
     <p>Moteur d'apprentissage continu qui enregistre chaque exécution, extrait des patterns, et améliore les performances au fil du temps.</p>
     <div class="cards">
       <div class="card"><div class="icon">📝</div><h4>Mémoire Épisodique</h4><p>Enregistre chaque TaskOutcome avec quality_score. Rappel des tâches similaires par type. Sélection de la meilleure stratégie.</p><div class="tags"><span class="tag">episodic.py</span><span class="tag green">quality_score</span></div></div>
@@ -1018,7 +1018,7 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
       </table>
     </div>
 
-    <h3 id="v7-modules">5.12 Nouveaux Modules v7.0</h3>
+    <h3 id="v7-modules">5.12 Nouveaux Modules v7.1.0</h3>
     <p>Sept nouveaux modules transforment AgentOS en système autonome avec raisonnement avancé, gestion mémoire GPU, et automatisation.</p>
 
     <div class="collapse">
