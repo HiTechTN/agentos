@@ -39,7 +39,7 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/token", response_model=TokenResponse)
-@limiter.exempt  # type: ignore[misc]
+@limiter.exempt
 async def create_quick_token(request: Request, body: QuickTokenRequest) -> TokenResponse:
     # Quick dev token — always admin for full access
     role = "admin"
@@ -115,7 +115,7 @@ OAUTH_PROVIDERS: dict[str, dict[str, str]] = {
 
 
 @router.post("/register", response_model=UserResponse)
-@limiter.exempt  # type: ignore[misc]
+@limiter.exempt
 async def register(request: Request, body: RegisterRequest) -> UserResponse:
     password_hash = _hash_password(body.password)
     user_id = str(uuid.uuid4())
@@ -163,7 +163,7 @@ async def register(request: Request, body: RegisterRequest) -> UserResponse:
 
 
 @router.post("/login", response_model=LoginResponse)
-@limiter.exempt  # type: ignore[misc]
+@limiter.exempt
 async def login(request: Request, body: LoginRequest) -> LoginResponse:
     if not body.email or not body.password:
         raise HTTPException(status_code=422, detail="Email and password are required")

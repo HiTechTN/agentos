@@ -78,3 +78,4 @@ omit = ["app/tests/*"]
 python_version = "3.13"
 strict = true
 ignore_missing_imports = true
+disable_error_code = ["untyped-decorator"]
