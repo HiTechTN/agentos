@@ -177,7 +177,7 @@ export default function SessionsScreen() {
                   {selectedSession.traceId && (
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Trace ID</Text>
-                      <Text style={[styles.detailValue, styles.mono]} numberOfLines={1}>
+                      <Text selectable style={[styles.detailValue, styles.mono]} numberOfLines={1}>
                         {selectedSession.traceId}
                       </Text>
                     </View>
@@ -188,7 +188,7 @@ export default function SessionsScreen() {
                   {sessionDetail && sessionDetail.result && (
                     <View style={styles.detailSection}>
                       <Text style={styles.detailSectionTitle}>Result</Text>
-                      <Text style={styles.detailResult}>{sessionDetail.result}</Text>
+                      <Text selectable style={styles.detailResult}>{sessionDetail.result}</Text>
                     </View>
                   )}
                 </>

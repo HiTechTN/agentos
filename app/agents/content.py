@@ -16,7 +16,12 @@ class ContentAgent(BaseAgent):
     HITL_ACTIONS = {"publish"}
 
     async def _run(
-        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+        self,
+        action: str,
+        params: dict[str, Any],
+        session_id: str,
+        trace_id: str,
+        attachments: list[dict[str, str]] | None = None,
     ) -> Any:
         if action in self.HITL_ACTIONS:
             try:

@@ -88,7 +88,17 @@ class LLMClient:
     ) -> LLMResponse:
         try:
             ollama_model = self.settings.ollama_fallback_model
-            ollama_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
+            ollama_messages: list[dict[str, str]] = []
+            for m in messages:
+                content = m["content"]
+                if isinstance(content, list):
+                    text_parts = [
+                        p.get("text", "")
+                        for p in content
+                        if isinstance(p, dict) and p.get("type") == "text"
+                    ]
+                    content = " ".join(text_parts) if text_parts else ""
+                ollama_messages.append({"role": m["role"], "content": content})
             payload = dict(model=ollama_model, messages=ollama_messages, stream=False)
             if temperature:
                 payload["options"] = {"temperature": temperature}

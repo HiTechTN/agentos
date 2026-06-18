@@ -161,7 +161,7 @@ class SmartLLMRouter:
         system: str = "",
         agent_name: str = "",
         work_type: WorkType | None = None,
-        messages: list[dict[str, str]] | None = None,
+        messages: list[dict[str, Any]] | None = None,
         requires_tools: bool = False,
         requires_vision: bool = False,
         temperature: float = 0.7,
@@ -171,7 +171,7 @@ class SmartLLMRouter:
         detected_type = work_type or detect_work_type(prompt, agent_name)
         candidates = self._get_candidates(detected_type)
 
-        msg_list: list[dict[str, str]] = []
+        msg_list: list[dict[str, Any]] = []
         if system:
             msg_list.append({"role": "system", "content": system})
         if messages:
@@ -245,7 +245,7 @@ class SmartLLMRouter:
     async def _call_openrouter(
         self,
         model_id: str,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         temperature: float,
         max_tokens: int,
     ) -> dict[str, Any]:
@@ -265,13 +265,24 @@ class SmartLLMRouter:
 
     async def _call_ollama(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         temperature: float,
         max_tokens: int,
     ) -> dict[str, Any]:
         """Fallback to local Ollama when all free models are exhausted."""
         try:
             settings = get_settings()
+            ollama_messages: list[dict[str, str]] = []
+            for m in messages:
+                content = m["content"]
+                if isinstance(content, list):
+                    text_parts = [
+                        p.get("text", "")
+                        for p in content
+                        if isinstance(p, dict) and p.get("type") == "text"
+                    ]
+                    content = " ".join(text_parts) if text_parts else ""
+                ollama_messages.append({"role": m["role"], "content": content})
             async with httpx.AsyncClient(
                 base_url=settings.ollama_base_url,
                 timeout=httpx.Timeout(120.0),
@@ -280,7 +291,7 @@ class SmartLLMRouter:
                     "/api/chat",
                     json={
                         "model": self.OLLAMA_FALLBACK_MODEL,
-                        "messages": messages,
+                        "messages": ollama_messages,
                         "options": {
                             "temperature": temperature,
                             "num_predict": max_tokens,

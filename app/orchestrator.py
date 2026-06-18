@@ -239,7 +239,10 @@ class AgentOSOrchestrator:
                 }
             try:
                 result = await agent.execute(
-                    task=task, session_id=state["session_id"], trace_id=state["trace_id"]
+                    task=task,
+                    session_id=state["session_id"],
+                    trace_id=state["trace_id"],
+                    attachments=state.get("attachments", []),
                 )
                 return task["agent"], result
             except HITLPendingError as e:
@@ -298,7 +301,10 @@ class AgentOSOrchestrator:
             for attempt in range(MAX_RETRIES):
                 try:
                     result = await agent.execute(
-                        task=task, session_id=state["session_id"], trace_id=state["trace_id"]
+                        task=task,
+                        session_id=state["session_id"],
+                        trace_id=state["trace_id"],
+                        attachments=state.get("attachments", []),
                     )
                     if result.get("success"):
                         state["circuit_breaker"][cb_key] = 0

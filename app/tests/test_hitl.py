@@ -138,7 +138,9 @@ async def test_hitl_integration_with_orchestrator() -> Any:
 
     hitl = get_hitl_gateway()
 
-    async def hitl_execute(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
+    async def hitl_execute(
+        task: Any, session_id: Any = "", trace_id: Any = "", attachments: Any = None
+    ) -> Any:
         await hitl.request_approval(session_id, "dev", "deploy", {"target": "staging"})
         return {"agent": "dev", "action": "deploy", "success": True, "result": {}}
 

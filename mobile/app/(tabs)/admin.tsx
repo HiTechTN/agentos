@@ -204,7 +204,7 @@ function ServicesSection({ services }: { services: ServiceStatus | null }) {
               <View style={[styles.serviceDot, { backgroundColor: isOk ? Colors.light.success : Colors.light.error }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{name}</Text>
-                {details?.detail && <Text style={styles.cardError}>{details.detail}</Text>}
+                {details?.detail && <Text selectable style={styles.cardError}>{details.detail}</Text>}
               </View>
               <Badge label={isOk ? 'OK' : 'ERR'} variant={isOk ? 'success' : 'error'} />
             </View>
@@ -338,7 +338,7 @@ function SettingsSection({ settings, schema, onRefresh }: { settings: AdminSetti
                       {fieldMeta?.description ? (
                         <Text style={styles.fieldDesc}>{fieldMeta.description}</Text>
                       ) : null}
-                      <Text style={styles.cardValue} numberOfLines={2}>{String(value)}</Text>
+                      <Text selectable style={styles.cardValue} numberOfLines={2}>{String(value)}</Text>
                     </TouchableOpacity>
                   )}
                 </Card>
@@ -357,7 +357,7 @@ function SettingsSection({ settings, schema, onRefresh }: { settings: AdminSetti
                   <Text style={styles.cardTitle} numberOfLines={1}>{key}</Text>
                   <Ionicons name="create-outline" size={16} color={Colors.light.textTertiary} />
                 </View>
-                <Text style={styles.cardValue} numberOfLines={2}>{String(value)}</Text>
+                <Text selectable style={styles.cardValue} numberOfLines={2}>{String(value)}</Text>
               </TouchableOpacity>
             </Card>
           ))}
@@ -440,7 +440,7 @@ function LLMSection({ llmData, onRefresh }: { llmData: AdminLLMProviders | null;
               <Badge label={`${testResult.latency_ms.toFixed(0)}ms`} variant={testResult.success ? 'success' : 'error'} />
             )}
           </View>
-          <Text style={styles.cardValue}>{testResult.response || testResult.error}</Text>
+          <Text selectable style={styles.cardValue}>{testResult.response || testResult.error}</Text>
         </Card>
       )}
 
@@ -457,7 +457,7 @@ function LLMSection({ llmData, onRefresh }: { llmData: AdminLLMProviders | null;
               <Text style={styles.cardTitle}>{model.name}</Text>
               {isSelected && <Badge label="Active" variant="success" />}
             </View>
-            <Text style={styles.cardModelId}>{model.id}</Text>
+            <Text selectable style={styles.cardModelId}>{model.id}</Text>
             <View style={styles.tags}>
               <Text style={styles.tag}>ctx: {model.context_window.toLocaleString()}</Text>
               {model.supports_tools && <Text style={styles.tag}>tools</Text>}

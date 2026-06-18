@@ -54,7 +54,12 @@ class DebuggerAgent(BaseAgent):
     ]
 
     async def _run(
-        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+        self,
+        action: str,
+        params: dict[str, Any],
+        session_id: str,
+        trace_id: str,
+        attachments: list[dict[str, str]] | None = None,
     ) -> Any:
         ctx = DebugContext(**params)
         return await self.run(ctx)

@@ -115,7 +115,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Dashboard</Text>
-            <Text style={styles.version}>v{health?.version ?? '...'}</Text>
+            <Text selectable style={styles.version}>v{health?.version ?? '...'}</Text>
           </View>
           <TouchableOpacity
             style={styles.adminChip}
@@ -144,7 +144,7 @@ export default function DashboardScreen() {
               <View style={[styles.statIcon, { backgroundColor: stat.color + '15' }]}>
                 <Ionicons name={stat.icon} size={22} color={stat.color} />
               </View>
-              <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
+              <Text selectable style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
             </Card>
           ))}

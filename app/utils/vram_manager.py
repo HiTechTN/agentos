@@ -7,35 +7,29 @@ from typing import Final
 from app.utils.llm_router import WorkType
 
 MODEL_VRAM_COSTS: Final[dict[str, float]] = {
-    "qwen2.5:7b-instruct-q4_K_M": 4.5,
-    "qwen2.5:7b-instruct-q8_0": 7.0,
-    "llama3.1:8b-q4_K_M": 5.0,
-    "llama3.1:8b-q8_0": 8.0,
-    "deepseek-coder:6.7b-q4_K_M": 4.0,
-    "deepseek-coder:6.7b-q8_0": 6.5,
+    "qwen2.5-coder:7b": 4.4,
+    "granite4.1:8b": 5.0,
+    "gemma4:latest": 8.9,
     "nomic-embed-text": 0.5,
 }
 
 DEFAULT_VRAM_COST: Final[float] = 6.0
 
 _WORK_TYPE_MODEL_MAP: Final[dict[WorkType, str]] = {
-    WorkType.CODE_GEN: "deepseek-coder:6.7b-q4_K_M",
-    WorkType.CODE_AGENT: "deepseek-coder:6.7b-q4_K_M",
-    WorkType.REASONING: "llama3.1:8b-q4_K_M",
-    WorkType.CONTENT: "qwen2.5:7b-instruct-q4_K_M",
-    WorkType.FAST: "qwen2.5:7b-instruct-q4_K_M",
-    WorkType.MULTIMODAL: "llama3.1:8b-q4_K_M",
-    WorkType.DEBUG: "qwen2.5:7b-instruct-q4_K_M",
-    WorkType.GENERAL: "qwen2.5:7b-instruct-q4_K_M",
+    WorkType.CODE_GEN: "qwen2.5-coder:7b",
+    WorkType.CODE_AGENT: "qwen2.5-coder:7b",
+    WorkType.REASONING: "granite4.1:8b",
+    WorkType.CONTENT: "gemma4:latest",
+    WorkType.FAST: "qwen2.5-coder:7b",
+    WorkType.MULTIMODAL: "gemma4:latest",
+    WorkType.DEBUG: "qwen2.5-coder:7b",
+    WorkType.GENERAL: "granite4.1:8b",
 }
 
 _MODEL_FALLBACK_CHAIN: Final[dict[str, str]] = {
-    "deepseek-coder:6.7b-q8_0": "deepseek-coder:6.7b-q4_K_M",
-    "llama3.1:8b-q8_0": "llama3.1:8b-q4_K_M",
-    "llama3.1:8b-q4_K_M": "qwen2.5:7b-instruct-q4_K_M",
-    "qwen2.5:7b-instruct-q8_0": "qwen2.5:7b-instruct-q4_K_M",
-    "qwen2.5:7b-instruct-q4_K_M": "nomic-embed-text",
-    "deepseek-coder:6.7b-q4_K_M": "nomic-embed-text",
+    "gemma4:latest": "granite4.1:8b",
+    "granite4.1:8b": "qwen2.5-coder:7b",
+    "qwen2.5-coder:7b": "nomic-embed-text",
 }
 
 
@@ -141,7 +135,7 @@ class VRAMManager:
             The name of the best model that fits.
         """
         wt = WorkType(work_type)
-        default = _WORK_TYPE_MODEL_MAP.get(wt, "qwen2.5:7b-instruct-q4_K_M")
+        default = _WORK_TYPE_MODEL_MAP.get(wt, "granite4.1:8b")
 
         seen: set[str] = set()
         candidates: list[str] = []

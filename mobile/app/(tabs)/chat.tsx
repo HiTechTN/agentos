@@ -249,7 +249,7 @@ export default function ChatScreen() {
         )}
         <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
           {item.text ? (
-            <Text style={[styles.messageText, isUser && styles.userText]}>{item.text}</Text>
+            <Text selectable style={[styles.messageText, isUser && styles.userText]}>{item.text}</Text>
           ) : null}
           {item.attachments?.map((att, i) => (
             <View key={i} style={styles.attachPreview}>

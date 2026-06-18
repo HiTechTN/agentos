@@ -209,7 +209,9 @@ class TestParallelExecution:
             ],
         }
 
-        async def mock_execute(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
+        async def mock_execute(
+            task: Any, session_id: Any = "", trace_id: Any = "", attachments: Any = None
+        ) -> Any:
             return {"agent": task["agent"], "action": task["action"], "success": True, "result": {}}
 
         with (

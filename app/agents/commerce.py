@@ -13,7 +13,12 @@ class CommerceAgent(BaseAgent):
     _inventory: dict[str, dict[str, Any]] = {}
 
     async def _run(
-        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+        self,
+        action: str,
+        params: dict[str, Any],
+        session_id: str,
+        trace_id: str,
+        attachments: list[dict[str, str]] | None = None,
     ) -> Any:
         if action in self.HITL_ACTIONS:
             from app.utils.hitl_gateway import HITLPendingError

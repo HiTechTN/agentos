@@ -191,7 +191,9 @@ async def test_orchestrator_retry_on_failure(orchestrator: Any) -> Any:
 
     call_count = 0
 
-    async def failing_execute(task: Any, session_id: Any = "", trace_id: Any = "") -> Any:
+    async def failing_execute(
+        task: Any, session_id: Any = "", trace_id: Any = "", attachments: Any = None
+    ) -> Any:
         nonlocal call_count
         call_count += 1
         return {

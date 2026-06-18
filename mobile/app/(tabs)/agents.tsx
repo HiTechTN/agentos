@@ -159,7 +159,7 @@ export default function AgentsScreen() {
               <View style={[styles.statusDot, { backgroundColor: statusColor(agent.status) }]} />
             </View>
             <Text style={styles.agentDesc}>{agent.description}</Text>
-            <Text style={styles.agentDetail}>Last: {agent.lastTask}</Text>
+            <Text selectable style={styles.agentDetail}>Last: {agent.lastTask}</Text>
           </View>
           <View style={styles.agentActions}>
             <BadgeDot color={statusColor(agent.status)} label={statusLabel(agent.status)} />

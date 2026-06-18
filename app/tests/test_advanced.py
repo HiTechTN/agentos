@@ -258,7 +258,9 @@ async def test_hitl_propagation(orch: Any) -> None:
         "parallel_batch": [],
     }
 
-    async def hitl_execute(task: Any, session_id: Any = "", trace_id: Any = "") -> None:
+    async def hitl_execute(
+        task: Any, session_id: Any = "", trace_id: Any = "", attachments: Any = None
+    ) -> None:
         raise HITLPendingError(approval_id="test-approval-id", action="deploy")
 
     with patch.object(orch.agents["dev"], "execute", hitl_execute):

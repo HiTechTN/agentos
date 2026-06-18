@@ -55,10 +55,15 @@ class BaseAgent(ABC):
         return env_model or self.model
 
     async def execute(
-        self, task: dict[str, Any], session_id: str = "", trace_id: str = ""
+        self,
+        task: dict[str, Any],
+        session_id: str = "",
+        trace_id: str = "",
+        attachments: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         action = task.get("action", "execute")
         task_params = task.get("params", {})
+        self._attachments = attachments or []
 
         self.logger.log_action(
             agent_id=self.name,
@@ -100,7 +105,7 @@ class BaseAgent(ABC):
             if rag_context:
                 task_params["rag_context"] = rag_context
 
-            result = await self._run(action, task_params, session_id, trace_id)
+            result = await self._run(action, task_params, session_id, trace_id, self._attachments)
             self.logger.log_action(
                 agent_id=self.name,
                 action=action,
@@ -158,13 +163,55 @@ class BaseAgent(ABC):
 
     @abstractmethod
     async def _run(
-        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+        self,
+        action: str,
+        params: dict[str, Any],
+        session_id: str,
+        trace_id: str,
+        attachments: list[dict[str, str]] | None = None,
     ) -> Any: ...
 
+    _VISION_MODEL = "openai/gpt-4o-2024-11-20"
+
+    def _has_image_attachments(self) -> bool:
+        return any(
+            a.get("mime_type", "").startswith("image/") for a in getattr(self, "_attachments", [])
+        )
+
+    def _build_multimodal_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if not self._has_image_attachments():
+            return messages
+        result: list[dict[str, Any]] = list(messages)
+        for i in range(len(result) - 1, -1, -1):
+            if result[i].get("role") == "user":
+                msg = result[i]
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    parts: list[dict[str, Any]] = [{"type": "text", "text": content}]
+                    for att in self._attachments:
+                        if att.get("mime_type", "").startswith("image/"):
+                            parts.append(
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": (
+                                            f"data:{att['mime_type']};"
+                                            f"base64,{att['data_base64']}"
+                                        )
+                                    },
+                                }
+                            )
+                    result[i] = {**msg, "content": parts}
+                break
+        return result
+
     async def _llm_call(self, messages: list[dict[str, Any]], temperature: float = 0.7) -> str:
+        has_images = self._has_image_attachments()
+        model = self._VISION_MODEL if has_images else self.effective_model
+        msgs = self._build_multimodal_messages(messages) if has_images else messages
         response = await self.llm.chat(
-            model=self.effective_model,
-            messages=messages,
+            model=model,
+            messages=msgs,
             temperature=temperature,
         )
         return response.content
@@ -172,9 +219,12 @@ class BaseAgent(ABC):
     async def _llm_call_routed(
         self, task_type: str, messages: list[dict[str, Any]], temperature: float = 0.7
     ) -> str:
+        msgs = (
+            self._build_multimodal_messages(messages) if self._has_image_attachments() else messages
+        )
         response = await self.llm.chat_with_model_selection(
             task_type=task_type,
-            messages=messages,
+            messages=msgs,
             temperature=temperature,
         )
         return response.content

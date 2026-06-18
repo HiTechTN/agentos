@@ -13,9 +13,20 @@ class _MinimalAgent(BaseAgent):
     model = "test-model"
 
     async def _run(
-        self, action: str, params: dict[str, Any], session_id: str, trace_id: str
+        self,
+        action: str,
+        params: dict[str, Any],
+        session_id: str,
+        trace_id: str,
+        attachments: list[dict[str, str]] | None = None,
     ) -> Any:
-        return {"action": action, "params": params, "session_id": session_id, "trace_id": trace_id}
+        return {
+            "action": action,
+            "params": params,
+            "session_id": session_id,
+            "trace_id": trace_id,
+            "attachments": attachments or [],
+        }
 
 
 @pytest.fixture
