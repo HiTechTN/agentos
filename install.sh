@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# AgentOS v7.1.0 — Quick Install Script
+# AgentOS v7.2.1 — Quick Install Script
 # Usage: curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | bash
 # =============================================================================
 set -euo pipefail
 
-VERSION="7.1.0"                          # App version (pip, mobile)
-DESKTOP_VERSION="7.1.0"                 # Desktop package filenames
+VERSION="7.2.1"                          # App version (pip, mobile)
+DESKTOP_VERSION="7.2.1"                 # Desktop package filenames
 REPO="HiTechTN/agentos"
 BRANCH="main"
 GH_BASE="https://github.com/$REPO/releases/download/v$VERSION"

@@ -2,7 +2,7 @@
   "expo": {
     "name": "AgentOS Mobile",
     "slug": "agentos-mobile",
-    "version": "7.2.0",
+    "version": "7.2.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "agentos",

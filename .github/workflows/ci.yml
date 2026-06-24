@@ -139,16 +139,20 @@ jobs:
         run: uv run python3 -m pytest app/tests/ --cov=app --cov-fail-under=98 -q --tb=short
       - run: uv run bandit -r app/ -ll -q
       - name: Validate docker-compose
-        run: docker compose config --quiet
+        run: |
+          # Create minimal .env for docker-compose validation (web service requires env_file)
+          [ -f .env ] || cp .env.example .env 2>/dev/null || cat > .env << 'EOF'
+          LOG_LEVEL=INFO
+          PROJECT_ID=ci-test
+          ENVIRONMENT=ci
+          OPENROUTER_API_KEY=sk-placeholder
+          OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+          EOF
+          docker compose config --quiet
       - name: Check alembic migrations
         env:
           DATABASE_URL: postgresql+asyncpg://agentos:agentos@localhost/agentos_test
         run: uv run alembic check
-      - name: Fail on any issue
-        if: failure()
-        run: |
-          echo "❌ Pre-release validation failed — fix all issues before releasing"
-          exit 1
 
   docker:
     name: Docker Build

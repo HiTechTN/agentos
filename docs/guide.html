@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentOS v7.1.0 — Guide Complet</title>
+<title>AgentOS v7.2.1 — Guide Complet</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -326,7 +326,7 @@
     <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
     <div class="logo">
       🤖 <span>AgentOS</span>
-      <span class="badge">Guide v7.1.0</span>
+      <span class="badge">Guide v7.2.1</span>
     </div>
   </div>
   <nav>
@@ -418,7 +418,7 @@
           <a class="sidebar-item" href="#orchestrateur">Orchestrateur</a>
           <a class="sidebar-item" href="#scheduler">Scheduler</a>
           <a class="sidebar-item" href="#intelligence">Intelligence Engine</a>
-          <a class="sidebar-item" href="#v7-modules">Modules v7.1.0</a>
+          <a class="sidebar-item" href="#v7-modules">Modules v7.2.1</a>
           <a class="sidebar-item" href="#mcp">MCP</a>
         </div>
       </div>
@@ -462,7 +462,7 @@
   <!-- ── MAIN CONTENT ── -->
   <main class="main" id="main-content">
 
-    <h1>Guide <span class="hl">AgentOS</span> v7.1.0</h1>
+    <h1>Guide <span class="hl">AgentOS</span> v7.2.1</h1>
     <p class="subtitle">Plateforme d'orchestration multi-agent avec Intelligence Engine — Architecture, déploiement, API et développement</p>
 
     <!-- ═══════════════ 1. ARCHITECTURE ═══════════════ -->
@@ -497,16 +497,16 @@
 
     <h3 id="composants">1.2 Composants clés</h3>
     <div class="cards">
-      <div class="card"><div class="icon">🌐</div><h4>API FastAPI <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>60+ endpoints REST + WebSocket avec middleware JWT, rate limiting, et traçage distribué Jaeger.</p><div class="tags"><span class="tag">Python</span><span class="tag">FastAPI</span></div></div>
+      <div class="card"><div class="icon">🌐</div><h4>API FastAPI <span class="tag" style="margin-left:6px;">v7.2.1</span></h4><p>60+ endpoints REST + WebSocket avec middleware JWT, rate limiting, et traçage distribué Jaeger.</p><div class="tags"><span class="tag">Python</span><span class="tag">FastAPI</span></div></div>
       <div class="card"><div class="icon">🔀</div><h4>Orchestrator</h4><p>Workflow multi-agent LangGraph avec circuit breaker, retry (×3), exécution parallèle, et TreeOfThoughts pour tâches complexes.</p><div class="tags"><span class="tag purple">LangGraph</span><span class="tag">StateGraph</span></div></div>
       <div class="card"><div class="icon">🤖</div><h4>Agents</h4><p>4 agents spécialisés (Dev, Content, Marketing, Commerce) avec AutoCorrector, WasmRunner sandbox, et AgentBus pour sous-agents dynamiques.</p><div class="tags"><span class="tag green">Strategy Pattern</span></div></div>
       <div class="card"><div class="icon">🎯</div><h4>Sub-Agents</h4><p>5 sous-agents LLM spécialisés : Planner, Verifier, Explorer, CodeReviewer, Debugger + AgentBus pour spawn dynamique.</p><div class="tags"><span class="tag purple">LLM Prompting</span></div></div>
-      <div class="card"><div class="icon">🧠</div><h4>Intelligence Engine <span class="tag green" style="margin-left:6px;">v7.1.0</span></h4><p>Mémoire épisodique, registre de compétences, base de connaissances, auto-réflexion nocturne, enrichissement de contexte.</p><div class="tags"><span class="tag">pgvector</span><span class="tag orange">LLM</span></div></div>
-      <div class="card"><div class="icon">🔗</div><h4>GraphRAG <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>Extraction et stockage de graphes de connaissances après chaque session. Requêtes cross-session avec contexte enrichi.</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag purple">Knowledge Graph</span></div></div>
+      <div class="card"><div class="icon">🧠</div><h4>Intelligence Engine <span class="tag green" style="margin-left:6px;">v7.2.1</span></h4><p>Mémoire épisodique, registre de compétences, base de connaissances, auto-réflexion nocturne, enrichissement de contexte.</p><div class="tags"><span class="tag">pgvector</span><span class="tag orange">LLM</span></div></div>
+      <div class="card"><div class="icon">🔗</div><h4>GraphRAG <span class="tag" style="margin-left:6px;">v7.2.1</span></h4><p>Extraction et stockage de graphes de connaissances après chaque session. Requêtes cross-session avec contexte enrichi.</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag purple">Knowledge Graph</span></div></div>
       <div class="card"><div class="icon">🗄️</div><h4>Memory</h4><p>Persistance + RAG vectoriel (pgvector) + cache distribué + graphe de connaissances (GraphRAG).</p><div class="tags"><span class="tag">PostgreSQL</span><span class="tag orange">pgvector</span></div></div>
       <div class="card"><div class="icon">⚡</div><h4>LLM Cache</h4><p>Cache distribué SHA256 à 2 niveaux (L1 local + Redis) avec TTL de 7 jours.</p><div class="tags"><span class="tag">Redis</span><span class="tag green">SHA256</span></div></div>
-      <div class="card"><div class="icon">🎮</div><h4>VRAM Manager <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>Gestionnaire mémoire GPU 12GB pour Ollama. Bascule automatique selon work_type. Un seul modèle en VRAM à la fois.</p><div class="tags"><span class="tag">Ollama</span><span class="tag danger">GPU</span></div></div>
-      <div class="card"><div class="icon">⚡</div><h4>WasmRunner <span class="tag" style="margin-left:6px;">v7.1.0</span></h4><p>Sandbox WebAssembly pour outils légers (&lt;5ms). Exécution sécurisée de code avec performances natives.</p><div class="tags"><span class="tag">WebAssembly</span><span class="tag green">Sandbox</span></div></div>
+      <div class="card"><div class="icon">🎮</div><h4>VRAM Manager <span class="tag" style="margin-left:6px;">v7.2.1</span></h4><p>Gestionnaire mémoire GPU 12GB pour Ollama. Bascule automatique selon work_type. Un seul modèle en VRAM à la fois.</p><div class="tags"><span class="tag">Ollama</span><span class="tag danger">GPU</span></div></div>
+      <div class="card"><div class="icon">⚡</div><h4>WasmRunner <span class="tag" style="margin-left:6px;">v7.2.1</span></h4><p>Sandbox WebAssembly pour outils légers (&lt;5ms). Exécution sécurisée de code avec performances natives.</p><div class="tags"><span class="tag">WebAssembly</span><span class="tag green">Sandbox</span></div></div>
     </div>
 
     <h3 id="flux">1.3 Flux de travail typique</h3>
@@ -564,7 +564,7 @@
 ├── <span class="hljs-built_in">memory/</span>           ← Session, Vector Store, GraphRAG
 │   ├── episodic.py   ← Mémoire épisodique
 │   ├── knowledge.py  ← Base de connaissances
-│   └── graph_rag.py  ← Graphe de connaissances v7.1.0
+│   └── graph_rag.py  ← Graphe de connaissances v7.2.1
 ├── <span class="hljs-built_in">config/</span>           ← Pydantic Settings
 ├── <span class="hljs-built_in">migrations/</span>       ← Alembic
 ├── <span class="hljs-built_in">mcp/</span>              ← Model Context Protocol
@@ -586,7 +586,7 @@
 
     <!-- ═══════════════ 2. UI CROSS-PLATFORM ═══════════════ -->
     <h2 id="ui">🖥️ 2. Interface Cross-Platform</h2>
-    <p>AgentOS v7.1.0 propose une Intelligence Engine complète (mémoire épisodique, registre de compétences, base de connaissances, auto-réflexion nocturne, enrichissement de contexte), GraphRAG, TreeOfThoughts, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, et une interface unifiée sur <strong>4 plateformes</strong> partageant la même base de code React.</p>
+    <p>AgentOS v7.2.1 propose une Intelligence Engine complète (mémoire épisodique, registre de compétences, base de connaissances, auto-réflexion nocturne, enrichissement de contexte), GraphRAG, TreeOfThoughts, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, et une interface unifiée sur <strong>4 plateformes</strong> partageant la même base de code React.</p>
 
     <div class="cards">
       <div class="card"><div class="icon">🌐</div><h4>Web App</h4><p>Next.js 16 + Tailwind CSS v4. 10 pages : Dashboard, Chat, Agents, Sessions, Kanban, Pulse, Settings, Deploy, Guide.</p><div class="tags"><span class="tag">Next.js 16</span><span class="tag purple">Tailwind v4</span><span class="tag">TypeScript</span></div></div>
@@ -843,7 +843,7 @@ ws.onmessage = (event) => {
     </div>
 
     <h3 id="auth-system">5.3 Authentification & Comptes</h3>
-    <p>AgentOS v7.1.0 intègre un système d'authentification complet : inscription par email, connexion JWT et OAuth (Google/GitHub).</p>
+    <p>AgentOS v7.2.1 intègre un système d'authentification complet : inscription par email, connexion JWT et OAuth (Google/GitHub).</p>
     <div class="code-block">
       <div class="code-header"><span class="lang">HTTP</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Inscription</span>
@@ -955,7 +955,7 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
 { <span class="hljs-string">"name"</span>: <span class="hljs-string">"github-analyzer"</span>, <span class="hljs-string">"url"</span>: <span class="hljs-string">"https://mcp.myapp.com/tools"</span> }</code></pre>
     </div>
 
-    <h3 id="intelligence">5.11 Intelligence Engine v7.1.0</h3>
+    <h3 id="intelligence">5.11 Intelligence Engine v7.2.1</h3>
     <p>Moteur d'apprentissage continu qui enregistre chaque exécution, extrait des patterns, et améliore les performances au fil du temps.</p>
     <div class="cards">
       <div class="card"><div class="icon">📝</div><h4>Mémoire Épisodique</h4><p>Enregistre chaque TaskOutcome avec quality_score. Rappel des tâches similaires par type. Sélection de la meilleure stratégie.</p><div class="tags"><span class="tag">episodic.py</span><span class="tag green">quality_score</span></div></div>
@@ -978,7 +978,7 @@ LLM_CACHE_TTL=<span class="hljs-number">604800</span></code></pre>
       </table>
     </div>
 
-    <h3 id="v7-modules">5.12 Nouveaux Modules v7.1.0</h3>
+    <h3 id="v7-modules">5.12 Nouveaux Modules v7.2.1</h3>
     <p>Sept nouveaux modules transforment AgentOS en système autonome avec raisonnement avancé, gestion mémoire GPU, et automatisation.</p>
 
     <div class="collapse">
@@ -1189,7 +1189,7 @@ uv run alembic downgrade -1</code></pre>
       <div class="code-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">📋 Copier</button></div>
       <pre><code><span class="hljs-comment"># Endpoint santé</span>
 curl http://localhost:8000/health
-<span class="hljs-comment"># → {"api":"ok","database":"ok","redis":"ok","version":"7.1.0"}</span>
+<span class="hljs-comment"># → {"api":"ok","database":"ok","redis":"ok","version":"7.2.1"}</span>
 
 <span class="hljs-comment"># Métriques Prometheus</span>
 curl http://localhost:8000/metrics
@@ -1212,7 +1212,7 @@ curl -X POST http://localhost:8000/api/v1/sub-agent/debug \
 
     <hr style="border-color:var(--border);margin:48px 0;">
     <p style="text-align:center;color:var(--text-muted);font-size:.85rem;">
-      AgentOS v7.1.0 · 1054+ tests · 99% coverage · 4 plateformes · 60+ endpoints · 
+      AgentOS v7.2.1 · 1054+ tests · 99% coverage · 4 plateformes · 60+ endpoints · 
       <a href="https://github.com/HiTechTN/agentos">GitHub</a> · 
       <a href="deploy.html">Assistant déploiement</a> · 
       <a href="/docs" target="_blank">API Docs</a> · 

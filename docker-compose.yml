@@ -143,7 +143,7 @@ services:
   app:
     container_name: agentos-app
     restart: unless-stopped
-    image: ghcr.io/hitechtn/agentos:6.0.0
+    image: ghcr.io/hitechtn/agentos:7.2.1
     depends_on:
       postgres:
         condition: service_healthy
@@ -187,7 +187,8 @@ services:
       app:
         condition: service_healthy
     env_file:
-      - .env
+      - path: .env
+        required: false
     ports:
       - "${AGENTOS_WEB_PORT:-3000}:3000"
     networks:
