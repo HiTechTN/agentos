@@ -56,38 +56,38 @@ curl -sSL https://raw.githubusercontent.com/HiTechTN/agentos/main/install.sh | b
 
 ```mermaid
 flowchart TB
-    User([User Prompt]) --> Plan[Planner Sub-Agent<br/>Plan Mode]
-    Plan --> Orch[Orchestrator<br/>LangGraph State Machine]
+    User([User Prompt]) --> Plan[Planner Sub-Agent / Plan Mode]
+    Plan --> Orch[Orchestrator / LangGraph State Machine]
 
     subgraph SubAgents["Sub-Agent System"]
-        Planner[Planner<br/>Architecture]
-        Verifier[Verifier<br/>Validation]
-        Explorer[Explorer<br/>Code Search]
-        Reviewer[CodeReviewer<br/>Security Review]
+        Planner[Planner / Architecture]
+        Verifier[Verifier / Validation]
+        Explorer[Explorer / Code Search]
+        Reviewer[CodeReviewer / Security Review]
     end
 
     subgraph Agents["Domain Agents"]
-        Dev[DevAgent<br/>Code · CI/CD · Deploy]
-        Content[ContentAgent<br/>SEO · Images · CMS]
-        Marketing[MarketingAgent<br/>Email · Ads · Analytics]
-        Commerce[CommerceAgent<br/>Catalog · Checkout · FAQ]
+        Dev[DevAgent / Code, CI/CD, Deploy]
+        Content[ContentAgent / SEO, Images, CMS]
+        Marketing[MarketingAgent / Email, Ads, Analytics]
+        Commerce[CommerceAgent / Catalog, Checkout, FAQ]
     end
 
     Orch --> SubAgents
     Orch --> Agents
 
-    subgraph Memory[" "]
-        PG[(PostgreSQL<br/>+ pgvector)]
+    subgraph Memory["Memory Layer"]
+        PG[(PostgreSQL + pgvector)]
         RC[(Redis Cache)]
     end
 
     Agents --> Memory
-    Agents --> HITL{HITL<br/>Human Approval}
+    Agents --> HITL{HITL / Human Approval}
     HITL -->|Approved| Output[Deploy / Publish / Charge]
     HITL -->|Rejected| Log[Audit Log]
     Output --> Log
-    SubAgents --> Kanban[Kanban Board<br/>6 Columns]
-    SubAgents --> Pulse[Pulse Dashboard<br/>Real-time Metrics]
+    SubAgents --> Kanban[Kanban Board / 6 Columns]
+    SubAgents --> Pulse[Pulse Dashboard / Real-time Metrics]
 ```
 
 ### 🔄 Pipeline Flow (Plan → Code → Verify)
