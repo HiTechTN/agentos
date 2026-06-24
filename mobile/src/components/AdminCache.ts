@@ -6,8 +6,8 @@ const ADMIN_CACHE_TTL = 60_000; // 60s
 interface AdminCacheData {
   settings?: Record<string, any>;
   services?: Record<string, any>;
-  llmModels?: any[];
-  users?: any[];
+  llmModels?: Record<string, any>;
+  users?: Array<Record<string, any>>;
   timestamp: number;
 }
 
