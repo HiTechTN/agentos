@@ -75,7 +75,6 @@ export default function LoginScreen() {
         setConnecting(false);
         return;
       }
-      const { login } = await import('../src/auth/AuthContext');
       // Use the new /token endpoint for quick dev access
       const resp = await fetch(`${targetUrl.replace(/\/+$/, '')}/api/v1/auth/token`, {
         method: 'POST',
