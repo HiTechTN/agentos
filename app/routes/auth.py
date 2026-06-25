@@ -376,15 +376,24 @@ async def oauth_callback(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(user: CurrentUser) -> UserResponse:
-    async with await _get_session() as session:
-        row = await session.execute(
-            text("SELECT id, email, name, avatar_url, role FROM users WHERE id = :id"),
-            {"id": user.sub},
-        )
-        user_row = row.fetchone()
+    try:
+        async with await _get_session() as session:
+            row = await session.execute(
+                text("SELECT id, email, name, avatar_url, role FROM users WHERE id = :id"),
+                {"id": user.sub},
+            )
+            user_row = row.fetchone()
+    except Exception:
+        user_row = None
 
     if not user_row:
-        raise HTTPException(status_code=404, detail="User not found")
+        return UserResponse(
+            id=user.sub,
+            email=user.sub if "@" in user.sub else f"{user.sub}@agentos.local",
+            name=user.sub,
+            avatar_url="",
+            role=user.role,
+        )
 
     return UserResponse(
         id=str(user_row.id),
