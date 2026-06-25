@@ -380,4 +380,25 @@ class TestMeEndpoint:
                 "/api/v1/auth/me",
                 headers={"Authorization": f"Bearer {token}"},
             )
-        assert resp.status_code == 404
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == "nope"
+        assert data["role"] == "user"
+
+    @pytest.mark.asyncio
+    async def test_get_me_db_error_fallback(self, async_client: AsyncClient) -> None:
+        """Cover auth.py:386-387 — DB error (e.g. UUID cast) falls back to token payload."""
+        token = create_access_token(sub="bad-uuid", workspace="test", role="admin")
+        session = _mock_db_session()
+        session.execute.side_effect = Exception("UUID cast error")
+
+        with patch("app.routes.auth._get_session", return_value=session):
+            resp = await async_client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == "bad-uuid"
+        assert data["email"] == "bad-uuid@agentos.local"
+        assert data["role"] == "admin"
