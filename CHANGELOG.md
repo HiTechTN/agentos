@@ -1,5 +1,18 @@
 # Changelog
 
+## [7.2.2] — 2026-06-26
+
+### Added
+- Mobile text copy — Copy button + long-press copy on chat messages (expo-clipboard)
+- Mobile reusable CopyButton component
+
+### Changed
+- Version bumped to 7.2.2
+- OpenRouter API key updated in .env
+
+### Fixed
+- Ollama DNS resolution in Docker (extra_hosts: host.docker.internal)
+
 ## [7.2.1] — 2026-06-25
 
 ### Added

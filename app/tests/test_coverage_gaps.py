@@ -1039,7 +1039,7 @@ class TestMCPRegistry:
 
 
 # =============================================================================
-# Audit v7.2.1 — Coverage gaps (69 lines)
+# Audit v7.2.2 — Coverage gaps (69 lines)
 # =============================================================================
 
 
@@ -1529,7 +1529,7 @@ class TestHealthCheckOllamaException:
                 "otlp_endpoint",
             ]
         )
-        mock_s.version = "7.2.1"
+        mock_s.version = "7.2.2"
         mock_s.resolved_database_url = "postgresql://u:p@localhost:5432/db"
         mock_s.resolved_redis_url = "memory://"
         mock_s.service_name = "agentos"

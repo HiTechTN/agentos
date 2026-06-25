@@ -125,6 +125,7 @@ export default function LoginScreen() {
           </View>
           <Text style={styles.title}>AgentOS</Text>
           <Text style={styles.subtitle}>Multi-Agent Platform</Text>
+          <Text style={styles.versionText}>Association AgentOS · v7.2.2</Text>
         </View>
 
         <View style={styles.card}>
@@ -310,6 +311,11 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.light.textSecondary,
     marginTop: 4,
+  },
+  versionText: {
+    fontSize: FontSizes.xs,
+    color: Colors.light.textTertiary,
+    marginTop: 6,
   },
   card: {
     backgroundColor: Colors.light.surface,

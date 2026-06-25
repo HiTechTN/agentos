@@ -170,6 +170,8 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       RATE_LIMIT_DEFAULT: ${RATE_LIMIT_DEFAULT:-60/minute}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${AGENTOS_API_PORT:-8000}:8000"
     volumes:

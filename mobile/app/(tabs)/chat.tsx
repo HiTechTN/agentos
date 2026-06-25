@@ -11,14 +11,16 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import * as Clipboard from 'expo-clipboard';
 import { Colors, FontSizes, Spacing } from '../../src/theme';
-import { FilePreview } from '../../src/components';
+import { FilePreview, CopyButton } from '../../src/components';
 import {
   runWorkflow,
   WorkflowResult,
@@ -247,9 +249,19 @@ export default function ChatScreen() {
             <Ionicons name="sparkles" size={16} color={Colors.light.primary} />
           </View>
         )}
-        <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
+        <Pressable
+          onLongPress={() => Clipboard.setStringAsync(item.text)}
+          delayLongPress={400}
+          style={({ pressed }) => [
+            styles.bubble,
+            isUser ? styles.userBubble : styles.assistantBubble,
+            pressed && !isUser && styles.bubblePressed,
+          ]}
+        >
           {item.text ? (
-            <Text selectable style={[styles.messageText, isUser && styles.userText]}>{item.text}</Text>
+            <Text selectable style={[styles.messageText, isUser && styles.userText]}>
+              {item.text}
+            </Text>
           ) : null}
           {item.attachments?.map((att, i) => (
             <View key={i} style={styles.attachPreview}>
@@ -261,7 +273,12 @@ export default function ChatScreen() {
               />
             </View>
           ))}
-        </View>
+          {!isUser && (
+            <View style={styles.copyButtonContainer}>
+              <CopyButton text={item.text} size={14} />
+            </View>
+          )}
+        </Pressable>
       </View>
     );
   };
@@ -406,6 +423,19 @@ const styles = StyleSheet.create({
   assistantBubble: {
     backgroundColor: Colors.light.surface,
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  bubblePressed: {
+    opacity: 0.85,
+  },
+  copyButtonContainer: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    padding: 4,
+    backgroundColor: Colors.light.surface,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.light.border,
   },

@@ -1,8 +1,8 @@
-# RAPPORT D'AUDIT — AgentOS v7.2.1
+# RAPPORT D'AUDIT — AgentOS v7.2.2
 ## Préparation à la mise à niveau
 
 > **Généré le**: 2026-06-25  
-> **Version courante**: 7.2.1 (tag)  
+> **Version courante**: 7.2.2 (tag)  
 > **Version dans pyproject.toml**: 7.1.0 ❌  
 > **Pipeline de validation**: basé sur AGENTS.md @Verifier rules
 
@@ -118,10 +118,10 @@ docker compose config --quiet → exit 0
 
 | Fichier | Version | Doit être |
 |---------|---------|-----------|
-| `pyproject.toml` | **7.1.0** | **7.2.1** |
-| `app/config/settings.py` | **7.2.1** ✅ | — |
-| `install.sh` | **7.2.1** ✅ | — |
-| `CHANGELOG.md` | 7.2.1 non documenté | Ajouter section v7.2.1 |
+| `pyproject.toml` | **7.1.0** | **7.2.2** |
+| `app/config/settings.py` | **7.2.2** ✅ | — |
+| `install.sh` | **7.2.2** ✅ | — |
+| `CHANGELOG.md` | 7.2.2 non documenté | Ajouter section v7.2.2 |
 
 ### 5.2 Fichiers non commités (24 modifiés + plusieurs non suivis)
 - 24 fichiers modifiés (dont `Dockerfile`, `app/main.py`, `app/agents/base.py`, `docker-compose.yml`, `app/routes/` legacy)
@@ -184,7 +184,7 @@ Aucun issue critique — le système est fonctionnel.
 
 ```
 Phase P1 — Version & Configuration (15 min)
-  Fix pyproject.toml → 7.2.1
+  Fix pyproject.toml → 7.2.2
   Ajouter CHANGELOG entries manquantes
   Commit + tag
 
@@ -228,6 +228,6 @@ Phase P5 — Validation finale (30 min)
 | **Code quality (ruff)** | ✅ Parfait |
 | **Docker** | ✅ Configuration valide |
 | **CI/CD** | ✅ Pipelines configurés |
-| **Version** | ❌ pyproject.toml = 7.1.0 vs tag 7.2.1 |
+| **Version** | ❌ pyproject.toml = 7.1.0 vs tag 7.2.2 |
 
 **Note globale**: Le codebase est en très bonne santé (score ~9/10). Les corrections mypy + coverage + version sont rapides (~4h). La priorité est de synchroniser `pyproject.toml` avec le tag git, puis de nettoyer les erreurs mypy legacy avant de viser 100% de coverage.

@@ -21,7 +21,7 @@ class PaginationMeta(BaseModel):
 class ResponseMeta(BaseModel):
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    version: str = "7.2.1"
+    version: str = "7.2.2"
     pagination: PaginationMeta | None = None
 
 

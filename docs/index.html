@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentOS v7.2.1 — AI Agent Orchestration System</title>
-<meta name="description" content="AgentOS v7.2.1 orchestrates 8 AI agents with Intelligence Engine, TreeOfThoughts, GraphRAG, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, MCP. Self-hosted, MIT licensed.">
+<title>AgentOS v7.2.2 — AI Agent Orchestration System</title>
+<meta name="description" content="AgentOS v7.2.2 orchestrates 8 AI agents with Intelligence Engine, TreeOfThoughts, GraphRAG, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, MCP. Self-hosted, MIT licensed.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234c6ef5'/><text x='16' y='22' text-anchor='middle' font-size='18' font-weight='bold' fill='white'>A</text></svg>">
 <style>
 :root {
@@ -176,7 +176,7 @@ footer a:hover { color: var(--primary); }
 
 <nav>
   <div class="container">
-    <a href="/agentos/" class="logo"><span class="logo-icon">A</span> AgentOS <span class="nav-badge">v7.2.1</span></a>
+    <a href="/agentos/" class="logo"><span class="logo-icon">A</span> AgentOS <span class="nav-badge">v7.2.2</span></a>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#intelligence">Intelligence</a>
@@ -193,7 +193,7 @@ footer a:hover { color: var(--primary); }
 <section class="hero">
   <div class="container">
     <h1>From one sentence to<br><span>working software</span> in minutes</h1>
-    <p class="subtitle">AgentOS v7.2.1 orchestrates 8 AI agents with Intelligence Engine, TreeOfThoughts reasoning, GraphRAG knowledge graphs, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, and MCP. Cross-platform: Web, Desktop (Tauri v2), Mobile (React Native), PWA. Self-hosted, MIT licensed.</p>
+    <p class="subtitle">AgentOS v7.2.2 orchestrates 8 AI agents with Intelligence Engine, TreeOfThoughts reasoning, GraphRAG knowledge graphs, VRAM Manager, AutoCorrector, AgentBus, WasmRunner, and MCP. Cross-platform: Web, Desktop (Tauri v2), Mobile (React Native), PWA. Self-hosted, MIT licensed.</p>
     <div class="hero-btns">
       <a href="https://github.com/HiTechTN/agentos" class="btn btn-primary btn-lg">🚀 Deploy with Docker</a>
       <a href="#how" class="btn btn-outline btn-lg">How it works</a>
@@ -206,7 +206,7 @@ footer a:hover { color: var(--primary); }
       <div><strong>60+</strong><span>API endpoints</span></div>
       <div><strong>4</strong><span>platform targets</span></div>
       <div><strong>99%</strong><span>test coverage</span></div>
-      <div><strong>v7.2.1</strong><span>Intelligence Engine</span></div>
+      <div><strong>v7.2.2</strong><span>Intelligence Engine</span></div>
     </div>
   </div>
 </section>
@@ -234,7 +234,7 @@ footer a:hover { color: var(--primary); }
       <span class="tag tag-verify">@Verifier — Validation</span>
       <span class="tag tag-explore">@Explorer — Code search</span>
       <span class="tag tag-review">@CodeReviewer — Security audit</span>
-      <span class="tag tag-intel">🧠 Intelligence Engine — v7.2.1</span>
+      <span class="tag tag-intel">🧠 Intelligence Engine — v7.2.2</span>
     </div>
   </div>
 </section>
@@ -242,17 +242,17 @@ footer a:hover { color: var(--primary); }
 <section class="features" id="features">
   <div class="container">
     <span class="section-label">Features</span>
-    <h2 class="section-title">✨ What's New in v7.2.1</h2>
+    <h2 class="section-title">✨ What's New in v7.2.2</h2>
     <p class="section-desc">The Intelligence Engine and 7 new modules transform AgentOS from an orchestrator into an autonomous learning system.</p>
     <div class="features-grid">
-      <div class="feature-card"><div class="icon">🧠</div><h3>Intelligence Engine <span class="tag-new">v7.2.1</span></h3><p>Episodic memory, skills registry, knowledge base, self-reflection engine, and context enricher. The system learns from every execution and improves over time.</p></div>
-      <div class="feature-card"><div class="icon">🌳</div><h3>TreeOfThoughts <span class="tag-new">v7.2.1</span></h3><p>Multi-branch reasoning with up to 2 parallel thought paths. Activated automatically when task complexity > 0.7. Smarter decision-making for hard problems.</p></div>
-      <div class="feature-card"><div class="icon">🔗</div><h3>GraphRAG <span class="tag-new">v7.2.1</span></h3><p>Knowledge graph extraction and storage after every session. Entities and relationships are persisted to PostgreSQL for cross-session context retrieval.</p></div>
-      <div class="feature-card"><div class="icon">🎮</div><h3>VRAM Manager <span class="tag-new">v7.2.1</span></h3><p>Intelligent GPU memory manager for Ollama models. Ensures only one model in VRAM at a time (12GB budget). Auto-switches models based on work_type.</p></div>
-      <div class="feature-card"><div class="icon">🔧</div><h3>AutoCorrector <span class="tag-new">v7.2.1</span></h3><p>Wraps all sandbox DevAgent calls with automatic error correction. Detects failures, analyzes root cause, and retries with corrected code — zero manual intervention.</p></div>
-      <div class="feature-card"><div class="icon">🚌</div><h3>AgentBus <span class="tag-new">v7.2.1</span></h3><p>Event bus for spawning specialized sub-agents on demand. Enables dynamic agent composition — spawn, communicate, and retire agents at runtime.</p></div>
-      <div class="feature-card"><div class="icon">⚡</div><h3>WasmRunner <span class="tag-new">v7.2.1</span></h3><p>WebAssembly sandbox for lightweight tools (<5ms). Run untrusted code safely with near-native performance. Perfect for sandboxed DevAgent actions.</p></div>
-      <div class="feature-card"><div class="icon">🖥️</div><h3>ComputerUseTools <span class="tag-new">v7.2.1</span></h3><p>Desktop automation: mouse, keyboard, screenshot, clipboard. Disabled by default, activated via <code>COMPUTER_USE_ENABLED=true</code>. Requires 12GB GPU free.</p></div>
+      <div class="feature-card"><div class="icon">🧠</div><h3>Intelligence Engine <span class="tag-new">v7.2.2</span></h3><p>Episodic memory, skills registry, knowledge base, self-reflection engine, and context enricher. The system learns from every execution and improves over time.</p></div>
+      <div class="feature-card"><div class="icon">🌳</div><h3>TreeOfThoughts <span class="tag-new">v7.2.2</span></h3><p>Multi-branch reasoning with up to 2 parallel thought paths. Activated automatically when task complexity > 0.7. Smarter decision-making for hard problems.</p></div>
+      <div class="feature-card"><div class="icon">🔗</div><h3>GraphRAG <span class="tag-new">v7.2.2</span></h3><p>Knowledge graph extraction and storage after every session. Entities and relationships are persisted to PostgreSQL for cross-session context retrieval.</p></div>
+      <div class="feature-card"><div class="icon">🎮</div><h3>VRAM Manager <span class="tag-new">v7.2.2</span></h3><p>Intelligent GPU memory manager for Ollama models. Ensures only one model in VRAM at a time (12GB budget). Auto-switches models based on work_type.</p></div>
+      <div class="feature-card"><div class="icon">🔧</div><h3>AutoCorrector <span class="tag-new">v7.2.2</span></h3><p>Wraps all sandbox DevAgent calls with automatic error correction. Detects failures, analyzes root cause, and retries with corrected code — zero manual intervention.</p></div>
+      <div class="feature-card"><div class="icon">🚌</div><h3>AgentBus <span class="tag-new">v7.2.2</span></h3><p>Event bus for spawning specialized sub-agents on demand. Enables dynamic agent composition — spawn, communicate, and retire agents at runtime.</p></div>
+      <div class="feature-card"><div class="icon">⚡</div><h3>WasmRunner <span class="tag-new">v7.2.2</span></h3><p>WebAssembly sandbox for lightweight tools (<5ms). Run untrusted code safely with near-native performance. Perfect for sandboxed DevAgent actions.</p></div>
+      <div class="feature-card"><div class="icon">🖥️</div><h3>ComputerUseTools <span class="tag-new">v7.2.2</span></h3><p>Desktop automation: mouse, keyboard, screenshot, clipboard. Disabled by default, activated via <code>COMPUTER_USE_ENABLED=true</code>. Requires 12GB GPU free.</p></div>
       <div class="feature-card"><div class="icon">🔗</div><h3>MCP Integration</h3><p>Model Context Protocol for extending AgentOS with any external tool server. Register databases, APIs, cloud services as MCP tools.</p></div>
       <div class="feature-card"><div class="icon">🔄</div><h3>Episodic Memory</h3><p>Records every task outcome with quality scoring. Recall similar past tasks to reuse successful strategies. Continuous improvement across sessions.</p></div>
       <div class="feature-card"><div class="icon">📚</div><h3>Skills Registry</h3><p>Auto-extracts reusable skills from successful task outcomes via LLM analysis. Reinforcement learning adjusts confidence. Skills auto-disable after 4 failures.</p></div>
@@ -461,7 +461,7 @@ footer a:hover { color: var(--primary); }
 
 <footer>
   <div class="container">
-    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v7.2.1 — MIT License — <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> — Built with Python 3.13 &amp; Next.js 16 &amp; Tauri v2 &amp; React Native — <a href="guide.html">📖 Guide</a> — <a href="api.html">📡 API</a> — <a href="deploy.html">🚀 Deploy</a></p>
+    <p><a href="https://github.com/HiTechTN/agentos">AgentOS</a> v7.2.2 — MIT License — <a href="https://github.com/HiTechTN/agentos/releases">Releases</a> — Built with Python 3.13 &amp; Next.js 16 &amp; Tauri v2 &amp; React Native — <a href="guide.html">📖 Guide</a> — <a href="api.html">📡 API</a> — <a href="deploy.html">🚀 Deploy</a></p>
   </div>
 </footer>
 

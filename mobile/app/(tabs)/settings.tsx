@@ -176,11 +176,11 @@ export default function SettingsScreen() {
         <View style={styles.aboutCard}>
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>App</Text>
-            <Text style={styles.aboutValue}>AgentOS Mobile</Text>
+            <Text style={styles.aboutValue}>AgentOS v7.2.2</Text>
           </View>
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Version</Text>
-            <Text style={styles.aboutValue}>7.2.1</Text>
+            <Text style={styles.aboutValue}>7.2.2</Text>
           </View>
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Platform</Text>

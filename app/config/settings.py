@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     project_id: str = "demo-project"
     environment: str = "development"
-    version: str = "7.2.1"
+    version: str = "7.2.2"
 
     # LLM - OpenRouter
     openrouter_api_key: str = ""

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentOS-v7.2.1-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/AgentOS-v7.2.2-4c6ef5?style=for-the-badge&logo=python&logoColor=white" alt="Version">
   <img src="https://img.shields.io/github/actions/workflow/status/HiTechTN/agentos/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=Build" alt="Build">
   <img src="https://img.shields.io/github/license/HiTechTN/agentos?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License">
   <img src="https://img.shields.io/badge/docker%20compose-up-blue?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
@@ -253,7 +253,7 @@ watch docker compose ps  # Wait until all services are "healthy"
 
 ```bash
 curl http://localhost:8000/health
-# → {"status":"ok","version":"7.2.1","environment":"development"}
+# → {"status":"ok","version":"7.2.2","environment":"development"}
 ```
 
 ### 4️⃣ Run a workflow
@@ -478,7 +478,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  AgentOS v7.2.1 Dashboard  [Chat] [Admin] [Deploy] [Guide]│
+│  AgentOS v7.2.2 Dashboard  [Chat] [Admin] [Deploy] [Guide]│
 ├──────────────────┬───────────────────────────────────────┤
 │  💬 Chat LLM     │  📊 Pulse Dashboard                   │
 │  ┌──────────────┐│  Latency ●  Agent Activity ●  Tasks   │
@@ -639,7 +639,7 @@ uv run ruff check app/ && uv run mypy app/ --strict && uv run bandit -r app/ -ll
 | Docker Web | `ghcr.io/hitechtn/agentos/web:latest` |
 | Landing | [hitechtn.github.io/agentos](https://hitechtn.github.io/agentos/) |
 | License | [MIT](LICENSE) |
-| Latest Release | [v7.2.1](https://github.com/HiTechTN/agentos/releases/tag/v7.2.1) |
+| Latest Release | [v7.2.2](https://github.com/HiTechTN/agentos/releases/tag/v7.2.2) |
 
 ---
 
