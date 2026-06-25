@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "AgentOS",
+    "createdAt": 1781805622655,
+    "preset": "starter"
+  },
+  "authorizedRoots": [
+    "/home/hitech/projects/AgentOS"
+  ]
+}

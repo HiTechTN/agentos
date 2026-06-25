@@ -478,7 +478,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  AgentOS v7.0 Dashboard    [Chat] [Admin] [Deploy] [Guide]│
+│  AgentOS v7.2.1 Dashboard  [Chat] [Admin] [Deploy] [Guide]│
 ├──────────────────┬───────────────────────────────────────┤
 │  💬 Chat LLM     │  📊 Pulse Dashboard                   │
 │  ┌──────────────┐│  Latency ●  Agent Activity ●  Tasks   │

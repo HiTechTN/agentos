@@ -10,23 +10,25 @@ MODEL_VRAM_COSTS: Final[dict[str, float]] = {
     "qwen2.5-coder:7b": 4.4,
     "granite4.1:8b": 5.0,
     "gemma4:latest": 8.9,
+    "gemma4-coder:12b": 7.38,
     "nomic-embed-text": 0.5,
 }
 
 DEFAULT_VRAM_COST: Final[float] = 6.0
 
 _WORK_TYPE_MODEL_MAP: Final[dict[WorkType, str]] = {
-    WorkType.CODE_GEN: "qwen2.5-coder:7b",
-    WorkType.CODE_AGENT: "qwen2.5-coder:7b",
+    WorkType.CODE_GEN: "gemma4-coder:12b",
+    WorkType.CODE_AGENT: "gemma4-coder:12b",
     WorkType.REASONING: "granite4.1:8b",
     WorkType.CONTENT: "gemma4:latest",
-    WorkType.FAST: "qwen2.5-coder:7b",
+    WorkType.FAST: "gemma4-coder:12b",
     WorkType.MULTIMODAL: "gemma4:latest",
-    WorkType.DEBUG: "qwen2.5-coder:7b",
+    WorkType.DEBUG: "gemma4-coder:12b",
     WorkType.GENERAL: "granite4.1:8b",
 }
 
 _MODEL_FALLBACK_CHAIN: Final[dict[str, str]] = {
+    "gemma4-coder:12b": "qwen2.5-coder:7b",
     "gemma4:latest": "granite4.1:8b",
     "granite4.1:8b": "qwen2.5-coder:7b",
     "qwen2.5-coder:7b": "nomic-embed-text",

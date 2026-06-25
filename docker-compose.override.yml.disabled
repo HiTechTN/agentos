@@ -1,0 +1,10 @@
+# docker-compose.override.yml — LOCAL DEVELOPMENT ONLY
+# This file is git-ignored. Mounts source code for hot-reload.
+# DO NOT use in production.
+services:
+  app:
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ENVIRONMENT=development

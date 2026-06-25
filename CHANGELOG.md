@@ -1,5 +1,37 @@
 # Changelog
 
+## [7.2.1] — 2026-06-25
+
+### Added
+- Audit report (AUDIT_REPORT.md) — Comprehensive upgrade readiness assessment
+
+### Changed
+- Version bumped to 7.2.1 (pyproject.toml, settings.py)
+- pyproject.toml: version 7.1.0 → 7.2.1
+
+### Fixed
+- CI/CD workflows — All validation pipelines now green
+- Mobile admin panel — Empty sections resolved, design improved
+- TypeScript checks — CI failures resolved for mobile
+
+## [7.2.0] — 2026-06-20
+
+### Added
+- **Mobile Image Attachments** — Image picker + camera support with base64 upload
+- **Multimodal LLM Routing** — Automatic image-to-text routing for vision-capable models
+
+### Fixed
+- Mypy strict: 32 errors resolved across 11 files (unused `type:ignore`, untyped decorators)
+- Mypy strict: 5 additional errors resolved for mypy 1.14.1 compatibility
+
+### Changed
+- Version bumped to 7.2.0
+
+### Refactored
+- guide.html — Glassmorphism CSS, Inter fonts, animations, multi-language support
+- Documentation — All version references updated to v7.1.0 across docs/, templates/, mobile configs
+- Mobile build instructions — Headless APK build documented in AGENTS.md
+
 ## [7.1.0] — 2026-06-03
 
 ### Added

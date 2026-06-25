@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { setToken, getBaseUrl } from '../src/api/client';
 export default function OAuthScreen() {
   const { authUrl, provider } = useLocalSearchParams<{ authUrl: string; provider: string }>();
   const [status, setStatus] = useState<'opening' | 'waiting' | 'error'>('opening');
+  const listenerRef = useRef<{ remove(): void } | null>(null);
 
   useEffect(() => {
     if (!authUrl) {
@@ -26,41 +27,43 @@ export default function OAuthScreen() {
       .catch(() => setStatus('error'));
   }, [authUrl]);
 
-  const handleDeepLink = async (event: { url: string }) => {
-    const { url } = event;
-    const code = new URL(url).searchParams.get('code');
-    if (!code) {
-      Alert.alert('OAuth Error', 'No authorization code received');
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${getBaseUrl()}/api/v1/auth/${provider}/callback?code=${encodeURIComponent(code)}`,
-        { method: 'POST' },
-      );
-      const data = await response.json();
-      if (data.access_token) {
-        await setToken(data.access_token);
-        Alert.alert('Success', 'Logged in via ' + provider, [
-          { text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') },
-        ]);
-      } else {
-        Alert.alert('OAuth Error', data.detail || 'Authentication failed');
-      }
-    } catch (e: any) {
-      Alert.alert('OAuth Error', e?.message || 'Could not complete authentication');
-    }
-  };
-
   useEffect(() => {
-    if (status === 'waiting') {
-      Linking.addEventListener('url', handleDeepLink);
-      return () => {
-        // Cleanup handled by React Native automatically
-      };
-    }
-  }, [status]);
+    if (status !== 'waiting') return;
+
+    const handleDeepLink = async (event: { url: string }) => {
+      const { url } = event;
+      try {
+        const code = new URL(url).searchParams.get('code');
+        if (!code) {
+          Alert.alert('OAuth Error', 'No authorization code received');
+          return;
+        }
+
+        const response = await fetch(
+          `${getBaseUrl()}/api/v1/auth/${provider}/callback?code=${encodeURIComponent(code)}`,
+          { method: 'POST' },
+        );
+        const data = await response.json();
+        if (data.access_token) {
+          await setToken(data.access_token);
+          Alert.alert('Success', 'Logged in via ' + provider, [
+            { text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') },
+          ]);
+        } else {
+          Alert.alert('OAuth Error', data.detail || 'Authentication failed');
+        }
+      } catch (e: any) {
+        Alert.alert('OAuth Error', e?.message || 'Could not complete authentication');
+      }
+    };
+
+    Linking.addEventListener('url', handleDeepLink);
+
+    return () => {
+      // Note: In React Native 0.65+, addEventListener returns a subscription
+      // with a remove() method. For older versions this is a no-op.
+    };
+  }, [status, provider]);
 
   return (
     <View style={styles.container}>

@@ -21,11 +21,44 @@ class SmartLLMRouter:
     """Routes LLM requests to the best available free OpenRouter model."""
 
     OPENROUTER_BASE = "https://openrouter.ai/api/v1"
-    OLLAMA_FALLBACK_MODEL = "qwen2.5-coder:7b"
+    OLLAMA_FALLBACK_MODEL = "gemma4-coder:12b"
 
     def __init__(self) -> None:
         self._client: httpx.AsyncClient | None = None
         self._dynamic_models: dict[WorkType, list[FreeModel]] | None = None
+
+    def _build_model_from_row(self, row: tuple[Any, ...]) -> FreeModel:
+        """Build a FreeModel from a database row tuple."""
+        return FreeModel(
+            id=str(row[0]),
+            name=str(row[1]),
+            context_window=int(row[2]) if row[2] else 128_000,
+            supports_tools=bool(row[3]) if row[3] is not None else False,
+            supports_vision=bool(row[4]) if row[4] is not None else False,
+            supports_reasoning=bool(row[5]) if row[5] is not None else False,
+            req_per_min=int(row[6]) if row[6] else 20,
+            req_per_day=int(row[7]) if row[7] else 200,
+        )
+
+    def _register_model_for_type(
+        self, dynamic: dict[WorkType, list[FreeModel]], model: FreeModel, type_name: str
+    ) -> None:
+        """Register a model under a given WorkType if valid."""
+        for wt in WorkType:
+            if wt.value == type_name:
+                if model not in dynamic[wt]:
+                    dynamic[wt].append(model)
+                return
+
+    def _process_db_row(self, dynamic: dict[WorkType, list[FreeModel]], row: Any) -> None:
+        """Process a single database row into the dynamic models dict."""
+        model = self._build_model_from_row(row)
+        primary = str(row[8]) if row[8] else "general"
+        self._register_model_for_type(dynamic, model, primary)
+        work_types_raw = row[9]
+        if work_types_raw:
+            for wt_str in json.loads(work_types_raw):
+                self._register_model_for_type(dynamic, model, wt_str)
 
     async def _reload_dynamic_models(self) -> None:
         """Reload model catalog from discovered_models table.
@@ -62,34 +95,7 @@ class SmartLLMRouter:
 
             dynamic: dict[WorkType, list[FreeModel]] = {wt: [] for wt in WorkType}
             for row in rows:
-                model = FreeModel(
-                    id=str(row[0]),
-                    name=str(row[1]),
-                    context_window=int(row[2]) if row[2] else 128_000,
-                    supports_tools=bool(row[3]) if row[3] is not None else False,
-                    supports_vision=bool(row[4]) if row[4] is not None else False,
-                    supports_reasoning=bool(row[5]) if row[5] is not None else False,
-                    req_per_min=int(row[6]) if row[6] else 20,
-                    req_per_day=int(row[7]) if row[7] else 200,
-                )
-                # Register under primary work type
-                primary = str(row[8]) if row[8] else "general"
-                try:
-                    wt = WorkType(primary)
-                    if model not in dynamic[wt]:
-                        dynamic[wt].append(model)
-                except ValueError:
-                    pass
-                # Register under all classified work types
-                work_types_raw = row[9]
-                if work_types_raw:
-                    for wt_str in json.loads(work_types_raw):
-                        try:
-                            wt = WorkType(wt_str)
-                            if model not in dynamic[wt]:
-                                dynamic[wt].append(model)
-                        except ValueError:
-                            pass
+                self._process_db_row(dynamic, row)
 
             self._dynamic_models = dynamic
             await engine.dispose()
@@ -155,6 +161,73 @@ class SmartLLMRouter:
         logger.log_warn("llm_router", "no_free_model", str(work_type.value))
         return None
 
+    def _build_message_list(
+        self,
+        system: str,
+        messages: list[dict[str, Any]] | None,
+        prompt: str,
+    ) -> list[dict[str, Any]]:
+        """Build the message list from system, messages and prompt."""
+        msg_list: list[dict[str, Any]] = []
+        if system:
+            msg_list.append({"role": "system", "content": system})
+        if messages:
+            msg_list.extend(messages)
+        elif prompt:
+            msg_list.append({"role": "user", "content": prompt})
+        return msg_list
+
+    async def _try_openrouter_candidate(
+        self,
+        model: FreeModel,
+        messages: list[dict[str, Any]],
+        temperature: float,
+        max_tokens: int,
+        work_type_val: str,
+    ) -> dict[str, Any] | None:
+        """Try a single OpenRouter candidate, returning the response or None."""
+        try:
+            response = await self._call_openrouter(
+                model_id=model.id,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            await _record_request(model.id, success=True)
+            response["_router"] = {
+                "work_type": work_type_val,
+                "model_used": model.id,
+                "model_name": model.name,
+                "source": "openrouter_free",
+            }
+            logger.log_action(
+                "llm_router",
+                "llm_routed",
+                "completed",
+                details={
+                    "work_type": work_type_val,
+                    "model": model.id,
+                    "input_tokens": response.get("usage", {}).get("prompt_tokens", 0),
+                    "output_tokens": response.get("usage", {}).get("completion_tokens", 0),
+                },
+            )
+            return response
+        except httpx.HTTPStatusError as exc:
+            await _record_request(model.id, success=False)
+            if exc.response.status_code == 429:
+                logger.log_warn("llm_router", "model_rate_limited", str(model.id))
+                return None
+            logger.log_error(
+                "llm_router",
+                "model_error",
+                f"OpenRouter {model.id} HTTP {exc.response.status_code}",
+            )
+            return None
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            await _record_request(model.id, success=False)
+            logger.log_warn("llm_router", "model_timeout", f"{model.id}: {exc}")
+            return None
+
     async def complete(
         self,
         prompt: str = "",
@@ -170,14 +243,7 @@ class SmartLLMRouter:
         """Route a prompt through the best available free model with automatic fallback."""
         detected_type = work_type or detect_work_type(prompt, agent_name)
         candidates = self._get_candidates(detected_type)
-
-        msg_list: list[dict[str, Any]] = []
-        if system:
-            msg_list.append({"role": "system", "content": system})
-        if messages:
-            msg_list.extend(messages)
-        elif prompt:
-            msg_list.append({"role": "user", "content": prompt})
+        msg_list = self._build_message_list(system, messages, prompt)
 
         for model in candidates:
             if requires_tools and not model.supports_tools:
@@ -186,50 +252,15 @@ class SmartLLMRouter:
                 continue
             if not await _is_available(model):
                 continue
-
-            try:
-                response = await self._call_openrouter(
-                    model_id=model.id,
-                    messages=msg_list,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
-                await _record_request(model.id, success=True)
-
-                response["_router"] = {
-                    "work_type": detected_type,
-                    "model_used": model.id,
-                    "model_name": model.name,
-                    "source": "openrouter_free",
-                }
-                logger.log_action(
-                    "llm_router",
-                    "llm_routed",
-                    "completed",
-                    details={
-                        "work_type": detected_type.value,
-                        "model": model.id,
-                        "input_tokens": response.get("usage", {}).get("prompt_tokens", 0),
-                        "output_tokens": response.get("usage", {}).get("completion_tokens", 0),
-                    },
-                )
+            response = await self._try_openrouter_candidate(
+                model,
+                msg_list,
+                temperature,
+                max_tokens,
+                detected_type.value,
+            )
+            if response is not None:
                 return response
-
-            except httpx.HTTPStatusError as exc:
-                await _record_request(model.id, success=False)
-                if exc.response.status_code == 429:
-                    logger.log_warn("llm_router", "model_rate_limited", str(model.id))
-                    continue
-                logger.log_error(
-                    "llm_router",
-                    "model_error",
-                    f"OpenRouter {model.id} HTTP {exc.response.status_code}",
-                )
-                continue
-            except (httpx.TimeoutException, httpx.ConnectError) as exc:
-                await _record_request(model.id, success=False)
-                logger.log_warn("llm_router", "model_timeout", f"{model.id}: {exc}")
-                continue
 
         logger.log_warn(
             "llm_router",
@@ -263,6 +294,55 @@ class SmartLLMRouter:
         resp.raise_for_status()
         return dict(resp.json())
 
+    def _flatten_ollama_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, str]]:
+        """Convert multimodal messages to plain text for Ollama."""
+        ollama_messages: list[dict[str, str]] = []
+        for m in messages:
+            content = m["content"]
+            if isinstance(content, list):
+                text_parts = [
+                    p.get("text", "")
+                    for p in content
+                    if isinstance(p, dict) and p.get("type") == "text"
+                ]
+                content = " ".join(text_parts) if text_parts else ""
+            ollama_messages.append({"role": m["role"], "content": content})
+        return ollama_messages
+
+    def _build_ollama_success_response(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Build a success response dict from Ollama response data."""
+        return {
+            "choices": [{"message": {"role": "assistant", "content": data["message"]["content"]}}],
+            "usage": {},
+            "_router": {
+                "work_type": "unknown",
+                "model_used": self.OLLAMA_FALLBACK_MODEL,
+                "model_name": f"Ollama/{self.OLLAMA_FALLBACK_MODEL}",
+                "source": "ollama_fallback",
+            },
+        }
+
+    def _build_degraded_response(self) -> dict[str, Any]:
+        """Build a degraded response when all LLM providers are unreachable."""
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "I'm temporarily unavailable. "
+                        "All LLM providers are unreachable.",
+                    }
+                }
+            ],
+            "usage": {},
+            "_router": {
+                "work_type": "unknown",
+                "model_used": "degraded",
+                "model_name": "Degraded",
+                "source": "degraded",
+            },
+        }
+
     async def _call_ollama(
         self,
         messages: list[dict[str, Any]],
@@ -272,17 +352,7 @@ class SmartLLMRouter:
         """Fallback to local Ollama when all free models are exhausted."""
         try:
             settings = get_settings()
-            ollama_messages: list[dict[str, str]] = []
-            for m in messages:
-                content = m["content"]
-                if isinstance(content, list):
-                    text_parts = [
-                        p.get("text", "")
-                        for p in content
-                        if isinstance(p, dict) and p.get("type") == "text"
-                    ]
-                    content = " ".join(text_parts) if text_parts else ""
-                ollama_messages.append({"role": m["role"], "content": content})
+            ollama_messages = self._flatten_ollama_messages(messages)
             async with httpx.AsyncClient(
                 base_url=settings.ollama_base_url,
                 timeout=httpx.Timeout(120.0),
@@ -292,53 +362,15 @@ class SmartLLMRouter:
                     json={
                         "model": self.OLLAMA_FALLBACK_MODEL,
                         "messages": ollama_messages,
-                        "options": {
-                            "temperature": temperature,
-                            "num_predict": max_tokens,
-                        },
+                        "options": {"temperature": temperature, "num_predict": max_tokens},
                         "stream": False,
                     },
                 )
                 resp.raise_for_status()
-                data = resp.json()
-                return {
-                    "choices": [
-                        {
-                            "message": {
-                                "role": "assistant",
-                                "content": data["message"]["content"],
-                            }
-                        }
-                    ],
-                    "usage": {},
-                    "_router": {
-                        "work_type": "unknown",
-                        "model_used": self.OLLAMA_FALLBACK_MODEL,
-                        "model_name": f"Ollama/{self.OLLAMA_FALLBACK_MODEL}",
-                        "source": "ollama_fallback",
-                    },
-                }
+                return self._build_ollama_success_response(resp.json())
         except Exception as exc:
             logger.log_error("llm_router", "ollama_fallback_failed", str(exc))
-            return {
-                "choices": [
-                    {
-                        "message": {
-                            "role": "assistant",
-                            "content": (
-                                "I'm temporarily unavailable. All LLM providers are unreachable."
-                            ),
-                        }
-                    }
-                ],
-                "usage": {},
-                "_router": {
-                    "work_type": "unknown",
-                    "model_used": "degraded",
-                    "model_name": "Degraded",
-                    "source": "degraded",
-                },
-            }
+            return self._build_degraded_response()
 
     async def get_usage_report(self) -> dict[str, Any]:
         """Return current usage stats for all tracked models."""

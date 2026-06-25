@@ -143,12 +143,15 @@ services:
   app:
     container_name: agentos-app
     restart: unless-stopped
-    image: ghcr.io/hitechtn/agentos:7.2.1
+    image: agentos-local:latest
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -158,12 +161,15 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: agentos_redis_demo
-      JWT_SECRET: agentos-v6-compose-secret
-      JWT_ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
-      LOG_LEVEL: INFO
-      ENVIRONMENT: production
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      JWT_SECRET: ${JWT_SECRET:-agentos-v6-compose-secret}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      RATE_LIMIT_DEFAULT: ${RATE_LIMIT_DEFAULT:-60/minute}
     ports:
       - "${AGENTOS_API_PORT:-8000}:8000"
     volumes:

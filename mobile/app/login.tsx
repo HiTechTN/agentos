@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import { healthCheck, loginWithCredentials } from '../src/api/client';
 
 export default function LoginScreen() {
   const { serverUrl, updateServerUrl } = useAuth();
-  const [url, setUrl] = useState(serverUrl || 'http://192.168.0.100:8081');
+  const [url, setUrl] = useState(serverUrl || 'http://192.168.0.100:8003');
   const [email, setEmail] = useState('admin@agentos.io');
   const [password, setPassword] = useState('');
   const [connecting, setConnecting] = useState(false);
@@ -28,16 +28,16 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useState(() => {
+  useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  });
+  }, []);
 
   const handleConnect = async () => {
-    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8081';
+    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8003';
     if (!email.trim()) {
       Alert.alert('Email required', 'Please enter your email to connect');
       return;
@@ -64,7 +64,7 @@ export default function LoginScreen() {
   };
 
   const handleQuickConnect = async () => {
-    const targetUrl = url.trim() || 'http://192.168.0.100:8081';
+    const targetUrl = url.trim() || 'http://192.168.0.100:8003';
     setUrl(targetUrl);
     setConnecting(true);
     try {
@@ -94,7 +94,7 @@ export default function LoginScreen() {
   };
 
   const handleSocialLogin = async (provider: string) => {
-    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8081';
+    const targetUrl = url.trim() || serverUrl || 'http://192.168.0.100:8003';
     if (!url.trim()) setUrl(targetUrl);
     setConnecting(true);
     try {
@@ -253,7 +253,7 @@ export default function LoginScreen() {
                 style={styles.input}
                 value={url}
                 onChangeText={setUrl}
-                placeholder="http://192.168.0.100:8081"
+                placeholder="http://192.168.0.100:8003"
                 placeholderTextColor={Colors.light.textTertiary}
                 autoCapitalize="none"
                 autoCorrect={false}

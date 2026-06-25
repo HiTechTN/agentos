@@ -45,6 +45,77 @@ class ContextEnricher:
         self.skills = SkillsRegistry(db_session)
         self.knowledge = KnowledgeBase(db_session)
 
+    async def _build_memories_block(
+        self,
+        task_type: str,
+        workspace_id: str,
+        chars_used: int,
+    ) -> str | None:
+        """Build context block from past successful experiences."""
+        memories = await self.episodic.recall_similar(
+            task_type=task_type,
+            workspace_id=workspace_id,
+            limit=3,
+            outcome_filter="success",
+        )
+        if not memories:
+            return None
+        lines = ["## Relevant Past Experiences\n"]
+        for m in memories:
+            q = m.get("quality_score")
+            score = f"{q:.1f}" if q else "?"
+            line = (
+                f"- [quality={score}] {m['prompt_summary'][:80]} "
+                f"\u2192 Used: {m.get('strategy_used', 'N/A')[:60]}\n"
+            )
+            lines.append(line)
+        block = "".join(lines)
+        if chars_used + len(block) >= self.MAX_ENRICHMENT_CHARS:
+            return None
+        return block
+
+    async def _build_skills_block(
+        self,
+        task_description: str,
+        workspace_id: str,
+        chars_used: int,
+    ) -> str | None:
+        """Build context block from relevant skills."""
+        skill_list = await self.skills.find_relevant(
+            task_description=task_description,
+            workspace_id=workspace_id,
+            limit=3,
+        )
+        if not skill_list:
+            return None
+        lines = ["## Available Skills\n"]
+        for s in skill_list:
+            conf = s.get("confidence_score", 0.5)
+            line = (
+                f"- **{s['name']}** (confidence={conf:.1f}): "
+                f"{s['description'][:100]}\n"
+                f"  Procedure: {s['procedure'][:150]}\n"
+            )
+            lines.append(line)
+        block = "".join(lines)
+        if chars_used + len(block) >= self.MAX_ENRICHMENT_CHARS:
+            return None
+        return block
+
+    async def _build_knowledge_block(
+        self,
+        task_description: str,
+        workspace_id: str,
+        chars_used: int,
+    ) -> str | None:
+        """Build context block from domain knowledge."""
+        keywords = task_description.lower().split()[:15]
+        return await self.knowledge.build_context_block(
+            workspace_id=workspace_id,
+            keywords=keywords,
+            max_chars=self.MAX_ENRICHMENT_CHARS - chars_used,
+        )
+
     async def enrich(
         self,
         base_system: str,
@@ -63,71 +134,31 @@ class ContextEnricher:
         blocks: list[str] = []
         chars_used = 0
 
-        # 1. Past successful experiences
         if include_memories:
-            memories = await self.episodic.recall_similar(
-                task_type=task_type,
-                workspace_id=workspace_id,
-                limit=3,
-                outcome_filter="success",
-            )
-            if memories:
-                lines = ["## Relevant Past Experiences\n"]
-                for m in memories:
-                    q = m.get("quality_score")
-                    score = f"{q:.1f}" if q else "?"
-                    line = (
-                        f"- [quality={score}] {m['prompt_summary'][:80]} "
-                        f"→ Used: {m.get('strategy_used', 'N/A')[:60]}\n"
-                    )
-                    lines.append(line)
-                block = "".join(lines)
-                if chars_used + len(block) < self.MAX_ENRICHMENT_CHARS:
-                    blocks.append(block)
-                    chars_used += len(block)
+            block = await self._build_memories_block(task_type, workspace_id, chars_used)
+            if block:
+                blocks.append(block)
+                chars_used += len(block)
 
-        # 2. Relevant skills
         if include_skills:
-            skill_list = await self.skills.find_relevant(
-                task_description=task_description,
-                workspace_id=workspace_id,
-                limit=3,
-            )
-            if skill_list:
-                lines = ["## Available Skills\n"]
-                for s in skill_list:
-                    conf = s.get("confidence_score", 0.5)
-                    line = (
-                        f"- **{s['name']}** (confidence={conf:.1f}): "
-                        f"{s['description'][:100]}\n"
-                        f"  Procedure: {s['procedure'][:150]}\n"
-                    )
-                    lines.append(line)
-                block = "".join(lines)
-                if chars_used + len(block) < self.MAX_ENRICHMENT_CHARS:
-                    blocks.append(block)
-                    chars_used += len(block)
+            block = await self._build_skills_block(task_description, workspace_id, chars_used)
+            if block:
+                blocks.append(block)
+                chars_used += len(block)
 
-        # 3. Domain knowledge
         if include_knowledge:
-            keywords = task_description.lower().split()[:15]
-            kb_block = await self.knowledge.build_context_block(
-                workspace_id=workspace_id,
-                keywords=keywords,
-                max_chars=self.MAX_ENRICHMENT_CHARS - chars_used,
-            )
-            if kb_block:
-                blocks.append(kb_block)
+            block = await self._build_knowledge_block(task_description, workspace_id, chars_used)
+            if block:
+                blocks.append(block)
 
         if not blocks:
             return base_system
 
         enrichment = "\n".join(blocks)
-        enriched = f"{enrichment}\n\n---\n\n{base_system}"
         logger.debug(
             "context_enriched task_type=%s chars=%d blocks=%d",
             task_type,
             len(enrichment),
             len(blocks),
         )
-        return enriched
+        return f"{enrichment}\n\n---\n\n{base_system}"

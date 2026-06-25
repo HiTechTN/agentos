@@ -195,8 +195,7 @@ class BaseAgent(ABC):
                                     "type": "image_url",
                                     "image_url": {
                                         "url": (
-                                            f"data:{att['mime_type']};"
-                                            f"base64,{att['data_base64']}"
+                                            f"data:{att['mime_type']};base64,{att['data_base64']}"
                                         )
                                     },
                                 }

@@ -25,13 +25,18 @@ RUN groupadd --gid 1001 agentos && \
     libpq5 curl && \
     rm -rf /var/lib/apt/lists/*
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 WORKDIR /app
 
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/app ./app
-COPY --from=builder /app/pyproject.toml /app/uv.lock /app/pyproject.toml /app/uv.lock ./
+# Copy source files first (needed for uv sync)
+COPY pyproject.toml uv.lock README.md ./
+COPY app/ ./app
 COPY alembic.ini ./alembic.ini
 COPY app/migrations/ ./app/migrations/
+
+# Rebuild venv in runtime stage to get correct Python symlinks
+RUN uv sync --frozen --no-dev && chown -R agentos:agentos /app/.venv
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"

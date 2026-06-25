@@ -7,7 +7,7 @@ packages = ["app/"]
 
 [project]
 name = "agentos"
-version = "7.1.0"
+version = "7.2.1"
 description = "AgentOS - AI Agent Orchestration System"
 readme = "README.md"
 license = { text = "MIT" }

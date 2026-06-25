@@ -1,3 +1,5 @@
+from datetime import UTC
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -1034,3 +1036,589 @@ class TestMCPRegistry:
         r1 = get_mcp_registry()
         r2 = get_mcp_registry()
         assert r1 is r2
+
+
+# =============================================================================
+# Audit v7.2.1 — Coverage gaps (69 lines)
+# =============================================================================
+
+
+class TestBaseAgentMultimodal:
+    """Cover app/agents/base.py:182-205 — _build_multimodal_messages"""
+
+    def _make_agent(self) -> Any:
+        from app.agents.base import BaseAgent
+
+        class _TestAgent(BaseAgent):
+            name = "test"
+
+            async def _run(
+                self,
+                action: str,
+                params: dict,
+                session_id: str,
+                trace_id: str,
+                attachments: list | None = None,
+            ) -> Any:
+                return {"ok": True}
+
+        return _TestAgent()
+
+    def test_no_images_returns_unchanged(self) -> None:
+        agent = self._make_agent()
+        msgs = [{"role": "user", "content": "hello"}]
+        result = agent._build_multimodal_messages(msgs)
+        assert result == msgs
+
+    def test_with_images_converts_to_multimodal(self) -> None:
+        agent = self._make_agent()
+        agent._attachments = [
+            {"mime_type": "image/png", "data_base64": "abc123"},
+        ]
+        msgs = [{"role": "system", "content": "sys"}, {"role": "user", "content": "describe this"}]
+        result = agent._build_multimodal_messages(msgs)
+        assert isinstance(result[1]["content"], list)
+        assert result[1]["content"][0]["type"] == "text"
+        assert result[1]["content"][1]["type"] == "image_url"
+
+
+class TestIntelligenceAPIGetSession:
+    """Cover app/api/intelligence.py:28-30 — _get_session engine creation"""
+
+    @pytest.mark.asyncio
+    async def test_get_session_creates_engine(self) -> None:
+        from app.api import intelligence
+
+        intelligence._engine = None
+        intelligence._session_factory = None
+        with patch("app.api.intelligence.create_async_engine") as mock_ce:
+            with patch("app.api.intelligence.async_sessionmaker") as mock_sm:
+                mock_sm.return_value = MagicMock(return_value=MagicMock())
+                result = await intelligence._get_session()
+                mock_ce.assert_called_once()
+                assert result is not None
+
+
+class TestAgentBusExceptions:
+    """Cover app/bus/agent_bus.py:67-69, 93-94, 107-108, 113-115, 121-122, 146-147, 153-154"""
+
+    @pytest.mark.asyncio
+    async def test_connect_exception(self) -> None:
+        from app.bus.agent_bus import AgentBus
+
+        with patch("app.bus.agent_bus.Redis.from_url", side_effect=Exception("conn fail")):
+            bus = AgentBus(redis_url="redis://bad:6379")
+            assert bus._redis is None
+
+    @pytest.mark.asyncio
+    async def test_publish_no_redis(self) -> None:
+        from app.bus.agent_bus import AgentBus, BusMessage
+
+        bus = AgentBus(redis_url="redis://bad:6379")
+        bus._redis = None
+        msg = BusMessage(sender="s", recipient="r", topic="t", payload={})
+        await bus.publish(msg)
+
+    @pytest.mark.asyncio
+    async def test_publish_exception(self) -> None:
+        from app.bus.agent_bus import AgentBus, BusMessage
+
+        bus = AgentBus(redis_url="redis://bad:6379")
+        bus._redis = MagicMock()
+        bus._redis.publish = AsyncMock(side_effect=Exception("pub fail"))
+        msg = BusMessage(sender="s", recipient="r", topic="t", payload={})
+        await bus.publish(msg)
+
+    @pytest.mark.asyncio
+    async def test_subscribe_no_redis(self) -> None:
+        from app.bus.agent_bus import AgentBus
+
+        bus = AgentBus(redis_url="redis://bad:6379")
+        bus._redis = None
+        queue = await bus.subscribe("test")
+        assert queue.qsize() == 0
+
+    @pytest.mark.asyncio
+    async def test_subscribe_exception(self) -> None:
+        from app.bus.agent_bus import AgentBus
+
+        bus = AgentBus(redis_url="redis://bad:6379")
+        bus._redis = MagicMock()
+        pubsub = MagicMock()
+        pubsub.subscribe = AsyncMock(side_effect=Exception("sub fail"))
+        bus._redis.pubsub.return_value = pubsub
+        queue = await bus.subscribe("test")
+        assert queue.qsize() == 0
+
+    @pytest.mark.asyncio
+    async def test_close_pubsub_exception(self) -> None:
+        from app.bus.agent_bus import AgentBus
+
+        bus = AgentBus(redis_url="redis://bad:6379")
+        bus._pubsub = MagicMock()
+        bus._pubsub.unsubscribe = AsyncMock(side_effect=Exception("unsub fail"))
+        bus._pubsub.close = AsyncMock(side_effect=Exception("close fail"))
+        bus._redis = MagicMock()
+        bus._redis.aclose = AsyncMock()
+        await bus.close()
+
+    @pytest.mark.asyncio
+    async def test_close_redis_exception(self) -> None:
+        from app.bus.agent_bus import AgentBus
+
+        bus = AgentBus(redis_url="redis://bad:6379")
+        bus._redis = MagicMock()
+        bus._redis.aclose = AsyncMock(side_effect=Exception("redis close fail"))
+        await bus.close()
+
+
+class TestReflectionCollectMemories:
+    """Cover app/learning/reflection.py:219-231"""
+
+    @pytest.mark.asyncio
+    async def test_collect_recent_memories_empty(self) -> None:
+        from datetime import datetime
+
+        from app.learning.reflection import SelfReflectionEngine
+
+        db = AsyncMock()
+        db.execute.return_value = AsyncMock()
+        db.execute.return_value.fetchall = MagicMock(return_value=[])
+        engine = SelfReflectionEngine(db_session=db, workspace_id="ws1")
+        memories = await engine._collect_recent_memories(datetime.now(UTC))
+        assert memories == []
+
+
+class TestHealthCheckApp:
+    """Cover app/main.py:141-142 — health endpoint exception handler"""
+
+    @pytest.mark.asyncio
+    async def test_health_endpoint(self) -> None:
+        from httpx import ASGITransport, AsyncClient
+
+        from app.main import app
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/health")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "api" in data
+
+
+class TestQuickTokenUserFound:
+    """Cover app/routes/auth.py:53-55 — user found branch"""
+
+    @pytest.mark.asyncio
+    async def test_create_quick_token_user_found(self) -> None:
+        from app.routes.auth import QuickTokenRequest, create_quick_token
+
+        mock_request = MagicMock()
+        body = QuickTokenRequest(sub="user1", workspace="ws1")
+        with patch("app.routes.auth._get_session") as mock_gs:
+            mock_db = AsyncMock()
+            mock_gs.return_value.__aenter__.return_value = mock_db
+            row = MagicMock()
+            row.id = "found-id"
+            row.role = "admin"
+            mock_db.execute.return_value.fetchone.return_value = row
+            with patch("app.routes.auth.create_access_token", return_value="tok"):
+                result = await create_quick_token(mock_request, body)
+                assert result.access_token == "tok"
+
+
+class TestModelRouteGetHealth:
+    """Cover app/routes/models.py:96-99 — no_model branch"""
+
+    @pytest.mark.asyncio
+    async def test_get_model_health_no_model(self) -> None:
+        from app.routes.models import get_model_health
+
+        mock_user = MagicMock()
+        with patch("app.routes.models._get_session", new_callable=AsyncMock) as mock_gs:
+            mock_db = AsyncMock()
+            mock_gs.return_value.__aenter__.return_value = mock_db
+            mock_rot = MagicMock()
+            mock_rot.select_model = AsyncMock(return_value=None)
+            with patch("app.utils.rotation_engine.RotationEngine", return_value=mock_rot):
+                with patch("app.utils.model_discovery.ModelBenchmark") as mock_bc:
+                    mock_bm = AsyncMock()
+                    mock_bm.test = AsyncMock(return_value=(True, 0.5))
+                    mock_bm.close = AsyncMock()
+                    mock_bc.return_value = mock_bm
+                    result = await get_model_health(mock_user)
+                    assert hasattr(result, "data")
+
+
+class TestSchedulerDiscoveryHealthTasks:
+    """Cover app/scheduler.py:158-162, 256, 273-274"""
+
+    @pytest.mark.asyncio
+    async def test_execute_nightly_discovery(self) -> None:
+        from app.scheduler import Scheduler
+
+        sched = Scheduler()
+        task = MagicMock()
+        task.prompt = "__nightly_reflection__"
+        with patch.object(sched, "_run_nightly_reflection", AsyncMock()) as mock_ref:
+            await sched._execute_task(task)
+            mock_ref.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_daily_discovery(self) -> None:
+        from app.scheduler import Scheduler
+
+        sched = Scheduler()
+        task = MagicMock()
+        task.prompt = "__daily_model_discovery__"
+        with patch.object(sched, "_run_daily_model_discovery", AsyncMock()) as mock_disc:
+            await sched._execute_task(task)
+            mock_disc.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_health_check(self) -> None:
+        from app.scheduler import Scheduler
+
+        sched = Scheduler()
+        task = MagicMock()
+        task.prompt = "__model_health_check__"
+        with patch.object(sched, "_run_model_health_check", AsyncMock()) as mock_hc:
+            await sched._execute_task(task)
+            mock_hc.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_model_health_check_exception(self) -> None:
+        from app.scheduler import Scheduler
+
+        sched = Scheduler()
+        with patch("app.scheduler.create_async_engine", side_effect=Exception("boom")):
+            await sched._run_model_health_check()
+
+
+class TestComputerUseDisabled:
+    """Cover app/tools/computer_use.py:57-58"""
+
+    @pytest.mark.asyncio
+    async def test_initialize_disabled(self) -> None:
+        from app.tools.computer_use import ComputerUseTools
+
+        tools = ComputerUseTools(enabled=False)
+        await tools.initialize()
+
+
+class TestLLMClientOllamaMultimodal:
+    """Cover app/utils/api_clients.py:95-100 — text extraction from multimodal"""
+
+    @pytest.mark.asyncio
+    async def test_complete_with_multimodal_extraction(self) -> None:
+        from app.utils.api_clients import LLMClient
+
+        client = LLMClient()
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "hello"},
+                    {"type": "image_url", "image_url": {"url": "data:img/png;base64,x"}},
+                ],
+            }
+        ]
+        from app.utils.api_clients import LLMResponse
+
+        with patch.object(client, "chat", AsyncMock()) as mock_chat:
+            mock_chat.return_value = LLMResponse(content="ok", model="qwen2.5", provider="ollama")
+            result = await client.complete("qwen2.5", "system", messages)
+            assert result.content == "ok"
+
+
+class TestAutoCorrectorFailurePath:
+    """Cover app/utils/auto_corrector.py:93 — final return on max retries"""
+
+    @pytest.mark.asyncio
+    async def test_execute_failure_returns_correction_result(self) -> None:
+        from app.utils.auto_corrector import AutoCorrector
+
+        corrector = AutoCorrector(max_retries=0)
+        result = await corrector.execute(code="bad code")
+        assert not result.success
+
+
+class TestLLMRouterNoDbUrl:
+    """Cover app/utils/llm_router.py:43-44 — no DB URL branch"""
+
+    @pytest.mark.asyncio
+    async def test_reload_dynamic_no_db_url(self) -> None:
+        from app.utils.llm_router import SmartLLMRouter
+
+        router = SmartLLMRouter()
+        with patch("app.utils.llm_router.get_settings") as mock_gs:
+            mock_settings = MagicMock()
+            mock_settings.resolved_database_url = ""
+            mock_gs.return_value = mock_settings
+            await router._reload_dynamic_models()
+            assert router._dynamic_models == {}
+
+
+class _AsyncSessionFactory:
+    """Helper: creates an async context manager that yields the mock DB."""
+
+    def __init__(self, mock_db: AsyncMock) -> None:
+        self._mock_db = mock_db
+
+    def __call__(self):
+        return self
+
+    async def __aenter__(self) -> AsyncMock:
+        return self._mock_db
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: object | None = None,
+    ) -> None:
+        pass
+
+
+class TestLLMRouterValueErrorBranches:
+    """Cover app/utils/llm_router.py:51-52 — WorkType ValueError in _register_model_for_type"""
+
+    @pytest.mark.asyncio
+    async def test_dynamic_models_bad_work_type_values(self) -> None:
+        from app.utils.llm_router import SmartLLMRouter
+
+        router = SmartLLMRouter()
+        with patch("app.utils.llm_router.get_settings") as mock_gs:
+            mock_settings = MagicMock()
+            mock_settings.resolved_database_url = "postgresql+asyncpg://u:p@h:5432/db"
+            mock_gs.return_value = mock_settings
+            mock_db = AsyncMock()
+            mock_db.execute.return_value.fetchall.return_value = [
+                ("m1", "model1", 128000, True, False, True, 20, 200, "bad_type", '["also_bad"]'),
+            ]
+            with patch("sqlalchemy.ext.asyncio.create_async_engine") as mock_ce:
+                mock_engine = MagicMock()
+                mock_ce.return_value = mock_engine
+                mock_session_factory = _AsyncSessionFactory(mock_db)
+                with patch(
+                    "sqlalchemy.ext.asyncio.async_sessionmaker",
+                    return_value=mock_session_factory,
+                ):
+                    await router._reload_dynamic_models()
+                    assert router._dynamic_models is not None
+
+
+class TestIntelligenceAddMemory:
+    """Cover app/api/intelligence.py:61-83 — add_memory endpoint"""
+
+    @pytest.mark.asyncio
+    async def test_add_memory_success(self) -> None:
+        from app.api.intelligence import add_memory
+
+        mock_user = MagicMock()
+        mock_db = AsyncMock()
+        mock_record = AsyncMock(return_value="mem-uuid")
+        with patch("app.api.intelligence._get_session", new_callable=AsyncMock) as mock_gs:
+            mock_gs.return_value.__aenter__.return_value = mock_db
+            with patch("app.api.intelligence.EpisodicMemory") as mock_em_cls:
+                mock_em_cls.return_value.record = mock_record
+                result = await add_memory(mock_user, "ws-1", {"task_type": "test"})
+                assert result.data["id"] == "mem-uuid"
+
+
+class TestAgentBusListenerMessage:
+    """Cover app/bus/agent_bus.py:121-122 — listener happy path"""
+
+    @pytest.mark.asyncio
+    async def test_listener_receives_message(self) -> None:
+        from app.bus.agent_bus import AgentBus
+
+        bus = AgentBus(redis_url="redis://bad:6379")
+        bus._redis = MagicMock()
+        pubsub = AsyncMock()
+
+        async def mock_listen():
+            yield {"type": "subscribe", "data": 1}
+            yield {"type": "message", "data": "hello"}
+
+        pubsub.listen = mock_listen
+        bus._redis.pubsub.return_value = pubsub
+        queue = await bus.subscribe("test")
+        import asyncio
+
+        await asyncio.sleep(0.02)
+        assert queue.qsize() == 1
+
+
+class TestLLMClientOllamaMultimodalFallback:
+    """Cover app/utils/api_clients.py:95-100 — text extraction from multimodal content"""
+
+    @pytest.mark.asyncio
+    async def test_complete_multimodal_ollama_fallback(self) -> None:
+        from app.utils.api_clients import LLMClient
+
+        client = LLMClient()
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "hello"},
+                    {"type": "image_url", "image_url": {"url": "data:img/png;base64,abc"}},
+                ],
+            },
+        ]
+        with patch.object(client, "settings") as mock_settings:
+            mock_settings.ollama_fallback_model = "qwen2.5:7b"
+            mock_settings.ollama_base_url = "http://localhost:11434"
+            with patch("httpx.AsyncClient") as mock_httpx:
+                mock_resp = MagicMock()
+                mock_resp.status_code = 200
+                mock_resp.json.return_value = {"message": {"content": "ok"}, "model": "qwen2.5"}
+                mock_httpx.return_value.__aenter__.return_value.post = AsyncMock(
+                    return_value=mock_resp
+                )
+                result = await client.complete("qwen2.5:7b", "system", messages)
+                assert result.content == "ok"
+
+
+class TestSchedulerHealthCheckContinue:
+    """Cover app/scheduler.py:256 — select_model returns None"""
+
+    @pytest.mark.asyncio
+    async def test_health_check_continue_on_no_model(self) -> None:
+        from app.scheduler import Scheduler
+
+        sched = Scheduler()
+        with patch("app.scheduler.create_async_engine") as mock_ce:
+            mock_engine = MagicMock()
+            mock_ce.return_value = mock_engine
+            with patch("app.scheduler.async_sessionmaker") as mock_sm:
+                mock_db = AsyncMock()
+                cm = MagicMock()
+                cm.__aenter__ = AsyncMock(return_value=mock_db)
+                cm.__aexit__ = AsyncMock()
+                mock_sm.return_value = cm
+                with patch("app.utils.rotation_engine.RotationEngine") as mock_re:
+                    mock_rot = MagicMock()
+                    mock_rot.select_model = AsyncMock(return_value=None)
+                    mock_re.return_value = mock_rot
+                    with patch("app.utils.model_discovery.ModelBenchmark") as mock_bc:
+                        mock_bm = AsyncMock()
+                        mock_bm.test = AsyncMock(return_value=(True, 0.5))
+                        mock_bm.close = AsyncMock()
+                        mock_bc.return_value = mock_bm
+                        await sched._run_model_health_check()
+
+
+class TestHealthCheckOllamaException:
+    """Cover app/main.py:141-142 — health endpoint Ollama exception outer path"""
+
+    @pytest.mark.asyncio
+    async def test_health_ollama_outer_exception(self) -> None:
+        from unittest.mock import Mock
+
+        from app.main import health
+
+        mock_s = Mock(
+            spec=[
+                "version",
+                "resolved_database_url",
+                "resolved_redis_url",
+                "service_name",
+                "otlp_enabled",
+                "otlp_endpoint",
+            ]
+        )
+        mock_s.version = "7.2.1"
+        mock_s.resolved_database_url = "postgresql://u:p@localhost:5432/db"
+        mock_s.resolved_redis_url = "memory://"
+        mock_s.service_name = "agentos"
+        mock_s.otlp_enabled = False
+        mock_s.otlp_endpoint = ""
+        with patch("app.main.settings", mock_s):
+            result = await health()
+            assert result["ollama"] == "error"
+
+
+class TestLLMRouterCallOllamaMultimodal:
+    """Cover app/utils/llm_router.py:279-284 — multimodal text extraction in _call_ollama"""
+
+    @pytest.mark.asyncio
+    async def test_call_ollama_multimodal_content(self) -> None:
+        from app.utils.llm_router import SmartLLMRouter
+
+        router = SmartLLMRouter()
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "hello"},
+                    {"type": "image_url", "image_url": {"url": "data:img/png;base64,abc"}},
+                ],
+            },
+        ]
+        with patch("httpx.AsyncClient") as mock_httpx:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {"message": {"content": "ok"}}
+            mock_httpx.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_resp)
+            result = await router._call_ollama(messages, temperature=0.7, max_tokens=1000)
+            assert result["choices"][0]["message"]["content"] == "ok"
+
+
+class TestContextEnricherTruncationBranches:
+    """Cover app/learning/context_enricher.py:74, 102 — block truncation guards"""
+
+    @pytest.mark.asyncio
+    async def test_memories_block_truncated(self) -> None:
+        from app.learning.context_enricher import ContextEnricher
+
+        mock_db = MagicMock()
+        enricher = ContextEnricher(mock_db)
+        with patch.object(
+            enricher.episodic,
+            "recall_similar",
+            AsyncMock(
+                return_value=[
+                    {
+                        "quality_score": 0.9,
+                        "prompt_summary": "Build API",
+                        "strategy_used": "TDD",
+                    },
+                ]
+            ),
+        ):
+            result = await enricher._build_memories_block(
+                "code_gen",
+                "ws-1",
+                chars_used=1999,
+            )
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_skills_block_truncated(self) -> None:
+        """Cover app/learning/context_enricher.py:102 — skills block truncated."""
+        from app.learning.context_enricher import ContextEnricher
+
+        mock_db = MagicMock()
+        enricher = ContextEnricher(mock_db)
+        with patch.object(
+            enricher.skills,
+            "find_relevant",
+            AsyncMock(
+                return_value=[
+                    {
+                        "name": "Test Skill",
+                        "confidence_score": 0.85,
+                        "description": "A test skill description",
+                        "procedure": "Do step 1\nThen step 2",
+                    },
+                ]
+            ),
+        ):
+            result = await enricher._build_skills_block(
+                "test task",
+                "ws-1",
+                chars_used=1999,
+            )
+            assert result is None
